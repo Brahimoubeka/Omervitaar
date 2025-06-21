@@ -22,6 +22,15 @@ async function getFirstImageForProduct(productId) {
   return rows[0]?.imagePath || null;
 }
 
+// // Helper: Get all images for product
+// async function getImagesForProduct(productId) {
+//   const { rows } = await db.query(
+//     'SELECT "imagePath" FROM "ProductImages" WHERE "product_id" = $1 ORDER BY "id"',
+//     [productId]
+//   );
+//   return rows.map(r => r.imagePath);
+// }
+
 // Helper: Get average rating and review count for a product
 async function getProductRatingStats(productId) {
   const { rows } = await db.query(
@@ -106,6 +115,38 @@ router.get('/products/latest', async (req, res) => {
     res.status(500).json({ error: 'Son ürünler alınırken veritabanı hatası.' });
   }
 });
+
+
+// // GET /api/products/latestByCategory - latest product for each category
+// router.get('/products/:id', async (req, res) => {
+//   try {
+//     const { rows: categories } = await db.query('SELECT "id", "name" FROM "Categories" ORDER BY "id"');
+//     const result = [];
+//     for (const cat of categories) {
+//       const { rows } = await db.query(
+//         `SELECT p.* FROM "Products" p
+//          JOIN "ProductCategories" pc ON p."id" = pc."product_id"
+//          WHERE pc."category_id" = $1
+//          ORDER BY p."id" DESC LIMIT 1`,
+//         [cat.id]
+//       );
+//       if (rows.length === 0) continue;
+//       const product = rows[0];
+//       product.categories = await getCategoriesForProduct(product.id);
+//       product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
+//       product.images = await getImagesForProduct(product.id);
+//       const stats = await getProductRatingStats(product.id);
+//       product.avgRating = stats.avgRating;
+//       product.reviewCount = stats.reviewCount;
+//       product.mainCategory = cat;
+//       result.push(product);
+//     }
+//     res.json(result);
+//   } catch (err) {
+//     console.error('Error retrieving latest product by category:', err);
+//     res.status(500).json({ error: 'خطأ في الخادم' });
+//   }
+// });
 
 // GET /api/categories
 router.get('/categories', async (req, res) => {

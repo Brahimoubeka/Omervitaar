@@ -38,7 +38,7 @@ function renderProducts(products) {
     if (product.images && Array.isArray(product.images) && product.images.length > 1) {
       const carouselId = `product-carousel-${product.id}`;
       carouselHTML = `
-        <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel">
+        <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel"  >
           <div class="carousel-inner">
             ${product.images.map((src, idx) => `
               <div class="carousel-item${idx === 0 ? ' active' : ''}">
@@ -46,7 +46,7 @@ function renderProducts(products) {
               </div>
             `).join('')}
           </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+          <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev" >
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
             <span class="visually-hidden">Önceki</span>
           </button>
@@ -74,7 +74,7 @@ function renderProducts(products) {
     let catBadges = '';
     if (product.categories && product.categories.length) {
       catBadges = product.categories.map(cat =>
-        `<span class="badge bg-light border text-dark me-1" style="font-size:0.88em;padding:.25em .53em;"><i class="bi bi-tag"></i> ${cat.name}</span>`
+        `<span class="badge bg-light border text-dark me-1" style="font-size:0.58em;padding:.25em .53em;"><i class="bi bi-tag"></i> ${cat.name}</span>`
       ).join('');
     }
 
@@ -89,11 +89,11 @@ function renderProducts(products) {
         ${carouselHTML}
         ${badgeHTML}
       </div>
-      <div class="product-card-body">
-        <h5 class="product-card-title">${product.name}</h5>
+      <div class="product-card-body" >
+        <h5 class="product-card-title" style="margin: .1em .1em ;">${product.name}</h5>
         <div class="mb-1">${catBadges}</div>
-        <div class="product-card-price"><i class="bi bi-tag me-1"></i>₺${product.price}${ratingHtml}</div>
-        <button class="btn product-card-button">عرض التفاصيل</button>
+        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>₺${product.price}${ratingHtml}</div>
+        <button class="btn product-card-button" style="font-size:1.3em;padding:.1em .1em;">عرض التفاصيل</button>
       </div>
     `;
     productCard.querySelector('.product-card-button').addEventListener('click', () => {

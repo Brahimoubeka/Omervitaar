@@ -153,12 +153,12 @@
       line-height: 1.6;
     }
 
-    /* Stats Section */
+    /* Stats Section 
     .stats-section {
       background: var(--dark-charcoal);
       color: white;
       padding: 10px 0;
-    }
+    }*/
 
     .stat-item {
       text-align: center;
@@ -426,6 +426,8 @@
     .animate-fade-in {
       animation: fadeInUp 0.8s ease-out;
     }
+
+    
   </style>
 </head>
 <body>
@@ -515,7 +517,7 @@
               <i class="bi bi-truck"></i>
             </div>
             <h3 class="feature-title">توصيل خلال 24 ساعة</h3>
-            <p class="feature-text">طلباتك تصلك إلى باب منزلك خلال 24 ساعة. خدمة توصيل سريعة وآمنة.</p>
+            <p class="feature-text">طلباتك تصلك إلى باب منزلك غالبا خلال 24 ساعة. خدمة توصيل سريعة وآمنة.</p>
           </div>
         </div>
         
@@ -535,7 +537,7 @@
               <i class="bi bi-shield-check"></i>
             </div>
             <h3 class="feature-title">تسوق آمن</h3>
-            <p class="feature-text">معلوماتك آمنة معنا. جميع بياناتك مشفرة ولا يتم مشاركتها مع أي طرف ثالث. كن مطمئنًا!</p>
+            <p class="feature-text">معلوماتك آمنة معنا. كن مطمئنًا!</p>
           </div>
         </div>
         
@@ -553,7 +555,7 @@
   </section>
 
   <!-- Stats Section -->
-  <section class="stats-section">
+  <!-- <section class="stats-section">
     <div class="container">
       <div class="row">
         <div class="col-lg-3 col-md-6">
@@ -582,18 +584,18 @@
         </div>
       </div>
     </div>
-  </section>
+  </section> -->
 
   <!-- Category Shortcuts Section -->
 <section class="category-shortcuts-section py-5" style="background:var(--light-gray);">
   <div class="container">
     <div class="row text-center mb-4">
       <h2 class="fw-bold mb-3" style="color: var(--military-green); letter-spacing: .5px;">فئاتنا</h2>
-      <p class="lead text-muted">ما هو احتياجك الذي ترغب بالتركيز عليه؟</p>
+      <p class="lead text-muted">ما هو احتياجك؟</p>
     </div>
     <div class="row g-4 justify-content-center">
       <div class="col-12 col-md-4">
-        <a href="products.html?category=1" class="cat-shortcut-link text-decoration-none">
+        <a href="products.html?category=2" class="cat-shortcut-link text-decoration-none">
           <div class="cat-shortcut-card shadow-sm">
             <div class="cat-shortcut-icon bg-pink">
               <i class="bi bi-droplet-half"></i>
@@ -603,7 +605,7 @@
         </a>
       </div>
       <div class="col-12 col-md-4">
-        <a href="products.html?category=2" class="cat-shortcut-link text-decoration-none">
+        <a href="products.html?category=1" class="cat-shortcut-link text-decoration-none">
           <div class="cat-shortcut-card shadow-sm">
             <div class="cat-shortcut-icon bg-orange">
               <i class="bi bi-scissors"></i>
@@ -618,7 +620,7 @@
             <div class="cat-shortcut-icon bg-green">
               <i class="bi bi-capsule"></i>
             </div>
-            <div class="cat-shortcut-title">المكملات الطبيعية</div>
+            <div class="cat-shortcut-title">أغذية صحية </div>
           </div>
         </a>
       </div>
@@ -644,6 +646,11 @@
       </div>
     </div>
   </section>
+
+  <!-- Scroll to Top Arrow -->
+  <button id="scrollToTopBtn" style="position: fixed; bottom: 32px; right: 24px; z-index: 9999; display: none; background: var(--orange-accent); color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.3rem; cursor: pointer; transition: background 0.2s;">
+    <i class="bi bi-arrow-up-short"></i>
+  </button>
 
   <!-- Footer -->
   <footer class="pt-5 pb-4">
@@ -686,10 +693,7 @@
     </div>
   </footer>
 
-  <!-- Scroll to Top Arrow -->
-  <button id="scrollToTopBtn" style="position: fixed; bottom: 32px; right: 24px; z-index: 9999; display: none; background: var(--orange-accent); color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.3rem; cursor: pointer; transition: background 0.2s;">
-    <i class="bi bi-arrow-up-short"></i>
-  </button>
+  
 
   <!-- Bootstrap JS Bundle CDN -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -747,29 +751,18 @@
     }
 
     // Trigger counter animation when stats section is visible
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          animateCounters();
-          observer.unobserve(entry.target);
-        }
-      });
-    });
+    // const observer = new IntersectionObserver((entries) => {
+    //   entries.forEach(entry => {
+    //     if (entry.isIntersecting) {
+    //       animateCounters();
+    //       observer.unobserve(entry.target);
+    //     }
+    //   });
+    // });
 
-    observer.observe(document.querySelector('.stats-section'));
+    // observer.observe(document.querySelector('.stats-section'));
 
-    // Scroll to Top Button
-    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-    window.addEventListener('scroll', function() {
-      if (window.scrollY > 200) {
-        scrollToTopBtn.style.display = 'block';
-      } else {
-        scrollToTopBtn.style.display = 'none';
-      }
-    });
-    scrollToTopBtn.addEventListener('click', function() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    
 
     async function updateBrandingLinks() {
   const res = await fetch('/api/branding');
@@ -783,6 +776,20 @@
   document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
 }
 updateBrandingLinks();
+  </script>
+  <script>
+    // Scroll to Top Button
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 200) {
+        scrollToTopBtn.style.display = 'block';
+      } else {
+        scrollToTopBtn.style.display = 'none';
+      }
+    });
+    scrollToTopBtn.addEventListener('click', function() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   </script>
 
 </body>
