@@ -244,9 +244,9 @@ function populateOrderModal(group) {
         </div>
         <div class="col-md-6 text-md-end">
             <p><strong>تاريخ الطلب:</strong> ${new Date(firstOrder.order_date).toLocaleString()}</p>
-            <p><strong>إجمالي المنتجات:</strong> ₺${productsTotal.toFixed(2)}</p>
-            <p><strong>تكلفة الشحن:</strong> ₺${deliveryPrice.toFixed(2)}</p>
-            <h5 class="mt-2"><strong>الإجمالي الحالي:</strong> <span id="modal-current-total">₺${currentTotal.toFixed(2)}</span></h5>
+            <p><strong>إجمالي المنتجات:</strong> دج${productsTotal.toFixed(2)}</p>
+            <p><strong>تكلفة الشحن:</strong> دج${deliveryPrice.toFixed(2)}</p>
+            <h5 class="mt-2"><strong>الإجمالي الحالي:</strong> <span id="modal-current-total">دج${currentTotal.toFixed(2)}</span></h5>
         </div>
       </div>
       <hr />
@@ -262,7 +262,7 @@ function populateOrderModal(group) {
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <p class="mb-1"><strong>معرف الطلب:</strong> ${order.orderId} | <strong>المنتج:</strong> ${order.productName}</p>
-                <p class="mb-1"><strong>الكمية:</strong> ${order.quantity} | <strong>سعر الوحدة:</strong> ₺${(order.price || 0).toFixed(2)}</p>
+                <p class="mb-1"><strong>الكمية:</strong> ${order.quantity} | <strong>سعر الوحدة:</strong> دج${(order.price || 0).toFixed(2)}</p>
             </div>
             <div>
                 <strong>الحالة:</strong> <span id="status-span-${order.orderId}">${order.status}</span>
@@ -310,16 +310,16 @@ window.updateOrderStatus = async function(orderId, newStatus, group) {
             const updatedProductsPrice = refreshedGroupOrders[0].products_price || 0;
             const updatedDeliveryPrice = refreshedGroupOrders[0].delivery_price || 0;
             
-            document.getElementById('modal-current-total').innerHTML = `₺${updatedTotal.toFixed(2)}`;
+            document.getElementById('modal-current-total').innerHTML = `دج${updatedTotal.toFixed(2)}`;
             
             const productsElement = document.querySelector('.col-md-6.text-md-end p:nth-child(2)');
             const deliveryElement = document.querySelector('.col-md-6.text-md-end p:nth-child(3)');
             
             if (productsElement) {
-                productsElement.innerHTML = `<strong>إجمالي المنتجات:</strong> ₺${updatedProductsPrice.toFixed(2)}`;
+                productsElement.innerHTML = `<strong>إجمالي المنتجات:</strong> دج${updatedProductsPrice.toFixed(2)}`;
             }
             if (deliveryElement) {
-                deliveryElement.innerHTML = `<strong>تكلفة الشحن:</strong> ₺${updatedDeliveryPrice.toFixed(2)}`;
+                deliveryElement.innerHTML = `<strong>تكلفة الشحن:</strong> دج${updatedDeliveryPrice.toFixed(2)}`;
             }
         }
         

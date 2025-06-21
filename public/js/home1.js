@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   try {
     const response = await fetch('/api/products/latest');
     if (!response.ok) {
-      throw new Error('Son ürünler alınamadı');
+      throw new Error('تعذر جلب أحدث المنتجات');
     }
     const latestProducts = await response.json();
     const container = document.getElementById('latest-products-container');
@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', async function () {
 
       const price = document.createElement('p');
       price.classList.add('card-text', 'mb-3');
-      price.innerHTML = `Fiyat: TL${product.price}`;
+      price.innerHTML = `السعر: دج${product.price}`;
       cardBody.appendChild(price);
 
       const detailsButton = document.createElement('button');
       detailsButton.classList.add('btn', 'btn-primary', 'mt-auto');
-      detailsButton.innerHTML = 'Detayları Gör';
+      detailsButton.innerHTML = 'عرض التفاصيل';
       detailsButton.addEventListener('click', () => {
         window.location.href = `product-detail.html?id=${product.id}`;
       });
@@ -47,6 +47,6 @@ document.addEventListener('DOMContentLoaded', async function () {
       container.appendChild(productCol);
     });
   } catch (error) {
-    console.error('Son ürünler yüklenirken hata oluştu:', error);
+    console.error('حدث خطأ أثناء تحميل أحدث المنتجات:', error);
   }
 });
