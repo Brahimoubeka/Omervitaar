@@ -332,8 +332,8 @@ router.get('/branding', (req, res) => {
 
 // Update branding info (admin only)
 router.post('/admin/branding', verifyAdmin, (req, res) => {
-  const { facebook, instagram, tiktok, phone } = req.body;
-  const updated = { facebook, instagram, tiktok, phone };
+  const { facebook, instagram, tiktok, phone, email } = req.body;
+  const updated = { facebook, instagram, tiktok, phone, email };
   fs.writeFileSync(brandingPath, JSON.stringify(updated, null, 2));
   res.json({ message: 'تم تحديث المعلومات بنجاح', branding: updated });
 });

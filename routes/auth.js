@@ -23,6 +23,9 @@ console.log('JWT Secret:', process.env.JWT_SECRET);
 // Store reset tokens temporarily (in production, use Redis or database)
 const passwordResetTokens = new Map();
 
+// In-memory store for failed login attempts (per IP)
+const failedLoginAttempts = new Map();
+
 // User Registration Route
 router.post('/register', async (req, res) => {
     const { name, email, gender, birth_date, phone, password } = req.body;
@@ -60,6 +63,14 @@ router.post('/register', async (req, res) => {
 // User Login Route
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
+    const ip = req.ip;
+    const now = Date.now();
+    let attempts = failedLoginAttempts.get(ip) || { count: 0, last: 0, blockedUntil: 0 };
+
+    // Check if blocked
+    if (attempts.blockedUntil && now < attempts.blockedUntil) {
+        return res.status(429).json({ error: 'تم حظر تسجيل الدخول من هذا الجهاز لمدة ساعة بسبب محاولات متكررة. يرجى المحاولة لاحقًا.' });
+    }
 
     if (!email || !password) {
         return res.status(400).json({ error: 'الرجاء ادخال البريد الالكتروني وكلمة السر' });
@@ -73,14 +84,41 @@ router.post('/login', async (req, res) => {
         );
         const user = rows[0];
         if (!user) {
-            return res.status(400).json({ error: 'لم يتم العثور على المستخدم!' });
+            attempts.count++;
+            attempts.last = now;
+            if (attempts.count >= 10) {
+                attempts.blockedUntil = now + 60 * 60 * 1000; // 1 hour
+            }
+            failedLoginAttempts.set(ip, attempts);
+            let msg = 'لم يتم العثور على المستخدم!';
+            if (attempts.count >= 3 && attempts.count < 10) {
+                msg += ' حاول استرجاع كلمة المرور.';
+            } else if (attempts.count >= 10) {
+                msg = 'تم حظر تسجيل الدخول من هذا الجهاز لمدة ساعة بسبب محاولات متكررة. يرجى المحاولة لاحقًا.';
+            }
+            return res.status(400).json({ error: msg });
         }
 
         // Compare the provided password with the stored hash
         const match = await bcrypt.compare(password, user.password_hash);
         if (!match) {
-            return res.status(400).json({ error: 'كلمة المرور خاطئة' });
+            attempts.count++;
+            attempts.last = now;
+            if (attempts.count >= 10) {
+                attempts.blockedUntil = now + 60 * 60 * 1000; // 1 hour
+            }
+            failedLoginAttempts.set(ip, attempts);
+            let msg = 'كلمة المرور خاطئة';
+            if (attempts.count >= 3 && attempts.count < 10) {
+                msg += 'يمكنك اعادة تعيين كلمة مرور جديدة';
+            } else if (attempts.count >= 10) {
+                msg = 'تم حظر تسجيل الدخول من هذا الجهاز لمدة ساعة بسبب محاولات متكررة. يرجى المحاولة لاحقًا.';
+            }
+            return res.status(400).json({ error: msg });
         }
+
+        // Successful login: reset attempts
+        failedLoginAttempts.delete(ip);
 
         // Generate a JWT token that expires in 1 hour
         const token = jwt.sign({ userId: user.id, role: user.role }, secret, { expiresIn: '1h' });
@@ -140,6 +178,12 @@ router.post('/forgot-password', async (req, res) => {
 // Reset Password Route
 router.post('/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
+
+    // Password strength validation (same as registration)
+    const passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordPattern.test(newPassword)) {
+        return res.status(400).json({ error: 'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل، وتحتوي على حرف كبير واحد على الأقل، ورقم واحد، ورمز واحد.' });
+    }
 
     try {
         // Verify token

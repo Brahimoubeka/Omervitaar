@@ -286,20 +286,15 @@ function setupFormSubmitHandler() {
 
         // --- Validation ---
         if (!firstName || !lastName) {
-            showMessage('الاسم والكنية مطلوبان.', 'danger');
+            showMessage('الاسم واللقب مطلوبان.', 'danger');
             return;
         }
         
-        const phonePattern = /^0\d{10}$/;
+        // Phone number: exactly 10 digits
+        const phonePattern = /^\d{10}$/;
         if (!phonePattern.test(shippingName)) {
-            showMessage('يرجى إدخال رقم هاتف صالح يبدأ بـ 0 ويتكون من 11 رقمًا.', 'danger');
+            showMessage('يرجى إدخال رقم هاتف صالح مكون من 10 أرقام.', 'danger');
             document.getElementById('shippingName').focus();
-            return;
-        }
-        
-        if (!shippingAddress) {
-            showMessage('يرجى إدخال عنوان التوصيل.', 'danger');
-            document.getElementById('shippingAddress').focus();
             return;
         }
         
@@ -308,6 +303,7 @@ function setupFormSubmitHandler() {
             return;
         }
 
+        // Optional fields validation (if filled)
         const postalPattern = /^\d{1,5}$/;
         if (postalCode && !postalPattern.test(postalCode)) {
             showMessage('يجب أن يتكون الرمز البريدي من 5 أرقام كحد أقصى ويحتوي على أرقام فقط.', 'danger');
@@ -346,6 +342,9 @@ function setupFormSubmitHandler() {
 
         // --- API Request ---
         try {
+            // Show loading spinner and message
+            showMessage(`<span class="spinner-border spinner-border-sm text-warning me-2" role="status" aria-hidden="true"></span>يتم ارسال الطلبية...`, 'info');
+
             const response = await fetch('/api/orders', {
                 method: 'POST',
                 headers: {

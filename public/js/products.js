@@ -1,5 +1,8 @@
 let allProducts = [];
 let allCategories = [];
+let currentOffset = 0;
+const PAGE_SIZE = 8;
+let allLoaded = false;
 
 // Helper to get all categories for filter dropdown
 async function loadCategories() {
@@ -22,9 +25,9 @@ async function loadCategories() {
 
 
 // --- Main rendering ---
-function renderProducts(products) {
+function renderProducts(products, append = false) {
   const container = document.getElementById('products-container');
-  container.innerHTML = '';
+  if (!append) container.innerHTML = '';
 
   products.forEach(product => {
     const productCol = document.createElement('div');
@@ -92,13 +95,8 @@ function renderProducts(products) {
       <div class="product-card-body" >
         <h5 class="product-card-title" style="margin: .1em .1em ;">${product.name}</h5>
         <div class="mb-1">${catBadges}</div>
-<<<<<<< HEAD
-        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>₺${product.price}${ratingHtml}</div>
+        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}${ratingHtml}</div>
         <button class="btn product-card-button" style="font-size:1.3em;padding:.1em .1em;">عرض التفاصيل</button>
-=======
-        <div class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}${ratingHtml}</div>
-        <button class="btn product-card-button">عرض التفاصيل</button>
->>>>>>> 5f91041f962e686d323bb4ee411a4fb7dcb11f0f
       </div>
     `;
     productCard.querySelector('.product-card-button').addEventListener('click', () => {
@@ -108,6 +106,7 @@ function renderProducts(products) {
     container.appendChild(productCol);
   });
 }
+
 
 // Loads products and fetches their images for carousel use
 async function loadProducts() {
@@ -141,6 +140,30 @@ async function loadProducts() {
     renderProducts(allProducts);
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
+  }
+}
+
+async function loadProductsPaginated(reset = false) {
+  if (reset) {
+    currentOffset = 0;
+    allLoaded = false;
+    allProducts = [];
+    document.getElementById('show-less-btn').style.display = 'none';
+  }
+  if (allLoaded) return;
+  try {
+    const resp = await fetch(`/api/products/paginate?offset=${currentOffset}&limit=${PAGE_SIZE}`);
+    if (!resp.ok) throw new Error('تعذر جلب المنتجات');
+    const products = await resp.json();
+    if (products.length < PAGE_SIZE) allLoaded = true;
+    currentOffset += products.length;
+    allProducts = allProducts.concat(products);
+    renderProducts(allProducts, false);
+    // Show/hide buttons
+    document.getElementById('show-more-btn').style.display = allLoaded ? 'none' : 'block';
+    document.getElementById('show-less-btn').style.display = currentOffset > PAGE_SIZE ? 'block' : 'none';
+  } catch (e) {
+    console.error(e);
   }
 }
 
@@ -178,7 +201,7 @@ function filterAndRender() {
 document.getElementById('search-bar').addEventListener('input', filterAndRender);
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCategories();
-  await loadProducts();
+  await loadProductsPaginated(true);
   // Auto-select category if ?category=ID in URL
   const urlParams = new URLSearchParams(window.location.search);
   const cat = urlParams.get('category');
@@ -194,4 +217,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('min-price').addEventListener('input', filterAndRender);
   document.getElementById('max-price').addEventListener('input', filterAndRender);
   document.getElementById('rating-filter').addEventListener('change', filterAndRender);
+  document.getElementById('show-more-btn').addEventListener('click', () => loadProductsPaginated());
+  document.getElementById('show-less-btn').addEventListener('click', () => {
+    currentOffset = PAGE_SIZE;
+    allLoaded = false;
+    allProducts = allProducts.slice(0, PAGE_SIZE);
+    renderProducts(allProducts, false);
+    document.getElementById('show-less-btn').style.display = 'none';
+    document.getElementById('show-more-btn').style.display = 'block';
+  });
 });

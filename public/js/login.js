@@ -100,6 +100,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         });
         const result = await response.json();
         if (!response.ok) {
+            // Clear password field on wrong password
+            document.getElementById('password').value = '';
             throw new Error(result.error || 'فشل تسجيل الدخول.');
         }
         // Save the token in localStorage for use in  endpoints (e.g. checkout)

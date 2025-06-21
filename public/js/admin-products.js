@@ -550,7 +550,8 @@ document.getElementById('brandingLinksForm').addEventListener('submit', async fu
     facebook: document.getElementById('facebookLink').value,
     instagram: document.getElementById('instagramLink').value,
     tiktok: document.getElementById('tiktokLink').value,
-    phone: document.getElementById('phoneNumber').value
+    phone: document.getElementById('phoneNumber').value,
+    email: document.getElementById('emailAddress') ? document.getElementById('emailAddress').value : ''
   };
   try {
     const res = await fetch('/api/admin/branding', {
@@ -563,7 +564,7 @@ document.getElementById('brandingLinksForm').addEventListener('submit', async fu
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || data.message);
-    showNotification('تم تحديث الروابط ورقم الهاتف بنجاح!', 'success');
+    showNotification('تم تحديث الروابط ورقم الهاتف والبريد الإلكتروني بنجاح!', 'success');
     setTimeout(() => location.reload(), 1500);
   } catch (error) {
     showNotification('حدث خطأ أثناء التحديث: ' + error.message, 'danger');

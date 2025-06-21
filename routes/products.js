@@ -76,6 +76,41 @@ router.get('/products', async (req, res) => {
   }
 });
 
+// GET /api/products/paginate?offset=0&limit=8
+router.get('/products/paginate', async (req, res) => {
+  let { offset, limit } = req.query;
+  offset = parseInt(offset, 10) || 0;
+  limit = parseInt(limit, 10) || 8;
+  try {
+    const { rows } = await db.query('SELECT * FROM "Products" ORDER BY "id" DESC OFFSET $1 LIMIT $2', [offset, limit]);
+    // Add categories, thumbnail, avgRating, reviewCount, and images for each product
+    for (const product of rows) {
+      product.categories = await getCategoriesForProduct(product.id);
+      product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
+      const stats = await getProductRatingStats(product.id);
+      product.avgRating = stats.avgRating;
+      product.reviewCount = stats.reviewCount;
+      // Add images array for carousel
+      const { rows: imgRows } = await db.query('SELECT "imagePath" FROM "ProductImages" WHERE "product_id" = $1 ORDER BY "id"', [product.id]);
+      product.images = imgRows.length > 0 ? imgRows.map(r => r.imagePath) : (product.imagePath ? [product.imagePath] : []);
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error('Error in /products/paginate:', err);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+
+// GET /api/products/latest
+router.get('/products/latest', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM "Products" ORDER BY "id" DESC LIMIT 2');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Son ürünler alınırken veritabanı hatası.' });
+  }
+});
+
 // GET /api/products/:id
 router.get('/products/:id', async (req, res) => {
   const productId = req.params.id;
@@ -105,48 +140,6 @@ router.get('/products/:id/images', async (req, res) => {
     res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
-
-// GET /api/products/latest
-router.get('/products/latest', async (req, res) => {
-  try {
-    const { rows } = await db.query('SELECT * FROM "Products" ORDER BY "id" DESC LIMIT 2');
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: 'Son ürünler alınırken veritabanı hatası.' });
-  }
-});
-
-
-// // GET /api/products/latestByCategory - latest product for each category
-// router.get('/products/:id', async (req, res) => {
-//   try {
-//     const { rows: categories } = await db.query('SELECT "id", "name" FROM "Categories" ORDER BY "id"');
-//     const result = [];
-//     for (const cat of categories) {
-//       const { rows } = await db.query(
-//         `SELECT p.* FROM "Products" p
-//          JOIN "ProductCategories" pc ON p."id" = pc."product_id"
-//          WHERE pc."category_id" = $1
-//          ORDER BY p."id" DESC LIMIT 1`,
-//         [cat.id]
-//       );
-//       if (rows.length === 0) continue;
-//       const product = rows[0];
-//       product.categories = await getCategoriesForProduct(product.id);
-//       product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
-//       product.images = await getImagesForProduct(product.id);
-//       const stats = await getProductRatingStats(product.id);
-//       product.avgRating = stats.avgRating;
-//       product.reviewCount = stats.reviewCount;
-//       product.mainCategory = cat;
-//       result.push(product);
-//     }
-//     res.json(result);
-//   } catch (err) {
-//     console.error('Error retrieving latest product by category:', err);
-//     res.status(500).json({ error: 'خطأ في الخادم' });
-//   }
-// });
 
 // GET /api/categories
 router.get('/categories', async (req, res) => {
@@ -178,7 +171,6 @@ router.post('/products/:id/visit', async (req, res) => {
         res.status(500).json({ error: 'Error recording visit' });
     }
 });
-
 
 
 

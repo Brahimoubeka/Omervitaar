@@ -244,7 +244,7 @@ async function loadProductDetail() {
       categoriesDiv.className = "mb-2";
       categoriesDiv.innerHTML = `
         <span class="fw-bold" style="color:var(--military-green,#715100);font-size:1.1em">
-          <i class="bi bi-tags"></i> كategoriler:
+          <i class="bi bi-tags"></i> الفئات:
         </span>
         ${product.categories.map(cat =>
           `<span class="badge bg-success mx-1" style="background:var(--orange-accent,#ffbf00);color:var(--dark-charcoal,#2c2c2c);font-weight:500;font-size:0.91em;padding:.32em .62em;letter-spacing:.02em;"><i class="bi bi-tag"></i> ${cat.name}</span>`

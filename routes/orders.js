@@ -48,8 +48,9 @@ router.post('/orders', verifyToken, async (req, res) => {
         console.error('Kullanıcı e-posta alınamadı:', emailErr);
     }
 
-    if (!shippingName || !shippingAddress || !items || !items.length || !city || !province || !firstName || !lastName || cartTotal === undefined || deliveryCost === undefined || finalTotal === undefined) {
-        return res.status(400).json({ error: 'Sipariş bilgileri eksik veya sepet boş.' });
+    // Only require: shippingName (phone), city, province, firstName, lastName
+    if (!shippingName || !items || !items.length || !city || !province || !firstName || !lastName || cartTotal === undefined || deliveryCost === undefined || finalTotal === undefined) {
+        return res.status(400).json({ error: 'الرجاء ملء جميع الحقول الإلزامية: الاسم، اللقب، رقم الهاتف، الولاية، المنطقة.' });
     }
 
     // Generate a unique order group identifier
@@ -88,24 +89,39 @@ router.post('/orders', verifyToken, async (req, res) => {
         try {
             const email = userEmail;
             if (!email) throw new Error('No recipient email found');
-            let orderDetails = `<h2>تفاصيل الطلب من omervita</h2>`;
-            orderDetails += `<p><b>رقم الهاتف:</b> ${shippingName}</p>`;
-            orderDetails += `<p><b>العنوان:</b> ${shippingAddress}, ${city}, ${province}, ${street}, ${department}, ${postalCode}</p>`;
-            orderDetails += `<p><b>الاسم الكامل:</b> ${firstName} ${lastName}</p>`;
-            orderDetails += `<p><b>تاريخ الطلب:</b> ${orderDate}</p>`;
-            orderDetails += `<ul>`;
+            let orderDetails = `<div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 24px; border-radius: 12px; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #715100; font-weight: bold;">تفاصيل الطلب من Omervita</h2>
+                <p style="color: #333; font-size: 1.1em;"><b>نشكرك على ثقتك بمنتجاتنا <span style='color:#ffbf00;'>يمكن متابعة طلبيتك عبر حسابك</span></b></p>
+                <hr style='border:1px solid #ffbf00;'>
+                <p><b style='color:#715100;'>رقم الهاتف:</b> ${shippingName}</p>
+                <p><b style='color:#715100;'>العنوان:</b> ${shippingAddress || ''}, ${city}, ${province}, ${street || ''}, ${department || ''}, ${postalCode || ''}</p>
+                <p><b style='color:#715100;'>الاسم الكامل:</b> ${firstName} ${lastName}</p>
+                <p><b style='color:#715100;'>تاريخ الطلب:</b> ${orderDate}</p>
+                <ul style='color:#2c2c2c;'>`;
             for (const item of items) {
-                orderDetails += `<li>${item.name} x ${item.quantity}</li>`;
+                orderDetails += `<li><b>${item.name}</b> x <b>${item.quantity}</b></li>`;
             }
-            orderDetails += `</ul>`;
-            orderDetails += `<p><b>مجموع المنتج:</b> ${cartTotal} TL</p>`;
-            orderDetails += `<p><b>التوصيل:</b> ${deliveryCost} TL</p>`;
-            orderDetails += `<p><b>مجموع الطلبية:</b> ${finalTotal} TL</p>`;
+            orderDetails += `</ul>
+                <p><b style='color:#715100;'>مجموع المنتج:</b> <span style='color:#ffbf00;'>${cartTotal} دج</span></p>
+                <p><b style='color:#715100;'>التوصيل:</b> <span style='color:#ffbf00;'>${deliveryCost} دج</span></p>
+                <p><b style='color:#715100;'>مجموع الطلبية:</b> <span style='color:#ffbf00;'>${finalTotal} دج</span></p>
+                <hr style='border:1px solid #ffbf00;'>
+                <p style='color:#888; font-size:0.95em;'>فريق Omervita يتمنى لك يوماً سعيداً!</p>
+            </div>`;
             await sendOrderEmail(
                 email,
-                'Siparişiniz Alındı',
+                'تم استلام طلبك بنجاح - Omervita',
                 orderDetails
             );
+            // Send to admin as well
+            const adminEmail = process.env.ADMIN_EMAIL;
+            if (adminEmail) {
+                await sendOrderEmail(
+                    adminEmail,
+                    'طلبية جديدة - Omervita',
+                    orderDetails
+                );
+            }
         } catch (emailErr) {
             console.error('Sipariş e-postası gönderilemedi:', emailErr);
         }

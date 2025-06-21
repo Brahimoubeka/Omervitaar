@@ -188,6 +188,61 @@
     .social-instagram:hover { color: #c13584 !important; }
     .social-tiktok { color: #000000 !important; }
     .social-tiktok:hover { color: #333333 !important; }
+
+    /* Mobile responsive footer centering */
+@media (max-width: 768px) {
+  footer .row > .col-md-3 {
+    text-align: center !important;
+    margin-bottom: 2rem;
+  }
+  
+  footer .col-md-3 img {
+    margin: 0 auto;
+  }
+  
+  footer .list-unstyled {
+    padding-left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  footer .list-unstyled li {
+    margin-bottom: 0.75rem;
+  }
+  
+  footer h5 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  footer p {
+    text-align: center;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+
+/* Extra small devices (phones, less than 576px) */
+@media (max-width: 576px) {
+  footer .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  footer .col-md-3 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  footer h5 {
+    font-size: 1.1rem;
+  }
+  
+  footer p, footer a {
+    font-size: 0.9rem;
+  }
+}
   </style>
 </head>
 <body>
@@ -238,44 +293,55 @@
     </div>
   </main>
 
-  <footer class="pt-5 pb-4">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-3 mb-4">
-          <a href="index.html" class="d-block mb-3">
-            <img src="images/logo.png" alt="Omervita Logo" class="img-fluid" style="max-width: 120px;" />
-          </a>
-        </div>
-        <div class="col-md-3 mb-4">
-          <h5><i class="bi bi-info-circle me-2"></i>عن أومرفيتا</h5>
-          <p>منصتكم الموثوقة للتجارة الإلكترونية للمنتجات عالية الجودة.</p>
-        </div>
-        <div class="col-md-3 mb-4">
-          <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
-            <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
-            <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
-          </ul>
-        </div>
-        <div class="col-md-3 mb-4">
-          <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
-            <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
-            <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
-          </ul>
-        </div>
+  <!-- Updated Footer with better mobile centering -->
+<footer class="pt-5 pb-4">
+  <div class="container">
+    <div class="row">
+      <!-- Logo and tagline section -->
+      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
+        <a href="index.html" class="d-block mb-3">
+          <img src="images/logo.png" alt="Omervita Logo" class="img-fluid mx-auto mx-md-0 d-block" style="max-width: 120px;" />
+        </a>
+        <p class="mx-auto mx-md-0" style="max-width: 250px;">رضا العملاء أولويتنا</p>
       </div>
-      <hr style="border-color: #555; margin: 2rem 0;">
-      <div class="text-center py-2">
-        <small style="color: #b0b0b0; font-size: 0.9rem;">
-          <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
-          2025 Omervita. جميع الحقوق محفوظة.
-        </small>
+      
+      <!-- About section -->
+      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
+        <h5><i class="bi bi-info-circle me-2"></i>عن Omervita</h5>
+        <p class="mx-auto mx-md-0" style="max-width: 250px;">العناية الشخصية من الطبيعة 100٪. استمتعوا بمستوى جديد من الجمال والرفاهية مختارة بعناية بواسطة Omervita</p>
+      </div>
+      
+      <!-- Quick links section -->
+      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
+        <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
+        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
+          <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+          <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
+          <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
+        </ul>
+      </div>
+      
+      <!-- Social media section -->
+      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
+        <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
+        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
+          <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
+          <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
+          <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
+        </ul>
       </div>
     </div>
-  </footer>
+    
+    <hr style="border-color: #555; margin: 2rem 0;">
+    
+    <div class="text-center py-2">
+      <small style="color: #b0b0b0; font-size: 0.9rem;">
+        <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
+        2025 Omervita. جميع الحقوق محفوظة. | تجربة تسوق آمنة
+      </small>
+    </div>
+  </div>
+</footer>
 
   <!-- Bootstrap JS Bundle CDN (Popper + Bootstrap JS) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
