@@ -37,7 +37,7 @@ function loadCart() {
             <i class="bi bi-box2 me-1"></i>${item.name}
           </h5>
           <div class="product-card-price text-warning mb-0" style="font-weight:700;">
-            <i class="bi bi-tag"></i> ₺${item.price.toFixed(2)}
+            <i class="bi bi-tag"></i> دج${item.price.toFixed(2)}
           </div>
         </div>
       </div>
@@ -89,7 +89,7 @@ function loadCart() {
 
   document.getElementById('cart-total').innerHTML = `
     <span class="fw-bold" style="color:var(--military-green,#715100);font-size:1.18em;">
-      <i class="bi bi-cash-coin me-1"></i>المجموع: ₺${total.toFixed(2)}
+      <i class="bi bi-cash-coin me-1"></i>المجموع: دج${total.toFixed(2)}
     </span>
   `;
 }
