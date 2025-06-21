@@ -107,12 +107,12 @@ function createOrderCard(group) {
         </div>
         <div class="order-footer">
              <div class="price-info">
-                <span>المنتجات: <strong>₺${productsTotal.toFixed(2)}</strong></span>
-                <span>الشحن: <strong>₺${deliveryPrice.toFixed(2)}</strong></span>
+                <span>المنتجات: <strong>دج${productsTotal.toFixed(2)}</strong></span>
+                <span>الشحن: <strong>دج${deliveryPrice.toFixed(2)}</strong></span>
             </div>
             <div class="total-price mb-2">
                 <span>الإجمالي الحالي:</span>
-                <span class="price">₺${currentTotal.toFixed(2)}</span>
+                <span class="price">دج${currentTotal.toFixed(2)}</span>
             </div>
             <div class="text-end">
                 <button class="btn btn-sm btn-outline-secondary archive-order-btn" 

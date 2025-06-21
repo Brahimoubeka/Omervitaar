@@ -48,11 +48,11 @@ function renderProducts(products) {
           </div>
           <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev" >
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Önceki</span>
+            <span class="visually-hidden">السابق</span>
           </button>
           <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
             <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Sonraki</span>
+            <span class="visually-hidden">التالي</span>
           </button>
         </div>
       `;
@@ -81,7 +81,7 @@ function renderProducts(products) {
     // Rating (if exists, otherwise fake for demo)
     let ratingHtml = '';
     if (product.avgRating !== undefined) {
-      ratingHtml = `<span class="ms-2 text-warning" title="Puan"><i class="bi bi-star-fill"></i> ${parseFloat(product.avgRating).toFixed(1)}</span>`;
+      ratingHtml = `<span class="ms-2 text-warning" title="التقييم"><i class="bi bi-star-fill"></i> ${parseFloat(product.avgRating).toFixed(1)}</span>`;
     }
 
     productCard.innerHTML = `
@@ -92,8 +92,13 @@ function renderProducts(products) {
       <div class="product-card-body" >
         <h5 class="product-card-title" style="margin: .1em .1em ;">${product.name}</h5>
         <div class="mb-1">${catBadges}</div>
+<<<<<<< HEAD
         <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>₺${product.price}${ratingHtml}</div>
         <button class="btn product-card-button" style="font-size:1.3em;padding:.1em .1em;">عرض التفاصيل</button>
+=======
+        <div class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}${ratingHtml}</div>
+        <button class="btn product-card-button">عرض التفاصيل</button>
+>>>>>>> 5f91041f962e686d323bb4ee411a4fb7dcb11f0f
       </div>
     `;
     productCard.querySelector('.product-card-button').addEventListener('click', () => {
