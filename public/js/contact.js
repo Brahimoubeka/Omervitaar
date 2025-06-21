@@ -1,0 +1,71 @@
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  // Collect all fields
+  const full_name = document.getElementById('full_name').value.trim();
+  const phone_number = document.getElementById('phone_number').value.trim();
+  const subject = document.getElementById('subject').value.trim();
+  const message_text = document.getElementById('message_text').value.trim();
+
+  // Validation: Name (at least 3 chars, only Turkish letters and space)
+  if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ ]{3,}$/.test(full_name)) {
+    showMessage('يجب أن يكون الاسم الكامل 3 أحرف على الأقل ويحتوي فقط على أحرف ومسافة.', 'danger');
+    return;
+  }
+  // Validation: Phone (starts with 0 and has 11 digits)
+  if (!/^0[0-9]{10}$/.test(phone_number)) {
+    showMessage('يرجى إدخال رقم هاتف صالح يبدأ بـ 0 ومكون من 11 رقمًا.', 'danger');
+    return;
+  }
+  // Validation: Subject (at least 3 chars)
+  if (subject.length < 3) {
+    showMessage('يجب أن يكون الموضوع 3 أحرف على الأقل.', 'danger');
+    return;
+  }
+  // Validation: Message required
+  if (!message_text) {
+    showMessage('يرجى كتابة رسالتك.', 'danger');
+    return;
+  }
+  
+
+  // Guest validation: If no token, require full_name & phone_number (already covered above)
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch('/api/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        full_name, phone_number, subject, message_text
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'تعذر إرسال الرسالة.');
+    }
+
+    showMessage(result.message, 'success');
+    document.getElementById('contact-form').reset();
+    setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 3000);
+  } catch (error) {
+    showMessage(`خطأ: ${error.message}`, 'danger');
+  }
+});
+
+function showMessage(message, type = 'success') {
+  const container = document.getElementById('contact-message');
+  container.innerHTML = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+  `;
+}

@@ -1,0 +1,430 @@
+﻿﻿<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Omervita - إتمام الطلب</title>
+  <!-- Bootstrap CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+   <style>
+    :root {
+      --military-green: #715100;
+      --light-military: #bb7900;
+      --orange-accent: #ffbf00;
+      --dark-charcoal: #2c2c2c;
+      --light-gray: #f0f2f5; /* Slightly different gray  */
+      --white: #ffffff;
+    }
+    * { 
+      font-family: 'Inter', sans-serif; 
+    }
+    body { 
+      background: var(--light-gray); 
+      padding-top: 120px; 
+    }
+
+    /* Navbar Styles */
+    .navbar-nav .nav-link {
+      transition: color 0.3s, background-color 0.3s, transform 0.2s;
+      border-radius: 8px;
+      margin: 0 4px;
+      font-weight: 500;
+    }
+    .navbar-nav .nav-link:hover, .navbar-nav .nav-link:focus {
+      color: var(--white) !important;
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 93, 35, 0.3);
+    }
+    .navbar-brand {
+      font-weight: 700 !important;
+      color: var(--military-green) !important;
+      font-size: 1.7rem;
+      letter-spacing: 1px;
+    }
+    
+    /* Main Content & Card Styling */
+    .content-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-weight: 700;
+      color: var(--dark-charcoal);
+      letter-spacing: 0.5px;
+      margin-bottom: 2rem;
+    }
+    .checkout-card {
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 10px 32px rgba(44,44,44,0.08);
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      border: 1px solid #e9ecef;
+    }
+    .section-title {
+        font-weight: 600;
+        color: var(--military-green);
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #f0f2f5;
+        padding-bottom: 0.75rem;
+    }
+
+    /* Form & Input  */
+    .form-label { 
+      color: var(--dark-charcoal); 
+      font-weight: 500; 
+      margin-bottom: 0.5rem;
+    }
+    .input-group-text {
+        background-color: var(--light-gray);
+        border-color: #e0e0e0;
+        color: var(--military-green);
+        border-radius: 12px 0 0 12px;
+    }
+    .form-control, .form-select {
+      border-radius: 12px;
+      padding: 0.95rem 1rem;
+      font-size: 1em;
+      border: 1.2px solid #e0e0e0;
+      box-shadow: none;
+      transition: border 0.18s, box-shadow 0.18s;
+    }
+    .input-group .form-control {
+        border-radius: 0 12px 12px 0;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--orange-accent);
+      box-shadow: 0 0 0 0.15rem rgba(255,191,0,.18);
+    }
+     .form-control:focus ~ .input-group-text, .form-control:focus .input-group-text {
+        border-color: var(--orange-accent) !important;
+    }
+
+    /* Order Summary */
+    .price-summary {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #e9ecef;
+    }
+    .price-summary h5 {
+      color: var(--military-green);
+      font-weight: 600;
+    }
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      font-size: 1.05em;
+    }
+    .price-row span:first-child {
+        color: #555;
+    }
+    .price-row span:last-child {
+        font-weight: 600;
+    }
+    .price-total {
+      font-weight: 700;
+      font-size: 1.2em;
+      color: var(--dark-charcoal);
+      border-top: 2px solid #dee2e6;
+      padding-top: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Button and Feedback  */
+    .btn-primary {
+      background: var(--orange-accent);
+      color: var(--dark-charcoal) !important;
+      border: none;
+      font-weight: 600;
+      padding: 0.9rem 0;
+      border-radius: 16px;
+      transition: all 0.3s ease;
+      letter-spacing: 0.3px;
+      font-size: 1.15em;
+      box-shadow: 0 4px 16px rgba(255, 191, 0, 0.2);
+    }
+    .btn-primary:hover {
+      background: var(--military-green);
+      color: #fff !important;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(113, 81, 0, 0.2);
+    }
+    #checkout-message { min-height: 30px; font-size: 1.03em; font-weight: 500; }
+    .invalid-feedback {
+      font-size: 0.9em;
+    }
+    
+    /* Footer  */
+    footer {
+      background: var(--dark-charcoal) !important;
+      color: white;
+      margin-top: 60px;
+      border-top: 4px solid var(--orange-accent);
+    }
+    footer h5 { color: var(--orange-accent); }
+    footer a { text-decoration: none; color: #e0e0e0 !important; transition: color 0.25s; }
+    footer a:hover { color: var(--orange-accent) !important; }
+
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+    <div class="container">
+      <img src="../images/logo.png" alt="" width="100px" height="100px" style="margin-bottom: 20px;" >
+      <a class="navbar-brand fw-bold" href="index.html">Omervita</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Menüyü Aç/Kapat">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
+          <li class="nav-item"><a class="nav-link" href="products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item"><a class="nav-link" href="contact.html"><i class="bi bi-envelope me-1"></i> اتصل بنا</a></li>
+        </ul>
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
+          <li class="nav-item"><a class="nav-link" href="login.html"><i class="bi bi-person me-1"></i> تسجيل الدخول / التسجيل</a></li>
+          <li class="nav-item"><a class="nav-link" href="cart.html"><i class="bi bi-cart me-1"></i> سلة التسوق</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <main class="container my-5">
+     <!-- Main Content -->
+  <div class="container content-wrapper my-5">
+    <h1 class="mb-4 text-center"><i class="bi bi-bag-check me-2"></i>إتمام الطلب</h1>
+
+    <div class="row">
+
+      <!-- Left Column: Form -->
+      <div class="col-lg-7">
+        <div class="checkout-card">
+          <form id="checkout-form">
+            <h5 class="section-title"><i class="bi bi-person-lines-fill me-2"></i>المعلومات الشخصية</h5>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="firstName" class="form-label">الاسم:</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" id="firstName" name="firstName" maxlength="40" class="form-control" placeholder="اسمك" />
+                </div>
+                <div class="invalid-feedback">يجب أن يكون على الأقل 3 أحرف، ويجب استخدام الأحرف فقط.</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="lastName" class="form-label">الكنية:</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" id="lastName" name="lastName" maxlength="40" class="form-control" placeholder="كنيتك" />
+                </div>
+                <div class="invalid-feedback">يجب أن يكون على الأقل 3 أحرف، ويجب استخدام الأحرف فقط.</div>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label for="shippingName" class="form-label">رقم الهاتف:</label>
+              <div class="input-group">
+                 <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                 <input type="tel" id="shippingName" name="shippingName" maxlength="11" class="form-control" placeholder="مثال: 05554443322" />
+              </div>
+              <div class="invalid-feedback">يجب أن يبدأ رقم الهاتف بـ 0 ويكون مكونًا من 11 رقمًا.</div>
+            </div>
+
+            <h5 class="section-title mt-4"><i class="bi bi-truck me-2"></i>عنوان التوصيل</h5>
+             <div class="mb-3">
+              <label for="shippingAddress" class="form-label">العنوان الكامل:</label>
+              <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                  <input type="text" id="shippingAddress" name="shippingAddress" maxlength="100" class="form-control" placeholder="الحي، الشارع، ورقم المنزل" />
+              </div>
+              <div class="invalid-feedback">يرجى إدخال عنوانك.</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="city" class="form-label">المدينة:</label>
+                  <select id="city" name="city" class="form-select">
+                    <option value="">اختر الولاية</option>
+                    <option value="Adrar">Adrar</option>
+                    <option value="Chlef">Chlef</option>
+                    <option value="Laghouat">Laghouat</option>
+                    <option value="Oum El Bouaghi">Oum El Bouaghi</option>
+                    <option value="Batna">Batna</option>
+                    <option value="Béjaïa">Béjaïa</option>
+                    <option value="Biskra">Biskra</option>
+                    <option value="Béchar">Béchar</option>
+                    <option value="Blida">Blida</option>
+                    <option value="Bouira">Bouira</option>
+                    <option value="Tamanrasset">Tamanrasset</option>
+                    <option value="Tébessa">Tébessa</option>
+                    <option value="Tlemcen">Tlemcen</option>
+                    <option value="Tiaret">Tiaret</option>
+                    <option value="Tizi Ouzou">Tizi Ouzou</option>
+                    <option value="Algiers">Algiers</option>
+                    <option value="Djelfa">Djelfa</option>
+                    <option value="Jijel">Jijel</option>
+                    <option value="Sétif">Sétif</option>
+                    <option value="Saïda">Saïda</option>
+                    <option value="Skikda">Skikda</option>
+                    <option value="Sidi Bel Abbès">Sidi Bel Abbès</option>
+                    <option value="Annaba">Annaba</option>
+                    <option value="Guelma">Guelma</option>
+                    <option value="Constantine">Constantine</option>
+                    <option value="Médéa">Médéa</option>
+                    <option value="Mostaganem">Mostaganem</option>
+                    <option value="M'Sila">M'Sila</option>
+                    <option value="Mascara">Mascara</option>
+                    <option value="Ouargla">Ouargla</option>
+                    <option value="Oran">Oran</option>
+                    <option value="El Bayadh">El Bayadh</option>
+                    <option value="Illizi">Illizi</option>
+                    <option value="Bordj Bou Arréridj">Bordj Bou Arréridj</option>
+                    <option value="Boumerdès">Boumerdès</option>
+                    <option value="El Tarf">El Tarf</option>
+                    <option value="Tindouf">Tindouf</option>
+                    <option value="Tissemsilt">Tissemsilt</option>
+                    <option value="El Oued">El Oued</option>
+                    <option value="Khenchela">Khenchela</option>
+                    <option value="Souk Ahras">Souk Ahras</option>
+                    <option value="Tipaza">Tipaza</option>
+                    <option value="Mila">Mila</option>
+                    <option value="Aïn Defla">Aïn Defla</option>
+                    <option value="Naâma">Naâma</option>
+                    <option value="Aïn Témouchent">Aïn Témouchent</option>
+                    <option value="Ghardaïa">Ghardaïa</option>
+                    <option value="Relizane">Relizane</option>
+                    <option value="Timimoun">Timimoun</option>
+                    <option value="Bordj Badji Mokhtar">Bordj Badji Mokhtar</option>
+                    <option value="Ouled Djellal">Ouled Djellal</option>
+                    <option value="Béni Abbès">Béni Abbès</option>
+                    <option value="In Salah">In Salah</option>
+                    <option value="In Guezzam">In Guezzam</option>
+                    <option value="Touggourt">Touggourt</option>
+                    <option value="Djanet">Djanet</option>
+                    <option value="El M'Ghair">El M'Ghair</option>
+                    <option value="El Menia">El Menia</option>
+                  </select>
+
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="province" class="form-label">المنطقة:</label>
+                  <input type="text" id="province" name="province" class="form-control" placeholder="اكتب المنطقة أو الدائرة" required />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="department" class="form-label">الشقة:</label>
+                  <input type="text" id="department" name="department" maxlength="20" class="form-control" placeholder="رقم المبنى / الشقة" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="postalCode" class="form-label">الرمز البريدي:</label>
+                  <input type="text" id="postalCode" name="postalCode" maxlength="5" class="form-control" placeholder="الرمز البريدي (اختياري)" />
+                </div>
+            </div>
+
+             <div class="mb-3 d-none">
+                <label for="street" class="form-label">الشارع:</label>
+                <input type="text" id="street" name="street" maxlength="50" class="form-control" placeholder="الشارع" />
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Column: Summary and Action -->
+      <div class="col-lg-5">
+        <div class="checkout-card">
+          <!-- Price Summary -->
+          <div class="price-summary" id="price-summary">
+            <h5 class="mb-3"><i class="bi bi-receipt me-2"></i>ملخص الطلب</h5>
+            <div class="price-row">
+              <span>مجموع المنتجات:</span>
+              <span id="cart-total">₺0.00</span>
+            </div>
+            <div class="price-row">
+              <span>تكلفة الشحن:</span>
+              <span id="delivery-cost">₺0.00</span>
+            </div>
+            <div class="price-row price-total">
+              <span>المجموع الكلي:</span>
+              <span id="final-total">₺0.00</span>
+            </div>
+          </div>
+          
+          <button type="submit" form="checkout-form" class="btn btn-primary w-100">
+            <i class="bi bi-shield-check me-2"></i>تأكيد الطلب
+          </button>
+          
+          <div id="checkout-message" class="mt-3"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </main>
+
+  <footer class="pt-5 pb-4">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-3 mb-4">
+          <a href="index.html" class="d-block mb-3">
+            <img src="images/logo.png" alt="Omervita Logo" class="img-fluid" style="max-width: 120px;" />
+          </a>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-info-circle me-2"></i>عن أومرفيتا</h5>
+          <p>منصتكم الموثوقة للتجارة الإلكترونية للمنتجات عالية الجودة.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+            <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
+            <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
+          </ul>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
+            <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
+            <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
+          </ul>
+        </div>
+      </div>
+      <hr style="border-color: #555; margin: 2rem 0;">
+      <div class="text-center py-2">
+        <small style="color: #b0b0b0; font-size: 0.9rem;">
+          <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
+          2025 Omervita. جميع الحقوق محفوظة.
+        </small>
+      </div>
+    </div>
+  </footer>
+  
+  <!-- Bootstrap JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/checkout.js"></script>
+ <!--<script src="js/checkout.js"></script>-->
+
+ <script>
+async function updateBrandingLinks() {
+  const res = await fetch('/api/branding');
+  const branding = await res.json();
+
+  // Update social links (use your real selectors/IDs as needed)
+  document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
+  document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
+  document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
+  // Phone numbers
+  document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
+}
+updateBrandingLinks();
+</script>
+
+</body>
+</html>

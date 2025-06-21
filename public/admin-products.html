@@ -1,0 +1,595 @@
+﻿﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Omervita - Admin Ürünler</title>
+
+  <!-- Bootstrap CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --military-green: #715100;
+      --light-military: #bb7900;
+      --orange-accent: #ffbf00;
+      --dark-charcoal: #2c2c2c;
+      --light-gray: #f8f9fa;
+      --white: #ffffff;
+    }
+
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Navbar styling */
+    .navbar-nav .nav-link {
+      transition: color 0.3s, background-color 0.3s, transform 0.2s;
+      border-radius: 8px;
+      margin: 0 4px;
+      font-weight: 500;
+    }
+    .navbar-nav .nav-link:hover,
+    .navbar-nav .nav-link:focus {
+      color: var(--white) !important;
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 93, 35, 0.3);
+    }
+    .navbar-brand {
+      font-weight: 700 !important;
+      color: var(--military-green) !important;
+      font-size: 1.7rem;
+      letter-spacing: 1px;
+    }
+    .navbar.fixed-top {
+      backdrop-filter: blur(10px);
+      background: rgba(248, 249, 250, 0.95) !important;
+      transition: all 0.3s;
+    }
+    body {
+      background: var(--light-gray);
+      padding-top: 140px;
+    }
+
+    /* Main title */
+    main h1 {
+      font-weight: 700;
+      color: var(--military-green);
+      letter-spacing: 0.5px;
+    }
+
+    /* Add Product button */
+    #add-product-button, .btn-primary, .modal-footer .btn-primary {
+      background: var(--orange-accent);
+      color: var(--dark-charcoal) !important;
+      border: none;
+      font-weight: 600;
+      padding: 13px 38px;
+      border-radius: 50px;
+      transition: background 0.3s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 16px rgba(232,123,25,0.13);
+      font-size: 20px;
+      margin: 2px;
+    }
+    #add-product-button:hover, .btn-primary:hover, .modal-footer .btn-primary:hover {
+      background: var(--military-green);
+      color: #fff !important;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(113, 81, 0, 0.10);
+    }
+
+    /* Modal style upgrades */
+    .modal-content {
+      border-radius: 20px;
+      border: none;
+      box-shadow: 0 8px 30px rgba(113, 81, 0, 0.10);
+    }
+    .modal-header {
+      border-radius: 20px 20px 0 0;
+      background: linear-gradient(135deg, var(--military-green), var(--orange-accent));
+      color: #fff;
+      border-bottom: none;
+    }
+    .modal-title {
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #fff;
+    }
+    .modal-footer {
+      border-top: none;
+      background: var(--light-gray);
+      border-radius: 0 0 20px 20px;
+    }
+
+    /* Form fields */
+    .form-label {
+      color: var(--military-green);
+      font-weight: 500;
+    }
+    .form-control:focus {
+      border-color: var(--orange-accent);
+      box-shadow: 0 0 0 0.15rem rgba(255,191,0,.18);
+    }
+
+    /* Product card upgrades */
+    .product-card {
+      background: #fff;
+      border-radius: 20px;
+      border: none;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      transition: box-shadow 0.3s, transform 0.3s;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .product-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 18px 40px rgba(113, 81, 0, 0.15);
+    }
+    .product-image {
+      width: 100%;
+      height: 220px;
+      object-fit: contain;
+      background: var(--light-gray);
+      border-bottom: 1px solid #eee;
+      border-radius: 20px 20px 0 0;
+      display: block;
+      margin: 0 auto;
+    }
+    .product-card-body {
+      padding: 1.5rem 1.2rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 200px;
+    }
+    .product-card-title {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--dark-charcoal);
+      margin-bottom: 0.5rem;
+    }
+    .product-card-price {
+      color: var(--orange-accent);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+    .product-card-button .btn {
+      background: var(--military-green);
+      color: #fff !important;
+      font-weight: 600;
+      border-radius: 40px;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      letter-spacing: 0.5px;
+      padding: 8px 25px;
+      margin-top: 10px;
+    }
+    .product-card-button .btn:hover {
+      background: var(--orange-accent);
+      color: var(--dark-charcoal) !important;
+      box-shadow: 0 6px 20px rgba(255,191,0,.13);
+    }
+
+    /* Section title */
+    #product-list h2 {
+      color: var(--dark-charcoal);
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 768px) {
+      main h1 { font-size: 1.5rem; }
+      #product-list h2 { font-size: 1.2rem; }
+      .product-card-body { padding: 1rem 0.7rem; }
+    }
+
+  /* Admin Product Table  Row Style */
+.admin-products-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+.admin-products-table th {
+  background: var(--military-green, #715100);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.08em;
+  border: none;
+  border-radius: 12px 12px 0 0;
+  padding: 10px 8px;
+}
+.admin-products-table td {
+  background: #fff;
+  vertical-align: middle;
+  padding: 12px 8px;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid #f2f2f2;
+  font-size: 1.01em;
+}
+.admin-products-table tr {
+  box-shadow: 0 4px 18px rgba(44,44,44,0.07);
+  border-radius: 12px;
+  transition: box-shadow 0.2s;
+}
+.admin-products-table tr:hover td {
+  background: #f8f9fa;
+  box-shadow: 0 8px 22px rgba(255,191,0,0.09);
+}
+.product-thumb-img {
+  width: 55px;
+  height: 55px;
+  object-fit: cover;
+  border-radius: 7px;
+  border: 1px solid #eee;
+  background: #fafafa;
+}
+.product-title-cell {
+  color: var(--military-green, #715100);
+  font-weight: 600;
+}
+.action-btns .btn {
+  margin-right: 5px;
+  border-radius: 8px !important;
+  font-size: 0.95em;
+}
+.action-btns .btn-danger {
+  background: #e84141;
+  border: none;
+}
+.action-btns .btn-danger:hover {
+  background: #c81919;
+}
+.action-btns .btn-secondary {
+  background: #715100;
+  border: none;
+  color: #fff;
+}
+.action-btns .btn-secondary:hover {
+  background: #bb7900;
+  color: #fff;
+}
+
+    /* Footer styling  */
+    footer {
+      background: var(--dark-charcoal) !important;
+      color: white;
+      margin-top: 60px;
+      border-top: 4px solid var(--orange-accent);
+    }
+    footer h5 {
+      color: var(--orange-accent);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    footer p, footer ul, footer li, footer a {
+      color: #e0e0e0 !important;
+      font-size: 0.96rem;
+      transition: color 0.25s, text-shadow 0.3s;
+      font-weight: 400;
+    }
+    footer a {
+      text-decoration: none;
+      font-weight: 500;
+    }
+    footer a:hover {
+      color: var(--orange-accent) !important;
+      text-shadow: 0 0 8px rgba(255, 191, 0, 0.25);
+    }
+    .footer-link {
+      position: relative;
+      display: inline-block;
+      padding: 8px 0;
+      border-radius: 6px;
+      transition: all 0.3s;
+    }
+    .footer-link:hover {
+      background: rgba(255, 191, 0, 0.07);
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    .footer-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 5px;
+      left: 50%;
+      background: var(--orange-accent);
+      transition: all 0.3s;
+    }
+    .footer-link:hover::after {
+      width: 80%;
+      left: 10%;
+    }
+    .social-facebook { color: #1877F2 !important; }
+    .social-facebook:hover { color: #0d5bb8 !important; }
+    .social-instagram { color: #E4405F !important; }
+    .social-instagram:hover { color: #c13584 !important; }
+    .social-tiktok { color: #000000 !important; }
+    .social-tiktok:hover { color: #333333 !important; }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .animate-fade-in { animation: fadeInUp 0.8s ease-out;}
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+    <div class="container">
+      <img src="../images/logo.png" alt="" width="100px" height="100px" style="margin-bottom: 20px;" />
+      <a class="navbar-brand fw-bold" href="admin-products.html">Omervita Admin</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Menüyü Aç/Kapat">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحةالرئيسية</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin-analytics.html"><i class="bi bi-clipboard-data-fill"></i> التحليل</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin-messages.html"><i class="bi bi-envelope me-1"></i> الرسائل</a></li>
+          <li class="nav-item"><a class="nav-link active" href="admin-products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item"><a class="nav-link" href="admin-orders.html"><i class="bi bi-truck me-1"></i> الطلبات</a></li>
+          <li class="nav-item"><a class="nav-link" href="logout.html"><i class="bi bi-box-arrow-right me-1"></i> تسجيل الخروج</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5 animate-fade-in">
+    <h1 class="mb-4 text-center"><i class="bi bi-bag me-2"></i>إدارة المنتجات</h1>
+
+    <!-- Add Product Button -->
+    <button id="add-product-button" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">إضافة منتج</button>
+
+    <!-- Branding Modal Button -->
+    <button type="button" class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#brandingModal">
+      <i class="bi bi-images"></i> تغيير الشعار والسلايد
+    </button>
+
+    <button type="button" class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#brandingLinksModal">
+    <i class="bi bi-link-45deg"></i> تغيير الروابط و رقم الهاتف
+    </button>
+
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addProductModalLabel"><i class="bi bi-plus-circle me-2"></i>اضافة منتج جديد</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+          </div>
+          <div class="modal-body">
+            <form id="add-product-form" enctype="multipart/form-data" class="needs-validation" novalidate>
+              <div class="mb-3">
+                <label for="name" class="form-label">اسم المنتج:</label>
+                <input type="text" id="name" name="name" required class="form-control" />
+                <div class="invalid-feedback">الرجاء ادخال اسم المنتج.</div>
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">تفاصيل:</label>
+                <textarea id="description" name="description" class="form-control"></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="price" class="form-label">السعر:</label>
+                <input type="text" id="price" name="price" required class="form-control" placeholder="مثال: 120.54" pattern="^\d+(\.\d{1,2})?$" />
+                <div class="invalid-feedback">الرجاء إدخال سعر صالح (مثال: 12.34).</div>
+              </div>
+              <div class="mb-3">
+                <label for="stock" class="form-label">مخزون:</label>
+                <input type="text" id="stock" name="stock" required class="form-control" placeholder="مثال: 100" pattern="^[1-9]\d*$" />
+                <div class="invalid-feedback">الرجاء إدخال كمية المخزون الصحيحة </div>
+              </div>
+              <div class="mb-3">
+              <label class="form-label">الفئات:</label>
+              <div id="category-checkboxes"></div>
+              <div class="form-text"></div>
+              </div>
+
+              <div class="mb-3">
+                <label for="images" class="form-label">الصور (بحد أقصى 5):</label>
+                <input type="file" id="images" name="images" required accept=".jpg,.jpeg,.png,.gif,.webp" class="form-control" multiple max="5" />
+                <div class="form-text">يمكنك تحميل ما يصل إلى 5 صور.</div>
+              </div>
+              <div id="add-product-message" class="mt-3"></div>
+              <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Ürün Ekle</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Logo and Slides Modal -->
+<div class="modal fade" id="brandingModal" tabindex="-1" aria-labelledby="brandingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="brandingModalLabel">
+          <i class="bi bi-image me-2"></i>تغيير الشعار وصور السلايد
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <form id="logoUploadForm" class="mb-4">
+          <label class="form-label"><b>تغيير الشعار (Logo):</b></label>
+          <input type="file" name="logo" accept="image/*" class="form-control mb-2" required>
+          <button type="submit" class="btn btn-success"><i class="bi bi-upload"></i> تحديث الشعار</button>
+        </form>
+        <hr>
+        <form id="slideUploadForm1" class="mb-3">
+          <label class="form-label">تغيير صورة السلايد رقم 1:</label>
+          <input type="file" name="slide" accept="image/*" class="form-control mb-2" required>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> تحديث السلايد 1</button>
+        </form>
+        <form id="slideUploadForm2" class="mb-3">
+          <label class="form-label">تغيير صورة السلايد رقم 2:</label>
+          <input type="file" name="slide" accept="image/*" class="form-control mb-2" required>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> تحديث السلايد 2</button>
+        </form>
+        <form id="slideUploadForm3">
+          <label class="form-label">تغيير صورة السلايد رقم 3:</label>
+          <input type="file" name="slide" accept="image/*" class="form-control mb-2" required>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> تحديث السلايد 3</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <!-- Change social links  -->
+
+<div class="modal fade" id="brandingLinksModal" tabindex="-1" aria-labelledby="brandingLinksModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <h5 class="modal-title" id="brandingLinksModalLabel">
+          <i class="bi bi-link-45deg me-2"></i>تغيير روابط وسائل التواصل ورقم الهاتف
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <form id="brandingLinksForm" class="modal-body">
+        <div class="mb-3">
+          <label for="facebookLink" class="form-label">Facebook:</label>
+          <input type="url" class="form-control" id="facebookLink" name="facebook" placeholder="Facebook link">
+        </div>
+        <div class="mb-3">
+          <label for="instagramLink" class="form-label">Instagram:</label>
+          <input type="url" class="form-control" id="instagramLink" name="instagram" placeholder="Instagram link">
+        </div>
+        <div class="mb-3">
+          <label for="tiktokLink" class="form-label">TikTok:</label>
+          <input type="url" class="form-control" id="tiktokLink" name="tiktok" placeholder="TikTok link">
+        </div>
+        <div class="mb-3">
+          <label for="phoneNumber" class="form-label">رقم الهاتف:</label>
+          <input type="text" class="form-control" id="phoneNumber" name="phone" placeholder="مثال: +90 531 581 48 16">
+        </div>
+        <button type="submit" class="btn btn-info w-100"><i class="bi bi-save"></i> حفظ التغييرات</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+    <!-- Section to display existing products -->
+    <section id="product-list" class="mt-5">
+      <div id="products-container"></div>
+      <!-- سيتم عرض المنتجات هنا -->
+    </section>
+  </main>
+
+  <footer class="pt-5 pb-4">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-3 mb-4">
+          <a href="index.html" class="d-block mb-3">
+            <img src="images/logo.png" alt="Omervita Logo" class="img-fluid" style="max-width: 120px;" />
+          </a>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-info-circle me-2"></i>حول Omervita</h5>
+          <p>منصتكم الموثوقة للتجارة الإلكترونية من أجل منتجات عالية الجودة.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+            <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
+            <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>اتصل بنا</a></li>
+          </ul>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>فيسبوك</a></li>
+            <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>إنستغرام</a></li>
+            <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>تيك توك</a></li>
+          </ul>
+        </div>
+      </div>
+      <hr style="border-color: #555; margin: 2rem 0;">
+      <div class="text-center py-2">
+        <small style="color: #b0b0b0; font-size: 0.9rem;">
+          <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
+          2025 Omervita. جميع الحقوق محفوظة.
+        </small>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteProductModalLabel"><i class="bi bi-trash"></i> حذف المنتج</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="bi bi-exclamation-triangle display-4 text-danger mb-3"></i>
+        <div class="fw-bold mb-3">هل أنت متأكد أنك تريد حذف هذا المنتج؟</div>
+        <div id="delete-product-name" class="text-muted"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">الغاء</button>
+        <button type="button" id="confirmDeleteBtn" class="btn btn-danger"><i class="bi bi-trash"></i> حذف</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Update Product Modal -->
+<div class="modal fade" id="updateProductModal" tabindex="-1" aria-labelledby="updateProductModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="updateProductModalLabel"><i class="bi bi-pencil-square"></i> تحديث المنتج</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="اغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <div id="update-product-form-container"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Bootstrap JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/admin-products.js"></script>
+<script>
+async function updateBrandingLinks() {
+  const res = await fetch('/api/branding');
+  const branding = await res.json();
+
+  // Update social links (use your real selectors/IDs as needed)
+  document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
+  document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
+  document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
+  // Phone numbers
+  document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
+}
+updateBrandingLinks();
+</script>
+</body>
+</html>

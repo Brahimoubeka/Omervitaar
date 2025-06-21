@@ -1,0 +1,789 @@
+﻿﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Omervita - Ana Sayfa</title>
+
+  <!-- Bootstrap CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <style>
+    :root {
+      --military-green: #715100;
+      --light-military: #bb7900;
+      --orange-accent: #ffbf00;
+      --dark-charcoal: #2c2c2c;
+      --light-gray: #f8f9fa;
+      --white: #ffffff;
+    }
+
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Navbar hover effects */
+    .navbar-nav .nav-link {
+      transition: color 0.3s ease, background-color 0.3s ease, transform 0.2s ease;
+      border-radius: 8px;
+      margin: 0 4px;
+      font-weight: 500;
+    }
+
+    .navbar-nav .nav-link:hover,
+    .navbar-nav .nav-link:focus {
+      color: var(--white) !important;
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 93, 35, 0.3);
+    }
+
+    .navbar-brand {
+      font-weight: 700 !important;
+      color: var(--military-green) !important;
+      font-size: 1.8rem;
+    }
+
+    /* Hero Section */
+    .hero-gradient {
+      background: linear-gradient(135deg, var(--military-green) 0%, var(--light-military) 50%, var(--orange-accent) 100%);
+      color: white;
+      padding: 10px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-gradient::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="1" fill="white" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      opacity: 0.3;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .hero-subtitle {
+      font-size: 1.3rem;
+      font-weight: 300;
+      margin-bottom: 2rem;
+      opacity: 0.95;
+    }
+
+    .btn-hero {
+      background: var(--orange-accent);
+      border: none;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-hero:hover {
+      background: var(--military-green);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 107, 53, 0.4);
+    }
+
+    /* Features Section */
+    .features-section {
+      padding: 20px 0;
+      background: var(--light-gray);
+    }
+
+    .feature-card {
+      background: white;
+      border-radius: 20px;
+      padding: 10px 5px;
+      text-align: center;
+      transition: all 0.3s ease;
+      border: none;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      height: 100%;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    .feature-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 25px;
+      font-size: 2rem;
+      color: white;
+    }
+
+    .feature-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--dark-charcoal);
+      margin-bottom: 15px;
+    }
+
+    .feature-text {
+      color: #666;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    /* Stats Section */
+    .stats-section {
+      background: var(--dark-charcoal);
+      color: white;
+      padding: 10px 0;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .stat-number {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--orange-accent);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-top: 10px;
+      opacity: 0.9;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      background: linear-gradient(135deg, var(--orange-accent) 0%, #996300 100%);
+      color: white;
+      padding: 30px 0;
+      text-align: center;
+    }
+
+    .cta-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .cta-text {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      opacity: 0.95;
+    }
+
+    .btn-cta {
+      background: var(--orange-accent);
+      border: none;
+      padding: 15px 50px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-cta:hover {
+      background: var(--light-military);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(74, 93, 35, 0.4);
+    }
+   .cat-shortcut-card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 38px 22px 24px 22px;
+  text-align: center;
+  transition: all 0.28s cubic-bezier(.5,.32,.3,1.33);
+  cursor: pointer;
+  border: none;
+  min-height: 20px;
+  position: relative;
+}
+.cat-shortcut-card:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(140, 99, 5, 0.16);
+  background: var(--orange-accent, #ffbf00, .06);
+}
+.cat-shortcut-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 22px auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.1rem;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(65,55,0,0.08);
+}
+.cat-shortcut-icon.bg-pink {
+  background: linear-gradient(135deg, #d26c97 0%, #f3a1c9 100%);
+}
+.cat-shortcut-icon.bg-orange {
+  background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%);
+}
+.cat-shortcut-icon.bg-green {
+  background: linear-gradient(135deg, #9be15d 0%, #00e3ae 100%);
+}
+.cat-shortcut-title {
+  font-size: 1.17rem;
+  font-weight: 700;
+  color: var(--military-green);
+  margin-top: 6px;
+  letter-spacing: .02em;
+}
+.cat-shortcut-link:active .cat-shortcut-card,
+.cat-shortcut-link:focus .cat-shortcut-card {
+  outline: 2px solid var(--orange-accent);
+}
+
+/* Carousel Slides */
+.cover-img {
+  height: 370px;
+  object-fit: cover;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideUp 1s ease-out forwards;
+  padding-bottom: 2px;
+  padding-top: 10px;
+
+}
+
+@media (max-width: 768px) {
+  .cover-img {
+    height: 180px;
+  }
+}
+
+/* Slide Up Animation */
+@keyframes slideUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+    /* Navbar Fixed */
+    .navbar.fixed-top {
+      backdrop-filter: blur(10px);
+      background: rgba(248, 249, 250, 0.95) !important;
+      transition: all 0.3s ease;
+    }
+
+    .navbar.scrolled {
+      background: rgba(248, 249, 250, 0.98) !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Add top padding to body for fixed navbar */
+    body {
+      padding-top: 110px;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--dark-charcoal) !important;
+      color: white;
+    }
+
+    footer h5 {
+      color: var(--orange-accent);
+      font-weight: 600;
+    }
+
+    footer p {
+      color: #e0e0e0 !important;
+      font-size: 0.95rem;
+    }
+
+    footer a {
+      color: #d4d4d4 !important;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    footer a:hover {
+      color: var(--orange-accent) !important;
+      transform: translateX(5px);
+      text-shadow: 0 0 8px rgba(255, 107, 53, 0.3);
+    }
+
+    /* Social Media Icons */
+    .social-facebook {
+      color: #1877F2 !important;
+    }
+    
+    .social-facebook:hover {
+      color: #0d5bb8 !important;
+      transform: translateY(-3px) scale(1.1);
+      filter: drop-shadow(0 4px 8px rgba(24, 119, 242, 0.3));
+    }
+
+    .social-instagram {
+      color: #E4405F !important;
+    }
+    
+    .social-instagram:hover {
+      color: #c13584 !important;
+      transform: translateY(-3px) scale(1.1);
+      filter: drop-shadow(0 4px 8px rgba(228, 64, 95, 0.3));
+    }
+
+    .social-tiktok {
+      color: #000000 !important;
+    }
+    
+    .social-tiktok:hover {
+      color: #333333 !important;
+      transform: translateY(-3px) scale(1.1);
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    }
+
+    /* Footer Link Styles */
+    .footer-link {
+      position: relative;
+      display: inline-block;
+      padding: 8px 0;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .footer-link:hover {
+      background: rgba(255, 107, 53, 0.1);
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    .footer-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: 5px;
+      left: 50%;
+      background: var(--orange-accent);
+      transition: all 0.3s ease;
+    }
+
+    .footer-link:hover::after {
+      width: 80%;
+      left: 10%;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+      
+      .hero-subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .feature-card {
+        margin-bottom: 30px;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fadeInUp 0.8s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <!-- Bootstrap Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+    <div class="container">
+      <img src="../images/logo.png" alt="" width="100px" height="100px" style="margin-bottom: 20px;" >
+      <a class="navbar-brand fw-bold" href="index.html">Omervita</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Menüyü Aç/Kapat">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
+          <li class="nav-item"><a class="nav-link active" aria-current="page" href="products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item"><a class="nav-link" href="contact.html"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
+        </ul>
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
+          <li class="nav-item"><a class="nav-link" href="login.html"><i class="bi bi-person me-1"></i> تسجيل الدخول / إنشاء حساب</a></li>
+          <li class="nav-item"><a class="nav-link" href="cart.html"><i class="bi bi-cart me-1"></i> سلتي</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Cover Carousel -->
+<section class="cover-carousel mb-0">
+  <div id="coverCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="3500">
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <img src="images/cover1.png" class="d-block w-100 cover-img" alt="Cover 1">
+      </div>
+      <div class="carousel-item">
+        <img src="images/cover2.png" class="d-block w-100 cover-img" alt="Cover 2">
+      </div>
+      <div class="carousel-item">
+        <img src="images/cover3.png" class="d-block w-100 cover-img" alt="Cover 3">
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#coverCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#coverCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon"></span>
+    </button>
+  </div>
+</section>
+
+  <!-- Hero Section -->
+  <section class="hero-gradient">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-8 hero-content animate-fade-in">
+          <h1 class="hero-title">مرحبًا بكم في أومرفيتا</h1>
+          <p class="hero-subtitle">
+            نبيع منتجات تجميل عضوية مستوحاة من الطبيعة. يمكنك التسوق بثقة في فئات العناية بالبشرة، العناية بالشعر، والمكملات الطبيعية.
+          </p>
+          <button class="btn btn-hero" onclick="window.location.href='products.html'">
+            <i class="bi bi-bag-heart me-2"></i>
+            ابدأ التسوق
+          </button>
+        </div>
+        <div class="col-lg-4 text-center">
+          <div class="hero-image animate-fade-in" style="animation-delay: 0.3s;">
+            <i class="bi bi-shop" style="font-size: 8rem; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="container">
+      <div class="row text-center mb-5">
+        <div class="col-12">
+          <h2 class="display-5 fw-bold mb-3" style="color: var(--dark-charcoal);">لماذا أومرفيتا؟</h2>
+          <p class="lead text-muted">نحن هنا لنقدم لك أفضل خدمة</p>
+        </div>
+      </div>
+      
+      <div class="row g-4">
+        <div class="col-lg-3 col-md-6">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="bi bi-truck"></i>
+            </div>
+            <h3 class="feature-title">توصيل خلال 24 ساعة</h3>
+            <p class="feature-text">طلباتك تصلك إلى باب منزلك خلال 24 ساعة. خدمة توصيل سريعة وآمنة.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="bi bi-award"></i>
+            </div>
+            <h3 class="feature-title">أفضل جودة</h3>
+            <p class="feature-text">نختار فقط أفضل المنتجات. ضمان رضا العملاء 100%.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <h3 class="feature-title">تسوق آمن</h3>
+            <p class="feature-text">معلوماتك آمنة معنا. جميع بياناتك مشفرة ولا يتم مشاركتها مع أي طرف ثالث. كن مطمئنًا!</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="bi bi-headset"></i>
+            </div>
+            <h3 class="feature-title">دعم 24/7</h3>
+            <p class="feature-text">نحن دائمًا بجانبك. دعم العملاء متوفر 24/7 لأي استفسار.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-item">
+            <span class="stat-number">10K+</span>
+            <div class="stat-label">عميل سعيد</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-item">
+            <span class="stat-number">5K+</span>
+            <div class="stat-label">أنواع المنتجات</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-item">
+            <span class="stat-number">99%</span>
+            <div class="stat-label">رضا العملاء</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-item">
+            <span class="stat-number">24/7</span>
+            <div class="stat-label">دعم العملاء</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Category Shortcuts Section -->
+<section class="category-shortcuts-section py-5" style="background:var(--light-gray);">
+  <div class="container">
+    <div class="row text-center mb-4">
+      <h2 class="fw-bold mb-3" style="color: var(--military-green); letter-spacing: .5px;">فئاتنا</h2>
+      <p class="lead text-muted">ما هو احتياجك الذي ترغب بالتركيز عليه؟</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+      <div class="col-12 col-md-4">
+        <a href="products.html?category=1" class="cat-shortcut-link text-decoration-none">
+          <div class="cat-shortcut-card shadow-sm">
+            <div class="cat-shortcut-icon bg-pink">
+              <i class="bi bi-droplet-half"></i>
+            </div>
+            <div class="cat-shortcut-title">العناية بالبشرة</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-12 col-md-4">
+        <a href="products.html?category=2" class="cat-shortcut-link text-decoration-none">
+          <div class="cat-shortcut-card shadow-sm">
+            <div class="cat-shortcut-icon bg-orange">
+              <i class="bi bi-scissors"></i>
+            </div>
+            <div class="cat-shortcut-title">العناية بالشعر</div>
+          </div>
+        </a>
+      </div>
+      <div class="col-12 col-md-4">
+        <a href="products.html?category=3" class="cat-shortcut-link text-decoration-none">
+          <div class="cat-shortcut-card shadow-sm">
+            <div class="cat-shortcut-icon bg-green">
+              <i class="bi bi-capsule"></i>
+            </div>
+            <div class="cat-shortcut-title">المكملات الطبيعية</div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+          <h2 class="cta-title">لا تفوت الفرص!</h2>
+          <p class="cta-text">
+            ابدأ التسوق الآن لتكون على اطلاع بالعروض الخاصة والمنتجات الجديدة.
+          </p>
+          <button class="btn btn-cta" onclick="window.location.href='products.html'">
+            <i class="bi bi-lightning me-2"></i>
+            استكشف المنتجات
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="pt-5 pb-4">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-3 mb-4">
+          <a href="index.html" class="d-block mb-3">
+            <img src="images/logo.png" alt="Omervita Logo" class="img-fluid" style="max-width: 120px;" />
+          </a>
+          <p>منصتكم الموثوقة للتجارة الإلكترونية للمنتجات عالية الجودة. رضا العملاء هو أولويتنا.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-info-circle me-2"></i>عن أومرفيتا</h5>
+          <p>نقدم لعملائنا أفضل المنتجات منذ عام 2025. الثقة والجودة هما شعارنا.</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+            <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
+            <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
+          </ul>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
+            <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
+            <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
+          </ul>
+        </div>
+      </div>
+      <hr style="border-color: #555; margin: 2rem 0;">
+      <div class="text-center py-2">
+        <small style="color: #b0b0b0; font-size: 0.9rem;">
+          <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
+          2025 Omervita. جميع الحقوق محفوظة. | تجربة تسوق آمنة
+        </small>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll to Top Arrow -->
+  <button id="scrollToTopBtn" style="position: fixed; bottom: 32px; right: 24px; z-index: 9999; display: none; background: var(--orange-accent); color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.3rem; cursor: pointer; transition: background 0.2s;">
+    <i class="bi bi-arrow-up-short"></i>
+  </button>
+
+  <!-- Bootstrap JS Bundle CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/header.js"></script>
+  <script>
+    // Navbar scroll effect
+    window.addEventListener('scroll', function() {
+      const navbar = document.querySelector('.navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+
+    // Add scroll animations
+    window.addEventListener('scroll', () => {
+      const elements = document.querySelectorAll('.feature-card');
+      elements.forEach(element => {
+        const elementTop = element.getBoundingClientRect().top;
+        const elementVisible = 150;
+        
+        if (elementTop < window.innerHeight - elementVisible) {
+          element.style.opacity = '1';
+          element.style.transform = 'translateY(0)';
+        }
+      });
+    });
+
+    // Counter animation for stats
+    function animateCounters() {
+      const counters = document.querySelectorAll('.stat-number');
+      counters.forEach(counter => {
+        const target = counter.innerText;
+        const numericTarget = parseInt(target.replace(/[^0-9]/g, ''));
+        let count = 0;
+        const increment = numericTarget / 100;
+        
+        const timer = setInterval(() => {
+          count += increment;
+          if (count >= numericTarget) {
+            counter.innerText = target;
+            clearInterval(timer);
+          } else {
+            if (target.includes('K')) {
+              counter.innerText = Math.floor(count / 1000) + 'K+';
+            } else if (target.includes('%')) {
+              counter.innerText = Math.floor(count) + '%';
+            } else {
+              counter.innerText = target;
+            }
+          }
+        }, 20);
+      });
+    }
+
+    // Trigger counter animation when stats section is visible
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateCounters();
+          observer.unobserve(entry.target);
+        }
+      });
+    });
+
+    observer.observe(document.querySelector('.stats-section'));
+
+    // Scroll to Top Button
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 200) {
+        scrollToTopBtn.style.display = 'block';
+      } else {
+        scrollToTopBtn.style.display = 'none';
+      }
+    });
+    scrollToTopBtn.addEventListener('click', function() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    async function updateBrandingLinks() {
+  const res = await fetch('/api/branding');
+  const branding = await res.json();
+
+  // Update social links (use your real selectors/IDs as needed)
+  document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
+  document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
+  document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
+  // Phone numbers
+  document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
+}
+updateBrandingLinks();
+  </script>
+
+</body>
+</html>
