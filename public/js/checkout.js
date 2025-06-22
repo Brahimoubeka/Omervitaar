@@ -270,7 +270,10 @@ function cancelOrder() {
 
 // Sets up the main form submission logic
 function setupFormSubmitHandler() {
-    document.getElementById('checkout-form').addEventListener('submit', async (e) => {
+    const form = document.getElementById('checkout-form');
+    const submitBtn = document.querySelector('button[type="submit"][form="checkout-form"]');
+    const originalBtnHTML = submitBtn ? submitBtn.innerHTML : '';
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         // Retrieve all form fields
@@ -289,7 +292,6 @@ function setupFormSubmitHandler() {
             showMessage('الاسم واللقب مطلوبان.', 'danger');
             return;
         }
-        
         // Phone number: exactly 10 digits
         const phonePattern = /^\d{10}$/;
         if (!phonePattern.test(shippingName)) {
@@ -297,12 +299,10 @@ function setupFormSubmitHandler() {
             document.getElementById('shippingName').focus();
             return;
         }
-        
         if (!city || !province) {
             showMessage('المدينة والمنطقة مطلوبان.', 'danger');
             return;
         }
-
         // Optional fields validation (if filled)
         const postalPattern = /^\d{1,5}$/;
         if (postalCode && !postalPattern.test(postalCode)) {
@@ -310,18 +310,15 @@ function setupFormSubmitHandler() {
             document.getElementById('postalCode').focus();
             return;
         }
-
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
         if (cart.length === 0) {
             showMessage('سلتك فارغة.', 'danger');
             return;
         }
-
         // --- Prepare Order Data ---
         const deliveryCost = deliveryCosts[city] || 0;
         const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('دج', ''));
         const finalTotal = cartTotal + deliveryCost;
-
         const orderData = {
             firstName, 
             lastName, 
@@ -337,14 +334,15 @@ function setupFormSubmitHandler() {
             deliveryCost,
             finalTotal
         };
-
         const token = localStorage.getItem('token');
-
         // --- API Request ---
         try {
-            // Show loading spinner and message
-            showMessage(`<span class="spinner-border spinner-border-sm text-warning me-2" role="status" aria-hidden="true"></span>يتم ارسال الطلبية...`, 'info');
-
+            // Show spinner inside the button and disable it
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>جاري تأكيد الطلب...';
+            }
+            showMessage('', 'info'); // Clear message area
             const response = await fetch('/api/orders', {
                 method: 'POST',
                 headers: {
@@ -353,21 +351,17 @@ function setupFormSubmitHandler() {
                 },
                 body: JSON.stringify(orderData)
             });
-
             const result = await response.json();
-
             if (!response.ok) {
                 // Check if the error is related to stock issues
                 if (result.error && (result.error.includes('Yeterli stok yok') || result.error.includes('stok') || result.error.toLowerCase().includes('stock'))) {
                     // Extract product name from error message
                     const errorMessage = result.error;
                     const productName = errorMessage.split(':')[1]?.trim() || 'منتج غير محدد';
-                    
                     // Filter out the out-of-stock product from cart
                     const cart = JSON.parse(localStorage.getItem('cart')) || [];
                     const outOfStockProducts = [];
                     const availableItems = [];
-                    
                     cart.forEach(item => {
                         if (item.name && item.name.toLowerCase().includes(productName.toLowerCase())) {
                             outOfStockProducts.push({name: item.name});
@@ -375,26 +369,33 @@ function setupFormSubmitHandler() {
                             availableItems.push(item);
                         }
                     });
-                    
                     // If we couldn't match by name, assume the first item is out of stock
                     if (outOfStockProducts.length === 0 && cart.length > 0) {
                         outOfStockProducts.push({name: productName});
                         availableItems.push(...cart.slice(1));
                     }
-                    
                     // Show confirmation dialog for stock issues
                     showStockConfirmationDialog(outOfStockProducts, availableItems);
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalBtnHTML;
+                    }
                     return;
                 }
                 throw new Error(result.error || 'تعذر معالجة الطلب.');
             }
-
             localStorage.removeItem('cart');
             showMessage('شكرًا لك! تم استلام طلبك بنجاح.', 'success');
             setTimeout(() => window.location.href = 'orders.html', 2000); // Reload to clear the form and cart display
         } catch (error) {
             console.error('Error processing checkout:', error);
             showMessage(`خطأ: ${error.message}`, 'danger');
+        } finally {
+            // Restore button state
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+            }
         }
     });
 }
