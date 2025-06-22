@@ -493,18 +493,27 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('review-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const token = localStorage.getItem('token');
+  const reviewMessageDiv = document.getElementById('review-message');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
   if (!token) {
-    alert('يجب عليك تسجيل الدخول لترك تعليق.');
+    reviewMessageDiv.innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>يجب عليك تسجيل الدخول لترك تعليق.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    </div>`;
     return;
   }
   const rating = document.querySelector('input[name="rating"]:checked')?.value;
   const comment = document.getElementById('comment').value;
-  const reviewMessageDiv = document.getElementById('review-message');
   if (!rating) {
     reviewMessageDiv.innerHTML = `<div class="alert alert-danger">يرجى اختيار تقييم.</div>`;
     return;
   }
   try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>جاري الإرسال...';
+    }
     const response = await fetch('/api/reviews', {
       method: 'POST',
       headers: {
@@ -536,6 +545,11 @@ document.getElementById('review-form').addEventListener('submit', async (e) => {
   } catch (error) {
     console.error('Error submitting review:', error);
     reviewMessageDiv.innerHTML = `<div class="alert alert-danger">خطأ: ${error.message}</div>`;
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
   }
 });
 
