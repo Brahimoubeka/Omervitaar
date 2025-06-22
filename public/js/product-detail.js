@@ -190,7 +190,7 @@ async function loadProductDetail() {
               <h5 class="modal-title text-white" id="imageModalLabel">
                 <i class="bi bi-images me-2"></i>صور المنتج
               </h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body p-0">
               <div id="modalCarousel" class="carousel slide" data-bs-ride="carousel">
@@ -219,7 +219,7 @@ async function loadProductDetail() {
             <div class="modal-footer border-0 justify-content-center">
               <div class="d-flex align-items-center text-white">
                 <i class="bi bi-info-circle me-2"></i>
-                <span>Fare tekerleği ile yakınlaştırabilir, sürükleyerek hareket ettirebilirsiniz</span>
+                <span>يمكنك التكبير بعجلة الفأرة والتحريك بالسحب</span>
               </div>
             </div>
           </div>
@@ -257,7 +257,7 @@ async function loadProductDetail() {
     const price = document.createElement('p');
     price.classList.add('fs-5', 'mb-3');
     price.innerHTML = `<span class="product-card-price" style="color: rgb(255, 115, 0);font-weight:700;font-size:1.28em;">
-    <i class="bi bi-tag"></i> ₺${product.price}
+    <i class="bi bi-tag"></i> دج${product.price}
     </span>`;
     detailsCol.appendChild(price);
 
@@ -317,7 +317,7 @@ async function loadProductDetail() {
     loadReviews(productId);
   } catch (error) {
     console.error('Error loading product details:', error);
-    document.getElementById('product-detail-container').innerHTML = `<p>Hata: ${error.message}</p>`;
+    document.getElementById('product-detail-container').innerHTML = `<p>خطأ: ${error.message}</p>`;
   }
 }
 
@@ -361,7 +361,7 @@ async function renderRelatedProducts(product) {
               <img src="${(p.thumbnail || 'images/default-product.jpg')}" class="card-img-top related-product-img">
               <div class="card-body d-flex flex-column py-2 px-2">
                 <h5 class="card-title" style="color:var(--military-green,#715100);font-size:0.98em;font-weight:700">${p.name}</h5>
-                <span style="color: rgb(255, 115, 0);font-weight:600;">₺${p.price}</span>
+                <span style="color: rgb(255, 115, 0);font-weight:600;">دج${p.price}</span>
                 <div class="mt-auto">
                   ${(p.categories || []).map(cat =>
                     `<span class="badge bg-light border text-dark me-1" style="font-size:0.90em;padding:.25em .48em;"><i class="bi bi-tag"></i> ${cat.name}</span>`
@@ -455,7 +455,7 @@ function showCartMessage(message, type = 'success') {
   alertDiv.id = alertId;
   alertDiv.innerHTML = `
     ${message}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
   `;
   container.appendChild(alertDiv);
   setTimeout(() => {

@@ -64,7 +64,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         });
         const result = await response.json();
         if (!response.ok) {
-            throw new Error(result.error || 'Kayıt başarısız.');
+            throw new Error(result.error || 'فشل التسجيل.');
         }
         showMessage(messageDiv, result.message + " ...سيتم تحويلك إلى صفحة تسجيل الدخول", "success");
         setTimeout(() => {

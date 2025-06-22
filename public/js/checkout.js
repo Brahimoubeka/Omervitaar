@@ -158,7 +158,7 @@ function calculateCartTotal() {
     cartTotal += (item.price * item.quantity);
   });
   
-  document.getElementById('cart-total').innerHTML = `₺${cartTotal.toFixed(2)}`;
+  document.getElementById('cart-total').innerHTML = `دج${cartTotal.toFixed(2)}`;
   updateDeliveryCost(); // Update totals whenever cart is calculated
 }
 
@@ -167,12 +167,12 @@ function updateDeliveryCost() {
   const selectedCity = document.getElementById('city').value;
   const deliveryCost = deliveryCosts[selectedCity] || 0;
   const cartTotalText = document.getElementById('cart-total').textContent;
-  const cartTotal = parseFloat(cartTotalText.replace('₺', ''));
+  const cartTotal = parseFloat(cartTotalText.replace('دج', ''));
   
   const finalTotal = cartTotal + deliveryCost;
   
-  document.getElementById('delivery-cost').innerHTML = `₺${deliveryCost.toFixed(2)}`;
-  document.getElementById('final-total').innerHTML = `₺${finalTotal.toFixed(2)}`;
+  document.getElementById('delivery-cost').innerHTML = `دج${deliveryCost.toFixed(2)}`;
+  document.getElementById('final-total').innerHTML = `دج${finalTotal.toFixed(2)}`;
 }
 
 // New function to show stock confirmation dialog
@@ -219,7 +219,7 @@ async function proceedWithAvailableItems(availableItems) {
     const street = document.getElementById('street').value.trim();
 
     const deliveryCost = deliveryCosts[city] || 0;
-    const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('₺', ''));
+    const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('دج', ''));
     const finalTotal = cartTotal + deliveryCost;
 
     const orderData = {
@@ -323,7 +323,7 @@ function setupFormSubmitHandler() {
 
         // --- Prepare Order Data ---
         const deliveryCost = deliveryCosts[city] || 0;
-        const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('₺', ''));
+        const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('دج', ''));
         const finalTotal = cartTotal + deliveryCost;
 
         const orderData = {

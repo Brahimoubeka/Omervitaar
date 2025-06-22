@@ -108,7 +108,7 @@ async function loadProducts() {
         <td><img src="${thumbnail}" alt="${product.name}" class="product-thumb-img"></td>
         <td class="product-title-cell">${product.name}</td>
         <td>${categoryLabels}</td>
-        <td><span style="color:var(--orange-accent,#ffbf00); font-weight:600;">₺${product.price}</span></td>
+        <td><span style="color:var(--orange-accent,#ffbf00); font-weight:600;">دج${product.price}</span></td>
         <td>${product.stock}</td>
         <td class="action-btns">
           <button onclick="deleteProduct(${product.id})" class="btn btn-danger btn-sm" title="حذف"><i class="bi bi-trash"></i></button>
@@ -340,7 +340,7 @@ async function loadProducts() {
         <td><img src="${thumbnail}" alt="${product.name}" class="product-thumb-img"></td>
         <td class="product-title-cell">${product.name}</td>
         <td>${categoryLabels}</td>
-        <td><span style="color:var(--orange-accent,#ffbf00); font-weight:600;">₺${product.price}</span></td>
+        <td><span style="color:var(--orange-accent,#ffbf00); font-weight:600;">دج${product.price}</span></td>
         <td>${product.stock}</td>
         <td class="action-btns">
           <button onclick="openDeleteModal(${product.id}, '${product.name.replace(/'/g, "\\'")}')" class="btn btn-danger btn-sm mb-1" title="حذف"><i class="bi bi-trash"></i></button>
