@@ -6,32 +6,43 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
   const phone_number = document.getElementById('phone_number').value.trim();
   const subject = document.getElementById('subject').value.trim();
   const message_text = document.getElementById('message_text').value.trim();
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHtml = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ الإرسال...';
 
   // Validation: Name (at least 3 chars, only Turkish letters and space)
-  if (!/^[a-zA-ZğüşıöçĞÜŞİÖÇ ]{3,}$/.test(full_name)) {
+  if (!/^[a-zA-Z\u011f\u00fc\u015f\u0131\u00f6\u00e7\u011E\u00DC\u015E\u0130\u00D6\u00C7 ]{3,}$/.test(full_name)) {
     showMessage('يجب أن يكون الاسم الكامل 3 أحرف على الأقل ويحتوي فقط على أحرف ومسافة.', 'danger');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
     return;
   }
   // Validation: Phone (starts with 0 and has 10 digits)
   if (!/^0[0-9]{9}$/.test(phone_number)) {
     showMessage('يرجى إدخال رقم هاتف صالح يبدأ بـ 0 ومكون من 10 أرقام.', 'danger');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
     return;
   }
   // Validation: Subject (at least 3 chars)
   if (subject.length < 3) {
     showMessage('يجب أن يكون الموضوع 3 أحرف على الأقل.', 'danger');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
     return;
   }
   // Validation: Message required
   if (!message_text) {
     showMessage('يرجى كتابة رسالتك.', 'danger');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
     return;
   }
   
 
   // Guest validation: If no token, require full_name & phone_number (already covered above)
   const token = localStorage.getItem('token');
-
   try {
     const response = await fetch('/api/messages', {
       method: 'POST',
@@ -43,13 +54,10 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
         full_name, phone_number, subject, message_text
       })
     });
-
     const result = await response.json();
-
     if (!response.ok) {
       throw new Error(result.error || 'تعذر إرسال الرسالة.');
     }
-
     showMessage(result.message, 'success');
     document.getElementById('contact-form').reset();
     setTimeout(() => {
@@ -57,6 +65,9 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
         }, 3000);
   } catch (error) {
     showMessage(`خطأ: ${error.message}`, 'danger');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
   }
 });
 

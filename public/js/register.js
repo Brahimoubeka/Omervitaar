@@ -16,10 +16,16 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const phone = document.getElementById('phone').value.trim();
     const password = document.getElementById('password').value;
     const messageDiv = document.getElementById('register-message');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ التسجيل...';
 
     // control name
     if (name.length < 3 || name.length > 25) {
         showMessage(messageDiv, "يجب أن يكون الاسم بين 3 و 25 حرفًا.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
 
@@ -27,18 +33,24 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(email)) {
         showMessage(messageDiv, "يرجى إدخال بريد إلكتروني صالح. (مثال: name@email.com)", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
 
     // gender
     if (!gender) {
         showMessage(messageDiv, "يرجى اختيار الجنس.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
 
     // birth date
     if (!birth_date) {
         showMessage(messageDiv, "يرجى إدخال تاريخ الميلاد.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
     // Age check: must be at least 18 years old
@@ -51,6 +63,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     }
     if (age < 18) {
         showMessage(messageDiv, "يجب أن يكون عمرك 18 سنة أو أكثر للتسجيل.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
 
@@ -58,6 +72,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const phonePattern = /^0[0-9]{9}$/;
     if (!phonePattern.test(phone)) {
         showMessage(messageDiv, "يجب أن يكون رقم الهاتف 10 رقمًا ويبدأ بـ 0.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
 
@@ -65,6 +81,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     if (!passwordPattern.test(password)) {
         showMessage(messageDiv, "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل، وتحتوي على حرف كبير واحد على الأقل، ورقم واحد، ورمز واحد.", "danger");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
     }
 
@@ -84,5 +102,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         }, 1500);
     } catch (error) {
         showMessage(messageDiv, "خطأ: " + error.message, "danger");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
     }
 });

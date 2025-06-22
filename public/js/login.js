@@ -91,7 +91,10 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ الدخول...';
     try {
         const response = await fetch('/api/login', {
             method: 'POST',
@@ -125,5 +128,8 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             </div>
             `;
 
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
     }
 });

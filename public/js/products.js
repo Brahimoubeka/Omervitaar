@@ -111,6 +111,7 @@ function renderProducts(products, append = false) {
 
 // Loads products and fetches their images for carousel use
 async function loadProducts() {
+  showGlobalLoadingSpinner('جاري تحميل المنتجات...');
   try {
     const response = await fetch('/api/products');
     if (!response.ok) {
@@ -141,6 +142,8 @@ async function loadProducts() {
     renderProducts(allProducts);
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
+  } finally {
+    hideGlobalLoadingSpinner();
   }
 }
 
@@ -152,6 +155,7 @@ async function loadProductsPaginated(reset = false) {
     document.getElementById('show-less-btn').style.display = 'none';
   }
   if (allLoaded) return;
+  showGlobalLoadingSpinner('جاري تحميل المنتجات...');
   try {
     const resp = await fetch(`/api/products/paginate?offset=${currentOffset}&limit=${PAGE_SIZE}`);
     if (!resp.ok) throw new Error('تعذر جلب المنتجات');
@@ -165,6 +169,8 @@ async function loadProductsPaginated(reset = false) {
     document.getElementById('show-less-btn').style.display = currentOffset > PAGE_SIZE ? 'block' : 'none';
   } catch (e) {
     console.error(e);
+  } finally {
+    hideGlobalLoadingSpinner();
   }
 }
 
@@ -228,3 +234,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('show-more-btn').style.display = 'block';
   });
 });
+
+// --- Global Loading Spinner Notification ---
+function showGlobalLoadingSpinner(message = 'جاري التحميل...') {
+  let spinnerDiv = document.getElementById('global-loading-spinner');
+  if (!spinnerDiv) {
+    spinnerDiv = document.createElement('div');
+    spinnerDiv.id = 'global-loading-spinner';
+    spinnerDiv.style.position = 'fixed';
+    spinnerDiv.style.top = '30px';
+    spinnerDiv.style.left = '50%';
+    spinnerDiv.style.transform = 'translateX(-50%)';
+    spinnerDiv.style.zIndex = '9999';
+    spinnerDiv.innerHTML = `
+      <div class="alert alert-warning d-flex align-items-center mb-0" role="alert" style="min-width:220px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        <span>${message}</span>
+      </div>`;
+    document.body.appendChild(spinnerDiv);
+  }
+}
+function hideGlobalLoadingSpinner() {
+  const spinnerDiv = document.getElementById('global-loading-spinner');
+  if (spinnerDiv) spinnerDiv.remove();
+}

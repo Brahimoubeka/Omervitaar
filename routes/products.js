@@ -42,7 +42,6 @@ async function getProductRatingStats(productId) {
       avgRating = ratingNumbers.reduce((sum, r) => sum + r, 0) / ratingNumbers.length;
       reviewCount = ratingNumbers.length;
     }
-    console.log('Product', pid, 'ratings:', ratingNumbers, 'avg:', avgRating);
   }
   return { avgRating, reviewCount };
 }
@@ -80,7 +79,6 @@ router.get('/products', async (req, res) => {
       const stats = await getProductRatingStats(product.id);
       product.avgRating = stats.avgRating;
       product.reviewCount = stats.reviewCount;
-      console.log(`Product ${product.id} avgRating:`, product.avgRating, 'reviewCount:', product.reviewCount);
     }
     res.json(products);
   } catch (err) {

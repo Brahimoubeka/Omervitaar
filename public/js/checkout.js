@@ -401,12 +401,73 @@ function setupFormSubmitHandler() {
 }
 
 // Displays success or error messages to the user
-function showMessage(message, type = 'success') {
+async function showMessage(message, type = 'success') {
   const container = document.getElementById('checkout-message');
+  // If the message is about login required, append WhatsApp option, clickable login link, and copy order info button
+  if (message && (message.includes('تسجيل الدخول') || message.includes('login'))) {
+    // Make the login/create account part clickable
+    message = message.replace(
+      /(الرجاء تسجيل الدخول او انشاء حساب أولا|you must be logged in|يجب عليك تسجيل الدخول)/gi,
+      `<a href='login.html' style='color:#0d6efd;text-decoration:underline;font-weight:600;'>تسجيل الدخول أو إنشاء حساب</a>`
+    );
+    try {
+      const res = await fetch('/api/branding');
+      const branding = await res.json();
+      const phone = branding.phone ? branding.phone.replace(/[^\d+]/g, '') : '';
+      if (phone) {
+        const whatsappUrl = `https://wa.me/${phone.replace(/^\+/, '')}`;
+        message += `<br><span style="font-size:1.08em;color:#0a7c3a;font-weight:500;">أو يمكنك الطلب مباشرة من هذا الرقم على <a href='${whatsappUrl}' target='_blank' style='color:#25d366;text-decoration:underline;'><i class='bi bi-whatsapp'></i> واتساب</a>: <b dir='ltr'>${phone}</b></span>`;
+      }
+    } catch {}
+    // Add copy order info button
+    message += `<br><button id='copy-order-info-btn' class='btn btn-outline-secondary btn-sm mt-2' type='button'><i class='bi bi-clipboard'></i> نسخ تفاصيل الطلب</button>`;
+  }
   container.innerHTML = `
     <div class="alert alert-${type} alert-dismissible fade show" role="alert">
       ${message}
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
     </div>
   `;
+  // Add copy-to-clipboard logic if button exists
+  setTimeout(() => {
+    const btn = document.getElementById('copy-order-info-btn');
+    if (btn) {
+      btn.onclick = function() {
+        // Gather checkout info from form and cart
+        const getVal = id => (document.getElementById(id)?.value || '').trim();
+        const firstName = getVal('firstName');
+        const lastName = getVal('lastName');
+        const shippingName = getVal('shippingName');
+        const shippingAddress = getVal('shippingAddress');
+        const city = getVal('city');
+        const province = getVal('province');
+        const street = getVal('street');
+        const department = getVal('department');
+        const postalCode = getVal('postalCode');
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        let orderDetails = `تفاصيل الطلب:\n`;
+        orderDetails += `الاسم الكامل: ${firstName} ${lastName}\n`;
+        orderDetails += `رقم الهاتف: ${shippingName}\n`;
+        orderDetails += `العنوان: ${shippingAddress}, ${city}, ${province}, ${street}, ${department}, ${postalCode}\n`;
+        orderDetails += `\nالمنتجات:\n`;
+        cart.forEach(item => {
+          orderDetails += `- ${item.name} x ${item.quantity}\n`;
+        });
+        orderDetails += `\nمجموع المنتجات: ${document.getElementById('cart-total')?.textContent || ''}\n`;
+        orderDetails += `تكلفة التوصيل: ${document.getElementById('delivery-cost')?.textContent || ''}\n`;
+        orderDetails += `المجموع النهائي: ${document.getElementById('final-total')?.textContent || ''}`;
+        // Copy to clipboard
+        navigator.clipboard.writeText(orderDetails).then(() => {
+          btn.innerHTML = "<i class='bi bi-clipboard-check'></i> تم النسخ!";
+          btn.classList.remove('btn-outline-secondary');
+          btn.classList.add('btn-success');
+          setTimeout(() => {
+            btn.innerHTML = "<i class='bi bi-clipboard'></i> نسخ تفاصيل الطلب";
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+          }, 2000);
+        });
+      };
+    }
+  }, 0);
 }

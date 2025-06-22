@@ -120,8 +120,33 @@ function extractYouTubeLinks(text) {
   return links;
 }
 
+// --- Global Loading Spinner Notification ---
+function showGlobalLoadingSpinner(message = 'جاري التحميل...') {
+  let spinnerDiv = document.getElementById('global-loading-spinner');
+  if (!spinnerDiv) {
+    spinnerDiv = document.createElement('div');
+    spinnerDiv.id = 'global-loading-spinner';
+    spinnerDiv.style.position = 'fixed';
+    spinnerDiv.style.top = '30px';
+    spinnerDiv.style.left = '50%';
+    spinnerDiv.style.transform = 'translateX(-50%)';
+    spinnerDiv.style.zIndex = '9999';
+    spinnerDiv.innerHTML = `
+      <div class="alert alert-warning d-flex align-items-center mb-0" role="alert" style="min-width:220px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
+        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        <span>${message}</span>
+      </div>`;
+    document.body.appendChild(spinnerDiv);
+  }
+}
+function hideGlobalLoadingSpinner() {
+  const spinnerDiv = document.getElementById('global-loading-spinner');
+  if (spinnerDiv) spinnerDiv.remove();
+}
+
 // MAIN FUNCTION: loadProductDetail
 async function loadProductDetail() {
+  showGlobalLoadingSpinner('جاري تحميل تفاصيل المنتج...');
   const params = getQueryParams();
   productId = params.id;
 
@@ -318,6 +343,8 @@ async function loadProductDetail() {
   } catch (error) {
     console.error('Error loading product details:', error);
     document.getElementById('product-detail-container').innerHTML = `<p>خطأ: ${error.message}</p>`;
+  } finally {
+    hideGlobalLoadingSpinner();
   }
 }
 

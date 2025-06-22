@@ -135,10 +135,16 @@ window.openDeleteModal = function(productId, productName) {
 
 document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
   if (!deleteProductId) return;
+  const btn = this;
+  const originalBtnHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ الحذف...';
   await deleteProduct(deleteProductId);
   deleteProductId = null;
   const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteProductModal'));
   deleteModal.hide();
+  btn.disabled = false;
+  btn.innerHTML = originalBtnHtml;
 });
 
 // a modal to delete product
@@ -221,16 +227,24 @@ window.showUpdateForm = function(productId) {
     e.preventDefault();
     const token = localStorage.getItem('token');
     const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ التحديث...';
     const imageInput = form.querySelector('input[type="file"][name="images"]');
     const files = imageInput.files;
     if (files.length > 5) {
       showNotification('يمكنك تحميل 5 صور كحد أقصى.', 'danger');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
       return;
     }
     for (const file of files) {
       if (!isValidImageFile(file)) {
         showNotification('نوع ملف الصورة غير صالح. يرجى تحميل صورة بصيغة jpeg أو png أو gif أو webp.', 'danger');
         imageInput.value = '';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
         return;
       }
     }
@@ -275,10 +289,14 @@ window.showUpdateForm = function(productId) {
       setTimeout(() => {
         const updateModal = bootstrap.Modal.getInstance(document.getElementById('updateProductModal'));
         if (updateModal) updateModal.hide();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
       }, 1300);
     } catch (error) {
       showNotification('حدث خطأ أثناء تحديث المنتج: ' + error.message, 'danger');
       console.error('حدث خطأ أثناء تحديث المنتج:', error);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
     }
   });
 
@@ -371,16 +389,24 @@ document.getElementById('add-product-form').addEventListener('submit', async (e)
   e.preventDefault();
   const token = localStorage.getItem('token');
   const form = e.target;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalBtnHtml = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جارٍ الإضافة...';
   const imageInput = form.querySelector('input[type="file"][name="images"]');
   const files = imageInput.files;
   if (files.length > 5) {
     showNotification('يمكنك تحميل 5 صور كحد أقصى.', 'danger');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
     return;
   }
   for (const file of files) {
     if (!isValidImageFile(file)) {
       showNotification('نوع ملف الصورة غير صالح. يرجى تحميل صورة بصيغة jpeg أو png أو gif أو webp.', 'danger');
       imageInput.value = '';
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
       return;
     }
   }
@@ -427,10 +453,14 @@ document.getElementById('add-product-form').addEventListener('submit', async (e)
       const modalEl = document.getElementById('addProductModal');
       const modal = bootstrap.Modal.getInstance(modalEl);
       if (modal) modal.hide();
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
     }, 1500);
   } catch (error) {
     showNotification('حدث خطأ أثناء إضافة المنتج: ' + error.message, 'danger');
     console.error('حدث خطأ أثناء إضافة المنتج:', error);
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHtml;
   }
 });
 

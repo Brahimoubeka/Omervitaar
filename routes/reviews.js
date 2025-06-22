@@ -5,8 +5,6 @@ const jwt = require('jsonwebtoken');
 
 const secret = process.env.JWT_SECRET;
 
-console.log('JWT Secret:', process.env.JWT_SECRET);
-
 // JWT verification middleware
 function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -60,7 +58,6 @@ router.post('/reviews', verifyToken, async (req, res) => {
 
     try {
         const insertPayload = { product_id: numericProductId, user_id, rating: numericRating, comment: comment || '', created_at };
-        console.log('Review insert payload:', insertPayload);
         const { data, error } = await supabase
             .from('Reviews')
             .insert([insertPayload])

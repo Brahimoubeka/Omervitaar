@@ -6,17 +6,15 @@ const { sendOrderEmail } = require('../utils/email');
 
 const secret = process.env.JWT_SECRET;
 
-console.log('JWT Secret:', process.env.JWT_SECRET);
-
 // Middleware to verify JWT
 function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
-        return res.status(401).json({ error: 'Lütfen önce giriş yapınız.' });
+        return res.status(401).json({ error: 'الرجاء تسجيل الدخول او انشاء حساب أولا' });
     }
     const token = authHeader.split(' ')[1];
     if (!token) {
-        return res.status(401).json({ error: 'Lütfen önce giriş yapınız.' });
+        return res.status(401).json({ error: 'الرجاء تسجيل الدخول او انشاء حساب أولا' });
     }
     jwt.verify(token, secret, (err, decoded) => {
         if (err) {
