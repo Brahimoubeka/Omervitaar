@@ -94,24 +94,22 @@ async function loadProducts() {
     const tbody = document.getElementById('admin-products-table-body');
     for (const product of products) {
       productsMap[product.id] = product; // Store in map for updates
-      // Fetch all images for product
-      let images = [];
-      try {
-        const imagesResp = await fetch(`/api/products/${product.id}/images`);
-        images = await imagesResp.json();
-      } catch { images = []; }
-      const thumbnail = images.length > 0 ? images[0] : (product.imagePath || 'images/default-product.jpg');
+      // Only use uploaded images, no default
+      const images = product.images && product.images.length > 0 ? product.images : [];
+      const thumbnail = images[0] || '';
       const categoryLabels = (product.categories || []).map(cat => `<span class="badge bg-secondary me-1">${cat.name}</span>`).join('');
-
+      // Ensure productName is always a string for modal
+      const productName = Array.isArray(product.name) ? (product.name[0] || '') : (product.name || '');
+      const productNameEscaped = productName.replace(/'/g, "\\'");
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><img src="${thumbnail}" alt="${product.name}" class="product-thumb-img"></td>
-        <td class="product-title-cell">${product.name}</td>
+        <td>${thumbnail ? `<img src="${thumbnail}" alt="${productName}" class="product-thumb-img">` : ''}</td>
+        <td class="product-title-cell">${productName}</td>
         <td>${categoryLabels}</td>
         <td><span style="color:var(--orange-accent,#ffbf00); font-weight:600;">دج${product.price}</span></td>
         <td>${product.stock}</td>
         <td class="action-btns">
-          <button onclick="deleteProduct(${product.id})" class="btn btn-danger btn-sm" title="حذف"><i class="bi bi-trash"></i></button>
+          <button onclick="openDeleteModal(${product.id}, '${productNameEscaped}')" class="btn btn-danger btn-sm" title="حذف"><i class="bi bi-trash"></i></button>
           <button onclick="showUpdateForm(${product.id})" class="btn btn-secondary btn-sm" title="تحديث"><i class="bi bi-pencil-square"></i></button>
           <div id="update-form-${product.id}" style="display:none;"></div>
         </td>
@@ -129,6 +127,7 @@ let deleteProductId = null;
 // ----------- DELETE PRODUCT WITH MODAL -----------
 window.openDeleteModal = function(productId, productName) {
   deleteProductId = productId;
+  // Always treat productName as string
   document.getElementById('delete-product-name').innerHTML = productName;
   const deleteModal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
   deleteModal.show();
@@ -529,14 +528,22 @@ document.getElementById('slideUploadForm3').addEventListener('submit', function(
 
 
 
-// Load current branding info into the modal
+// --- Load current branding info into the modal
 async function loadBrandingInfo() {
-  const res = await fetch('/api/branding');
-  const data = await res.json();
-  document.getElementById('facebookLink').value = data.facebook || '';
-  document.getElementById('instagramLink').value = data.instagram || '';
-  document.getElementById('tiktokLink').value = data.tiktok || '';
-  document.getElementById('phoneNumber').value = data.phone || '';
+  try {
+    const res = await fetch('/api/branding');
+    if (!res.ok) throw new Error('Network error');
+    const data = await res.json();
+    document.getElementById('facebookLink').value = data.facebook || '';
+    document.getElementById('instagramLink').value = data.instagram || '';
+    document.getElementById('tiktokLink').value = data.tiktok || '';
+    document.getElementById('phoneNumber').value = data.phone || '';
+  } catch (e) {
+    document.getElementById('facebookLink').value = '';
+    document.getElementById('instagramLink').value = '';
+    document.getElementById('tiktokLink').value = '';
+    document.getElementById('phoneNumber').value = '';
+  }
 }
 
 // Show branding modal and load data
@@ -577,6 +584,7 @@ let deliveryCosts = {};
 async function fetchDeliveryCosts() {
   try {
     const res = await fetch('/api/delivery-costs');
+    if (!res.ok) throw new Error('Network error');
     deliveryCosts = await res.json();
   } catch {
     // fallback default
@@ -639,4 +647,3 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
   }
 });
-z

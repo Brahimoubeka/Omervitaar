@@ -1,47 +1,50 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const supabase = require('../supabase');
 
 // Helper: Get categories for product
 async function getCategoriesForProduct(productId) {
-  const { rows } = await db.query(
-    `SELECT "id", "name" FROM "Categories"
-     INNER JOIN "ProductCategories" ON "Categories"."id" = "ProductCategories"."category_id"
-     WHERE "ProductCategories"."product_id" = $1`,
-    [productId]
-  );
-  return rows || [];
+  const { data, error } = await supabase
+    .from('ProductCategories')
+    .select('category_id, Categories(id, name)')
+    .eq('product_id', productId);
+  if (error) throw error;
+  return (data || []).filter(row => row.Categories).map(row => ({ id: row.Categories.id, name: row.Categories.name }));
 }
 
 // Helper: Get first image for product
 async function getFirstImageForProduct(productId) {
-  const { rows } = await db.query(
-    `SELECT "imagePath" FROM "ProductImages" WHERE "product_id" = $1 ORDER BY "id" ASC LIMIT 1`,
-    [productId]
-  );
-  return rows[0]?.imagePath || null;
+  const { data, error } = await supabase
+    .from('ProductImages')
+    .select('imagePath')
+    .eq('product_id', productId)
+    .order('id', { ascending: true })
+    .limit(1);
+  if (error) throw error;
+  return data && data[0] ? data[0].imagePath : null;
 }
-
-// // Helper: Get all images for product
-// async function getImagesForProduct(productId) {
-//   const { rows } = await db.query(
-//     'SELECT "imagePath" FROM "ProductImages" WHERE "product_id" = $1 ORDER BY "id"',
-//     [productId]
-//   );
-//   return rows.map(r => r.imagePath);
-// }
 
 // Helper: Get average rating and review count for a product
 async function getProductRatingStats(productId) {
-  const { rows } = await db.query(
-    `SELECT AVG("rating") as "avgRating", COUNT(*) as "reviewCount" FROM "Reviews" WHERE "product_id" = $1`,
-    [productId]
-  );
-  const row = rows[0];
-  return {
-    avgRating: row.avgRating ? parseFloat(row.avgRating) : null,
-    reviewCount: row.reviewCount ? parseInt(row.reviewCount) : 0
-  };
+  // Ensure productId is a number for the query
+  const pid = Number(productId);
+  // Fetch all ratings for this product
+  const { data: ratings, error } = await supabase
+    .from('Reviews')
+    .select('rating')
+    .eq('product_id', pid);
+  if (error) throw error;
+  let avgRating = null;
+  let reviewCount = 0;
+  if (ratings && ratings.length > 0) {
+    const ratingNumbers = ratings.map(r => Number(r.rating)).filter(r => !isNaN(r));
+    if (ratingNumbers.length > 0) {
+      avgRating = ratingNumbers.reduce((sum, r) => sum + r, 0) / ratingNumbers.length;
+      reviewCount = ratingNumbers.length;
+    }
+    console.log('Product', pid, 'ratings:', ratingNumbers, 'avg:', avgRating);
+  }
+  return { avgRating, reviewCount };
 }
 
 // GET /api/products
@@ -50,24 +53,34 @@ router.get('/products', async (req, res) => {
   try {
     let products;
     if (category) {
-      const { rows } = await db.query(
-        `SELECT DISTINCT p.* FROM "Products" p
-         JOIN "ProductCategories" pc ON p."id" = pc."product_id"
-         WHERE pc."category_id" = $1
-         ORDER BY p."id" DESC LIMIT $2`,
-        [category, limit || 3]
-      );
-      products = rows;
+      const { data, error } = await supabase
+        .from('Products')
+        .select('*')
+        .in('id',
+          (await supabase
+            .from('ProductCategories')
+            .select('product_id')
+            .eq('category_id', category)).data?.map(pc => pc.product_id) || []
+        )
+        .order('id', { ascending: false })
+        .limit(limit || 3);
+      if (error) throw error;
+      products = data;
     } else {
-      const { rows } = await db.query('SELECT * FROM "Products"');
-      products = rows;
+      const { data, error } = await supabase.from('Products').select('*');
+      if (error) throw error;
+      products = data;
     }
     for (const product of products) {
+      // --- Fix: Always send name/description as string ---
+      product.name = Array.isArray(product.name) ? (product.name[0] || '') : (product.name || '');
+      product.description = Array.isArray(product.description) ? (product.description[0] || '') : (product.description || '');
       product.categories = await getCategoriesForProduct(product.id);
       product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
       const stats = await getProductRatingStats(product.id);
       product.avgRating = stats.avgRating;
       product.reviewCount = stats.reviewCount;
+      console.log(`Product ${product.id} avgRating:`, product.avgRating, 'reviewCount:', product.reviewCount);
     }
     res.json(products);
   } catch (err) {
@@ -82,19 +95,29 @@ router.get('/products/paginate', async (req, res) => {
   offset = parseInt(offset, 10) || 0;
   limit = parseInt(limit, 10) || 8;
   try {
-    const { rows } = await db.query('SELECT * FROM "Products" ORDER BY "id" DESC OFFSET $1 LIMIT $2', [offset, limit]);
+    const { data, error } = await supabase
+      .from('Products')
+      .select('*')
+      .order('id', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (error) throw error;
     // Add categories, thumbnail, avgRating, reviewCount, and images for each product
-    for (const product of rows) {
+    for (const product of data) {
       product.categories = await getCategoriesForProduct(product.id);
       product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
       const stats = await getProductRatingStats(product.id);
       product.avgRating = stats.avgRating;
       product.reviewCount = stats.reviewCount;
       // Add images array for carousel
-      const { rows: imgRows } = await db.query('SELECT "imagePath" FROM "ProductImages" WHERE "product_id" = $1 ORDER BY "id"', [product.id]);
+      const { data: imgRows, error: imgError } = await supabase
+        .from('ProductImages')
+        .select('imagePath')
+        .eq('product_id', product.id)
+        .order('id', { ascending: true });
+      if (imgError) throw imgError;
       product.images = imgRows.length > 0 ? imgRows.map(r => r.imagePath) : (product.imagePath ? [product.imagePath] : []);
     }
-    res.json(rows);
+    res.json(data);
   } catch (err) {
     console.error('Error in /products/paginate:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });
@@ -104,8 +127,13 @@ router.get('/products/paginate', async (req, res) => {
 // GET /api/products/latest
 router.get('/products/latest', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM "Products" ORDER BY "id" DESC LIMIT 2');
-    res.json(rows);
+    const { data, error } = await supabase
+      .from('Products')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(2);
+    if (error) throw error;
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Son ürünler alınırken veritabanı hatası.' });
   }
@@ -115,8 +143,12 @@ router.get('/products/latest', async (req, res) => {
 router.get('/products/:id', async (req, res) => {
   const productId = req.params.id;
   try {
-    const { rows } = await db.query('SELECT * FROM "Products" WHERE "id" = $1', [productId]);
-    const row = rows[0];
+    const { data, error } = await supabase
+      .from('Products')
+      .select('*')
+      .eq('id', productId);
+    if (error) throw error;
+    const row = data[0];
     if (!row) return res.status(404).json({ error: 'لم يتم العثور على المنتج' });
     row.categories = await getCategoriesForProduct(row.id);
     row.thumbnail = await getFirstImageForProduct(row.id) || row.imagePath || 'images/default-product.jpg';
@@ -134,8 +166,13 @@ router.get('/products/:id', async (req, res) => {
 router.get('/products/:id/images', async (req, res) => {
   const productId = req.params.id;
   try {
-    const { rows } = await db.query('SELECT "imagePath" FROM "ProductImages" WHERE "product_id" = $1', [productId]);
-    res.json(rows.map(row => row.imagePath));
+    const { data, error } = await supabase
+      .from('ProductImages')
+      .select('imagePath')
+      .eq('product_id', productId)
+      .order('id', { ascending: true });
+    if (error) throw error;
+    res.json((data || []).map(row => row.imagePath));
   } catch (err) {
     res.status(500).json({ error: 'خطأ في الخادم' });
   }
@@ -144,13 +181,16 @@ router.get('/products/:id/images', async (req, res) => {
 // GET /api/categories
 router.get('/categories', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT "id", "name" FROM "Categories" ORDER BY "name" ASC');
-    res.json(rows);
+    const { data, error } = await supabase
+      .from('Categories')
+      .select('id, name')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Kategoriler alınırken hata oluştu.' });
   }
 });
-
 
 // Record a product visit (guest or logged-in user)
 router.post('/products/:id/visit', async (req, res) => {
@@ -161,17 +201,15 @@ router.post('/products/:id/visit', async (req, res) => {
     let userId = null;
     if (req.user && req.user.id) userId = req.user.id;
     try {
-        await db.query(
-            'INSERT INTO "ProductVisits" ("product_id", "user_id") VALUES ($1, $2)',
-            [productId, userId]
-        );
+        const { error } = await supabase
+            .from('ProductVisits')
+            .insert([{ product_id: productId, user_id: userId }]);
+        if (error) throw error;
         res.json({ message: "Visit recorded" });
     } catch (err) {
         console.error("Error recording visit:", err);
         res.status(500).json({ error: 'Error recording visit' });
     }
 });
-
-
 
 module.exports = router;

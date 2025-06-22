@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const supabase = require('../supabase');
 const jwt = require('jsonwebtoken');
 const { sendOrderEmail } = require('../utils/email');
 
@@ -27,6 +27,82 @@ function verifyToken(req, res, next) {
     });
 }
 
+// GET /api/orders - Retrieve orders for the logged-in user
+router.get('/orders', verifyToken, async (req, res) => {
+    const userId = req.user.userId;
+    try {
+        const { data, error } = await supabase
+            .from('Orders')
+            .select('id, order_group, product_id, quantity, order_date, status, products_price, delivery_price, total_price, Products(name, price)') // join Products
+            .eq('user_id', userId)
+            .or('archive_status_user.is.null,archive_status_user.neq.archived')
+            .order('order_date', { ascending: false });
+        if (error) throw error;
+        // Map productName and price, and rename id to orderId
+        const rows = (data || []).map(o => ({
+            orderId: o.id,
+            order_group: o.order_group,
+            product_id: o.product_id,
+            quantity: o.quantity,
+            order_date: o.order_date,
+            status: o.status,
+            products_price: o.products_price,
+            delivery_price: o.delivery_price,
+            total_price: o.total_price,
+            productName: o.Products?.name,
+            price: o.Products?.price
+        }));
+        res.json(rows);
+    } catch (err) {
+        console.error("خطأ أثناء أخذ الطلبيات ", err);
+        res.status(500).json({ error: "خطأ في الخادم!" });
+    }
+});
+
+// GET /api/admin/orders - Retrieve all orders for the admin panel
+router.get('/admin/orders', verifyToken, async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Yalnızca admin erişebilir.' });
+    }
+    try {
+        const { data, error } = await supabase
+            .from('Orders')
+            .select('order_group, id, quantity, order_date, status, shipping_name, shipping_address, city, province, street, department, postal_code, first_name, last_name, products_price, delivery_price, total_price, Users(name, email), Products(name, price)')
+            .or('archive_status.is.null,archive_status.neq.archived')
+            .order('order_group', { ascending: false })
+            .order('order_date', { ascending: false });
+        if (error) throw error;
+        // Map userName, userEmail, productName, price, and rename id to orderId
+        const rows = (data || []).map(o => ({
+            order_group: o.order_group,
+            orderId: o.id,
+            quantity: o.quantity,
+            order_date: o.order_date,
+            status: o.status,
+            shipping_name: o.shipping_name,
+            shipping_address: o.shipping_address,
+            city: o.city,
+            province: o.province,
+            street: o.street,
+            department: o.department,
+            postal_code: o.postal_code,
+            first_name: o.first_name,
+            last_name: o.last_name,
+            products_price: o.products_price,
+            delivery_price: o.delivery_price,
+            total_price: o.total_price,
+            userName: o.Users?.name,
+            userEmail: o.Users?.email,
+            productName: o.Products?.name,
+            price: o.Products?.price
+        }));
+        res.json(rows);
+    } catch (err) {
+        console.error('خطأ أثناء أخذ الطلبيات!', err);
+        res.status(500).json({ error: 'خطأ أثناء أخذ الطلبيات!' });
+    }
+});
+
 // POST /api/orders - Create a new order
 router.post('/orders', verifyToken, async (req, res) => {
     const {
@@ -40,9 +116,13 @@ router.post('/orders', verifyToken, async (req, res) => {
     // Fetch user email from DB
     let userEmail = null;
     try {
-        const userResult = await db.query('SELECT email FROM "Users" WHERE id = $1', [userId]);
-        if (userResult.rows[0]) {
-            userEmail = userResult.rows[0].email;
+        const { data: userRows, error: userError } = await supabase
+            .from('Users')
+            .select('email')
+            .eq('id', userId);
+        if (userError) throw userError;
+        if (userRows && userRows[0]) {
+            userEmail = userRows[0].email;
         }
     } catch (emailErr) {
         console.error('Kullanıcı e-posta alınamadı:', emailErr);
@@ -58,32 +138,42 @@ router.post('/orders', verifyToken, async (req, res) => {
 
     try {
         for (const item of items) {
-            // First, update product stock
-            const updateStockRes = await db.query(
-                'UPDATE "Products" SET "stock" = "stock" - $1 WHERE "id" = $2 AND "stock" >= $1',
-                [item.quantity, item.id]
-            );
-            if (updateStockRes.rowCount === 0) {
+            // Fetch current stock
+            const { data: product, error: stockError } = await supabase
+                .from('Products')
+                .select('stock')
+                .eq('id', item.id)
+                .single();
+            if (stockError) throw stockError;
+            if (!product || product.stock < item.quantity) {
                 return res.status(400).json({ error: `Yeterli stok yok: ${item.name}` });
             }
-
+            const newStock = product.stock - item.quantity;
+            await supabase.from('Products').update({ stock: newStock }).eq('id', item.id);
             // Insert the order record
-            await db.query(
-                `INSERT INTO "Orders" (
-                    "user_id", "product_id", "quantity", "shipping_name", "shipping_address", "order_date",
-                    "status", "order_group", "city", "province", "street", "department", "postal_code",
-                    "first_name", "last_name", "products_price", "delivery_price", "total_price"
-                ) VALUES (
-                    $1, $2, $3, $4, $5, $6,
-                    $7, $8, $9, $10, $11, $12, $13,
-                    $14, $15, $16, $17, $18
-                )`,
-                [
-                    userId, item.id, item.quantity, shippingName, shippingAddress, orderDate,
-                    'sipariş alındı', orderGroup, city, province, street, department, postalCode,
-                    firstName, lastName, cartTotal, deliveryCost, finalTotal
-                ]
-            );
+            const { error: orderError } = await supabase
+                .from('Orders')
+                .insert([{
+                    user_id: userId,
+                    product_id: item.id,
+                    quantity: item.quantity,
+                    shipping_name: shippingName,
+                    shipping_address: shippingAddress,
+                    order_date: orderDate,
+                    status: 'sipariş alındı',
+                    order_group: orderGroup,
+                    city,
+                    province,
+                    street,
+                    department,
+                    postal_code: postalCode,
+                    first_name: firstName,
+                    last_name: lastName,
+                    products_price: cartTotal,
+                    delivery_price: deliveryCost,
+                    total_price: finalTotal
+                }]);
+            if (orderError) throw orderError;
         }
         // Send order confirmation email
         try {
@@ -132,80 +222,6 @@ router.post('/orders', verifyToken, async (req, res) => {
     }
 });
 
-// GET /api/orders - Retrieve orders for the logged-in user
-router.get('/orders', verifyToken, async (req, res) => {
-    const userId = req.user.userId;
-    const sql = `
-        SELECT
-            o."id" AS "orderId",
-            o."order_group",
-            o."product_id",
-            o."quantity",
-            o."order_date",
-            o."status",
-            o."products_price",
-            o."delivery_price",
-            o."total_price",
-            p."name" AS "productName",
-            p."price"
-        FROM "Orders" o
-        LEFT JOIN "Products" p ON o."product_id" = p."id"
-        WHERE o."user_id" = $1 
-        AND (o."archive_status_user" IS NULL OR o."archive_status_user" != 'archived')
-        ORDER BY o."order_date" DESC
-    `;
-    try {
-        const { rows } = await db.query(sql, [userId]);
-        res.json(rows);
-    } catch (err) {
-        console.error("خطأ أثناء أخذ الطلبيات ", err);
-        res.status(500).json({ error: "خطأ في الخادم!" });
-    }
-});
-
-// GET /api/admin/orders - Retrieve all orders for the admin panel
-router.get('/admin/orders', verifyToken, async (req, res) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Yalnızca admin erişebilir.' });
-    }
-    const query = `
-        SELECT 
-            o."order_group",
-            o."id" AS "orderId",
-            o."quantity",
-            o."order_date",
-            o."status",
-            o."shipping_name",
-            o."shipping_address",
-            o."city",
-            o."province",
-            o."street",
-            o."department",
-            o."postal_code",
-            o."first_name",
-            o."last_name",
-            o."products_price",
-            o."delivery_price",
-            o."total_price",
-            u."name" AS "userName",
-            u."email" AS "userEmail",
-            p."name" AS "productName",
-            p."price"
-        FROM "Orders" o
-        JOIN "Users" u ON o."user_id" = u."id"
-        JOIN "Products" p ON o."product_id" = p."id"
-        WHERE o."archive_status" IS NULL OR o."archive_status" != 'archived'
-        ORDER BY o."order_group" DESC, o."order_date" DESC
-    `;
-    try {
-        const { rows } = await db.query(query);
-        res.json(rows);
-    } catch (err) {
-        console.error('خطأ أثناء أخذ الطلبيات!', err);
-        res.status(500).json({ error: 'خطأ أثناء أخذ الطلبيات!' });
-    }
-});
-
 // PATCH /api/admin/orders/:orderId/status - Admin updates status of one product order
 router.patch('/admin/orders/:orderId/status', verifyToken, async (req, res) => {
     if (req.user.role !== 'admin') {
@@ -219,17 +235,18 @@ router.patch('/admin/orders/:orderId/status', verifyToken, async (req, res) => {
     }
 
     try {
-        const { rows } = await db.query(
-            'SELECT "status", "product_id", "quantity", "order_group" FROM "Orders" WHERE "id" = $1',
-            [orderId]
-        );
-        if (!rows[0]) {
+        const { data, error } = await supabase
+            .from('Orders')
+            .select('status, product_id, quantity, order_group')
+            .eq('id', orderId);
+        if (error) throw error;
+        if (!data[0]) {
             return res.status(500).json({ error: 'لم يتم العثور على الطلبية' });
         }
-        const previousStatus = rows[0].status;
-        const productId = rows[0].product_id;
-        const quantity = rows[0].quantity;
-        const orderGroup = rows[0].order_group;
+        const previousStatus = data[0].status;
+        const productId = data[0].product_id;
+        const quantity = data[0].quantity;
+        const orderGroup = data[0].order_group;
 
         // Admin cannot change status if it was previously 'İptal' and is not 'İptal' again
         if (previousStatus === 'إلغاء' && status !== 'إلغاء') {
@@ -238,42 +255,62 @@ router.patch('/admin/orders/:orderId/status', verifyToken, async (req, res) => {
 
         if (status === 'إلغاء' && previousStatus !== 'إلغاء') {
             // Step 1: Return product to stock
-            await db.query('UPDATE "Products" SET "stock" = "stock" + $1 WHERE "id" = $2', [quantity, productId]);
+            // Fetch current stock
+            const { data: product, error: stockError } = await supabase
+                .from('Products')
+                .select('stock')
+                .eq('id', productId)
+                .single();
+            if (stockError) throw stockError;
+            if (!product) throw new Error('Product not found');
+            const newStock = product.stock + quantity;
+            await supabase.from('Products').update({ stock: newStock }).eq('id', productId);
             // Step 2: Update the individual order's status
-            await db.query('UPDATE "Orders" SET "status" = $1 WHERE "id" = $2', [status, orderId]);
+            await supabase
+                .from('Orders')
+                .update({ status })
+                .eq('id', orderId);
             // Step 3: Recalculate prices for the entire order group
-            const groupOrdersResult = await db.query(`
-                SELECT o."id" AS "orderId", o."quantity", o."status", p."price" AS "unitPrice"
-                FROM "Orders" o
-                JOIN "Products" p ON o."product_id" = p."id"
-                WHERE o."order_group" = $1
-            `, [orderGroup]);
+            const { data: groupOrders, error: groupOrdersError } = await supabase
+                .from('Orders')
+                .select('id, quantity, status, Products(price)')
+                .eq('order_group', orderGroup);
+            if (groupOrdersError) throw groupOrdersError;
             let newProductsPrice = 0;
             let allItemsCancelled = true;
-            for (const item of groupOrdersResult.rows) {
+            for (const item of groupOrders) {
                 if (item.status !== 'إلغاء') {
-                    newProductsPrice += (item.quantity * item.unitPrice);
+                    newProductsPrice += (item.quantity * (item.Products?.price || 0));
                     allItemsCancelled = false;
                 }
             }
-            let newDeliveryPrice;
-            const groupInfoResult = await db.query('SELECT "delivery_price" FROM "Orders" WHERE "order_group" = $1 LIMIT 1', [orderGroup]);
-            if (allItemsCancelled) {
-                newDeliveryPrice = 0;
-            } else {
-                newDeliveryPrice = groupInfoResult.rows[0] ? groupInfoResult.rows[0].delivery_price : 0;
+            let newDeliveryPrice = 0;
+            if (!allItemsCancelled) {
+                const { data: groupInfo, error: groupInfoError } = await supabase
+                    .from('Orders')
+                    .select('delivery_price')
+                    .eq('order_group', orderGroup)
+                    .limit(1);
+                if (groupInfoError) throw groupInfoError;
+                newDeliveryPrice = groupInfo[0]?.delivery_price || 0;
             }
             const newFinalTotal = newProductsPrice + newDeliveryPrice;
             // Step 4: Update prices for all orders in the group
-            await db.query(`
-                UPDATE "Orders"
-                SET "products_price" = $1, "delivery_price" = $2, "total_price" = $3
-                WHERE "order_group" = $4
-            `, [newProductsPrice, newDeliveryPrice, newFinalTotal, orderGroup]);
+            await supabase
+                .from('Orders')
+                .update({
+                    products_price: newProductsPrice,
+                    delivery_price: newDeliveryPrice,
+                    total_price: newFinalTotal
+                })
+                .eq('order_group', orderGroup);
             res.json({ message: 'تم تحديث الطلبية!' });
         } else {
             // Other status changes
-            await db.query('UPDATE "Orders" SET "status" = $1 WHERE "id" = $2', [status, orderId]);
+            await supabase
+                .from('Orders')
+                .update({ status })
+                .eq('id', orderId);
             res.json({ message: 'تم تحديث الحالة بنجاح' });
         }
     } catch (err) {
@@ -289,7 +326,10 @@ router.patch('/admin/orders/group/:orderGroup/archive', verifyToken, async (req,
     }
     const group = req.params.orderGroup;
     try {
-        await db.query(`UPDATE "Orders" SET "archive_status" = 'archived' WHERE "order_group" = $1`, [group]);
+        await supabase
+            .from('Orders')
+            .update({ archive_status: 'archived' })
+            .eq('order_group', group);
         res.json({ message: 'Sipariş grubu arşivlendi.' });
     } catch (err) {
         console.error('خطأ عند محاولة الارشفة', err);
@@ -301,25 +341,24 @@ router.patch('/admin/orders/group/:orderGroup/archive', verifyToken, async (req,
 router.patch('/orders/group/:orderGroup/archive', verifyToken, async (req, res) => {
     const userId = req.user.userId;
     const group = req.params.orderGroup;
-    
     try {
         // First verify that the order group belongs to the user
-        const verifyOwnership = await db.query(
-            'SELECT 1 FROM "Orders" WHERE "order_group" = $1 AND "user_id" = $2 LIMIT 1',
-            [group, userId]
-        );
-
-        if (verifyOwnership.rowCount === 0) {
+        const { data: verifyOwnership, error: verifyError } = await supabase
+            .from('Orders')
+            .select('id')
+            .eq('order_group', group)
+            .eq('user_id', userId)
+            .limit(1);
+        if (verifyError) throw verifyError;
+        if (!verifyOwnership || verifyOwnership.length === 0) {
             return res.status(403).json({ error: 'لا يمكنك أرشفة طلبات لا تملكها.' });
         }
-
         // Update archive status for the user's orders in this group
-        await db.query(`
-            UPDATE "Orders" 
-            SET "archive_status_user" = 'archived' 
-            WHERE "order_group" = $1 AND "user_id" = $2
-        `, [group, userId]);
-
+        await supabase
+            .from('Orders')
+            .update({ archive_status_user: 'archived' })
+            .eq('order_group', group)
+            .eq('user_id', userId);
         res.json({ message: 'تمت أرشفة مجموعة الطلبات بنجاح.' });
     } catch (err) {
         console.error('خطأ في أرشفة مجموعة الطلبات:', err);

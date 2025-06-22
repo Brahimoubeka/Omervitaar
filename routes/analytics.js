@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const supabase = require('../supabase');
 const jwt = require('jsonwebtoken');
 const secret = process.env.JWT_SECRET;
 
@@ -31,19 +31,24 @@ function verifyAdmin(req, res, next) {
 // --- Visits per product (total, last 30 days, grouped by day) ---
 router.get('/admin/analytics/product-visits', verifyAdmin, async (req, res) => {
     try {
-        const { rows } = await db.query(`
-            SELECT 
-                p.id AS product_id,
-                p.name AS product_name,
-                COUNT(v.id) AS total_visits,
-                COUNT(CASE WHEN v.visited_at > NOW() - INTERVAL '7 days' THEN 1 END) AS visits_last_7_days,
-                COUNT(CASE WHEN v.visited_at > NOW() - INTERVAL '30 days' THEN 1 END) AS visits_last_30_days
-            FROM "Products" p
-            LEFT JOIN "ProductVisits" v ON p.id = v.product_id
-            GROUP BY p.id
-            ORDER BY total_visits DESC
-        `);
-        res.json(rows);
+        // Supabase does not support SQL aggregation in the same way, so fetch and aggregate in JS
+        const { data: products, error: prodError } = await supabase.from('Products').select('id, name');
+        if (prodError) throw prodError;
+        const { data: visits, error: visitError } = await supabase.from('ProductVisits').select('id, product_id, visited_at');
+        if (visitError) throw visitError;
+        const now = new Date();
+        const daysAgo = (n) => new Date(now.getTime() - n * 24 * 60 * 60 * 1000);
+        const result = products.map(p => {
+            const prodVisits = visits.filter(v => v.product_id === p.id);
+            return {
+                product_id: p.id,
+                product_name: p.name,
+                total_visits: prodVisits.length,
+                visits_last_7_days: prodVisits.filter(v => new Date(v.visited_at) > daysAgo(7)).length,
+                visits_last_30_days: prodVisits.filter(v => new Date(v.visited_at) > daysAgo(30)).length
+            };
+        }).sort((a, b) => b.total_visits - a.total_visits);
+        res.json(result);
     } catch (err) {
         console.error("Error fetching analytics:", err);
         res.status(500).json({ error: "لم يتم أخذ البيانات" });
@@ -53,20 +58,24 @@ router.get('/admin/analytics/product-visits', verifyAdmin, async (req, res) => {
 // --- Product sales (most sold to least sold) ---
 router.get('/admin/analytics/product-sales', verifyAdmin, async (req, res) => {
     try {
-        const { rows } = await db.query(`
-            SELECT
-                p.id AS product_id,
-                p.name AS product_name,
-                COALESCE(SUM(CASE WHEN o.status != 'إلغاء' THEN o.quantity ELSE 0 END), 0) AS total_sold,
-                COALESCE(COUNT(CASE WHEN o.status != 'إلغاء' THEN 1 END), 0) AS successful_orders,
-                COALESCE(COUNT(CASE WHEN o.status = 'إلغاء' THEN 1 END), 0) AS canceled_orders,
-                COALESCE(SUM(CASE WHEN o.status != 'إلغاء' THEN o.total_price ELSE 0 END), 0) AS total_revenue
-            FROM "Products" p
-            LEFT JOIN "Orders" o ON p.id = o.product_id
-            GROUP BY p.id
-            ORDER BY total_sold DESC
-        `);
-        res.json(rows);
+        const { data: products, error: prodError } = await supabase.from('Products').select('id, name');
+        if (prodError) throw prodError;
+        const { data: orders, error: orderError } = await supabase.from('Orders').select('product_id, quantity, status, total_price');
+        if (orderError) throw orderError;
+        const result = products.map(p => {
+            const prodOrders = orders.filter(o => o.product_id === p.id);
+            const successful = prodOrders.filter(o => o.status !== 'إلغاء');
+            const canceled = prodOrders.filter(o => o.status === 'إلغاء');
+            return {
+                product_id: p.id,
+                product_name: p.name,
+                total_sold: successful.reduce((sum, o) => sum + (o.quantity || 0), 0),
+                successful_orders: successful.length,
+                canceled_orders: canceled.length,
+                total_revenue: successful.reduce((sum, o) => sum + (o.total_price || 0), 0)
+            };
+        }).sort((a, b) => b.total_sold - a.total_sold);
+        res.json(result);
     } catch (err) {
         console.error("Error fetching product sales:", err);
         res.status(500).json({ error: " لم يتم أخذ البيانات" });
@@ -76,19 +85,21 @@ router.get('/admin/analytics/product-sales', verifyAdmin, async (req, res) => {
 // --- User purchases (total per user) ---
 router.get('/admin/analytics/user-purchases', verifyAdmin, async (req, res) => {
     try {
-        const { rows } = await db.query(`
-            SELECT
-                u.id AS user_id,
-                u.name AS user_name,
-                u.email,
-                COALESCE(COUNT(o.id), 0) AS total_orders,
-                COALESCE(SUM(o.total_price), 0) AS total_spent
-            FROM "Users" u
-            LEFT JOIN "Orders" o ON u.id = o.user_id
-            GROUP BY u.id
-            ORDER BY total_spent DESC
-        `);
-        res.json(rows);
+        const { data: users, error: userError } = await supabase.from('Users').select('id, name, email');
+        if (userError) throw userError;
+        const { data: orders, error: orderError } = await supabase.from('Orders').select('user_id, total_price');
+        if (orderError) throw orderError;
+        const result = users.map(u => {
+            const userOrders = orders.filter(o => o.user_id === u.id);
+            return {
+                user_id: u.id,
+                user_name: u.name,
+                email: u.email,
+                total_orders: userOrders.length,
+                total_spent: userOrders.reduce((sum, o) => sum + (o.total_price || 0), 0)
+            };
+        }).sort((a, b) => b.total_spent - a.total_spent);
+        res.json(result);
     } catch (err) {
         console.error("Error fetching user analytics:", err);
         res.status(500).json({ error: "لم يتم أخذ البيانات" });
@@ -99,31 +110,28 @@ router.get('/admin/analytics/user-purchases', verifyAdmin, async (req, res) => {
 router.get('/admin/analytics/visits', verifyAdmin, async (req, res) => {
     const start = parseInt(req.query.start) || 0;
     const limit = parseInt(req.query.limit) || 10;
-
     try {
-        // Get total count first
-        const countResult = await db.query('SELECT COUNT(DISTINCT p.id) FROM "Products" p');
-        const totalCount = parseInt(countResult.rows[0].count);
-
-        // Get paginated data
-        const { rows } = await db.query(`
-            SELECT 
-                p.id AS product_id,
-                p.name AS product_name,
-                COUNT(v.id) AS total_visits,
-                COUNT(CASE WHEN v.visited_at > NOW() - INTERVAL '7 days' THEN 1 END) AS visits_last_7_days,
-                COUNT(CASE WHEN v.visited_at > NOW() - INTERVAL '30 days' THEN 1 END) AS visits_last_30_days
-            FROM "Products" p
-            LEFT JOIN "ProductVisits" v ON p.id = v.product_id
-            GROUP BY p.id
-            ORDER BY total_visits DESC
-            LIMIT $1 OFFSET $2
-        `, [limit, start]);
-
+        const { data: products, error: prodError } = await supabase.from('Products').select('id, name');
+        if (prodError) throw prodError;
+        const { data: visits, error: visitError } = await supabase.from('ProductVisits').select('id, product_id, visited_at');
+        if (visitError) throw visitError;
+        const now = new Date();
+        const daysAgo = (n) => new Date(now.getTime() - n * 24 * 60 * 60 * 1000);
+        const all = products.map(p => {
+            const prodVisits = visits.filter(v => v.product_id === p.id);
+            return {
+                product_id: p.id,
+                product_name: p.name,
+                total_visits: prodVisits.length,
+                visits_last_7_days: prodVisits.filter(v => new Date(v.visited_at) > daysAgo(7)).length,
+                visits_last_30_days: prodVisits.filter(v => new Date(v.visited_at) > daysAgo(30)).length
+            };
+        }).sort((a, b) => b.total_visits - a.total_visits);
+        const items = all.slice(start, start + limit);
         res.json({
-            items: rows,
-            hasMore: start + limit < totalCount,
-            total: totalCount
+            items,
+            hasMore: start + limit < all.length,
+            total: all.length
         });
     } catch (err) {
         console.error("Error fetching analytics:", err);
@@ -135,32 +143,29 @@ router.get('/admin/analytics/visits', verifyAdmin, async (req, res) => {
 router.get('/admin/analytics/sales', verifyAdmin, async (req, res) => {
     const start = parseInt(req.query.start) || 0;
     const limit = parseInt(req.query.limit) || 10;
-
     try {
-        // Get total count first
-        const countResult = await db.query('SELECT COUNT(DISTINCT p.id) FROM "Products" p');
-        const totalCount = parseInt(countResult.rows[0].count);
-
-        // Get paginated data
-        const { rows } = await db.query(`
-            SELECT
-                p.id AS product_id,
-                p.name AS product_name,
-                COALESCE(SUM(CASE WHEN o.status != 'إلغاء' THEN o.quantity ELSE 0 END), 0) AS total_sold,
-                COALESCE(COUNT(CASE WHEN o.status != 'إلغاء' THEN 1 END), 0) AS successful_orders,
-                COALESCE(COUNT(CASE WHEN o.status = 'إلغاء' THEN 1 END), 0) AS canceled_orders,
-                COALESCE(SUM(CASE WHEN o.status != 'إلغاء' THEN o.total_price ELSE 0 END), 0) AS total_revenue
-            FROM "Products" p
-            LEFT JOIN "Orders" o ON p.id = o.product_id
-            GROUP BY p.id
-            ORDER BY total_sold DESC
-            LIMIT $1 OFFSET $2
-        `, [limit, start]);
-
+        const { data: products, error: prodError } = await supabase.from('Products').select('id, name');
+        if (prodError) throw prodError;
+        const { data: orders, error: orderError } = await supabase.from('Orders').select('product_id, quantity, status, total_price');
+        if (orderError) throw orderError;
+        const all = products.map(p => {
+            const prodOrders = orders.filter(o => o.product_id === p.id);
+            const successful = prodOrders.filter(o => o.status !== 'إلغاء');
+            const canceled = prodOrders.filter(o => o.status === 'إلغاء');
+            return {
+                product_id: p.id,
+                product_name: p.name,
+                total_sold: successful.reduce((sum, o) => sum + (o.quantity || 0), 0),
+                successful_orders: successful.length,
+                canceled_orders: canceled.length,
+                total_revenue: successful.reduce((sum, o) => sum + (o.total_price || 0), 0)
+            };
+        }).sort((a, b) => b.total_sold - a.total_sold);
+        const items = all.slice(start, start + limit);
         res.json({
-            items: rows,
-            hasMore: start + limit < totalCount,
-            total: totalCount
+            items,
+            hasMore: start + limit < all.length,
+            total: all.length
         });
     } catch (err) {
         console.error("Error fetching product sales:", err);
@@ -172,31 +177,26 @@ router.get('/admin/analytics/sales', verifyAdmin, async (req, res) => {
 router.get('/admin/analytics/users', verifyAdmin, async (req, res) => {
     const start = parseInt(req.query.start) || 0;
     const limit = parseInt(req.query.limit) || 10;
-
     try {
-        // Get total count first
-        const countResult = await db.query('SELECT COUNT(DISTINCT u.id) FROM "Users" u');
-        const totalCount = parseInt(countResult.rows[0].count);
-
-        // Get paginated data
-        const { rows } = await db.query(`
-            SELECT
-                u.id AS user_id,
-                u.name AS user_name,
-                u.email,
-                COALESCE(COUNT(o.id), 0) AS total_orders,
-                COALESCE(SUM(CASE WHEN o.status != 'إلغاء' THEN o.total_price ELSE 0 END), 0) AS total_spent
-            FROM "Users" u
-            LEFT JOIN "Orders" o ON u.id = o.user_id
-            GROUP BY u.id
-            ORDER BY total_spent DESC
-            LIMIT $1 OFFSET $2
-        `, [limit, start]);
-
+        const { data: users, error: userError } = await supabase.from('Users').select('id, name, email');
+        if (userError) throw userError;
+        const { data: orders, error: orderError } = await supabase.from('Orders').select('user_id, total_price, status');
+        if (orderError) throw orderError;
+        const all = users.map(u => {
+            const userOrders = orders.filter(o => o.user_id === u.id && o.status !== 'إلغاء');
+            return {
+                user_id: u.id,
+                user_name: u.name,
+                email: u.email,
+                total_orders: userOrders.length,
+                total_spent: userOrders.reduce((sum, o) => sum + (o.total_price || 0), 0)
+            };
+        }).sort((a, b) => b.total_spent - a.total_spent);
+        const items = all.slice(start, start + limit);
         res.json({
-            items: rows,
-            hasMore: start + limit < totalCount,
-            total: totalCount
+            items,
+            hasMore: start + limit < all.length,
+            total: all.length
         });
     } catch (err) {
         console.error("Error fetching user analytics:", err);

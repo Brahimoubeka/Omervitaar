@@ -81,10 +81,11 @@ function renderProducts(products, append = false) {
       ).join('');
     }
 
-    // Rating (if exists, otherwise fake for demo)
+    // Rating (show average if available, otherwise nothing)
     let ratingHtml = '';
-    if (product.avgRating !== undefined) {
-      ratingHtml = `<span class="ms-2 text-warning" title="التقييم"><i class="bi bi-star-fill"></i> ${parseFloat(product.avgRating).toFixed(1)}</span>`;
+    const avg = Number(product.avgRating);
+    if (!isNaN(avg)) {
+      ratingHtml = `<span class="ms-2 text-warning" title="التقييم"><i class="bi bi-star-fill"></i> ${avg.toFixed(1)}</span>`;
     }
 
     productCard.innerHTML = `

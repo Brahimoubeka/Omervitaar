@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const supabase = require('../supabase');
 const jwt = require('jsonwebtoken');
 
 const secret = process.env.JWT_SECRET;
@@ -22,19 +22,22 @@ function verifyToken(req, res, next) {
 // GET /api/products/:id/reviews - Get reviews for a specific product
 router.get('/products/:id/reviews', async (req, res) => {
     const productId = req.params.id;
-    const query = `
-      SELECT r.*, u."name" AS "userName"
-      FROM "Reviews" r
-      JOIN "Users" u ON r."user_id" = u."id"
-      WHERE r."product_id" = $1
-      ORDER BY r."created_at" DESC
-    `;
     try {
-        const { rows } = await db.query(query, [productId]);
+        const { data, error } = await supabase
+            .from('Reviews')
+            .select('*, Users(name)')
+            .eq('product_id', productId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        // Map userName
+        const rows = (data || []).map(r => ({
+            ...r,
+            userName: r.Users?.name
+        }));
         res.json(rows);
     } catch (err) {
         console.error('Yorumlar alınırken veritabanı hatası:', err);
-        res.status(500).json({ error: 'Yorumlar alınırken veritabanı hatası.' });
+        res.status(500).json({ error: 'حدث خطأ حاول تسجيل الدخول' });
     }
 });
 
@@ -48,23 +51,28 @@ router.post('/reviews', verifyToken, async (req, res) => {
         return res.status(400).json({ error: 'Ürün ID ve puan gereklidir.' });
     }
 
-    const insertQuery = `
-      INSERT INTO "Reviews" ("product_id", "user_id", "rating", "comment", "created_at")
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING "id"
-    `;
+    // Ensure rating and product_id are stored as numbers
+    const numericRating = Number(rating);
+    const numericProductId = Number(product_id);
+    if (!numericProductId || isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+        return res.status(400).json({ error: 'Ürün ID ve puan gereklidir ve puan 1 ile 5 arasında olmalıdır.' });
+    }
+
     try {
-        const { rows } = await db.query(insertQuery, [
-            product_id,
-            user_id,
-            rating,
-            comment || '',
-            created_at,
-        ]);
-        res.json({ message: 'Yorum başarıyla eklendi.', reviewId: rows[0].id });
+        const insertPayload = { product_id: numericProductId, user_id, rating: numericRating, comment: comment || '', created_at };
+        console.log('Review insert payload:', insertPayload);
+        const { data, error } = await supabase
+            .from('Reviews')
+            .insert([insertPayload])
+            .select('id');
+        if (error) {
+            console.error('Supabase insert error:', error);
+            return res.status(500).json({ error: 'Supabase insert error', details: error });
+        }
+        res.json({ message: 'شكرا على تقييمك!', reviewId: data[0].id });
     } catch (err) {
         console.error('Yorum eklenirken veritabanı hatası:', err);
-        res.status(500).json({ error: 'Yorum eklenirken veritabanı hatası.' });
+        res.status(500).json({ error: 'Yorum eklenirken veritabanı hatası.', details: err });
     }
 });
 

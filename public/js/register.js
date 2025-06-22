@@ -41,11 +41,23 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         showMessage(messageDiv, "يرجى إدخال تاريخ الميلاد.", "danger");
         return;
     }
+    // Age check: must be at least 18 years old
+    const birth = new Date(birth_date);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+    }
+    if (age < 18) {
+        showMessage(messageDiv, "يجب أن يكون عمرك 18 سنة أو أكثر للتسجيل.", "danger");
+        return;
+    }
 
-    // phone number 11 number, start with 0 
-    const phonePattern = /^0[0-9]{10}$/;
+    // phone number 10 digits, start with 0 
+    const phonePattern = /^0[0-9]{9}$/;
     if (!phonePattern.test(phone)) {
-        showMessage(messageDiv, "يجب أن يكون رقم الهاتف 11 رقمًا ويبدأ بـ 0.", "danger");
+        showMessage(messageDiv, "يجب أن يكون رقم الهاتف 10 رقمًا ويبدأ بـ 0.", "danger");
         return;
     }
 

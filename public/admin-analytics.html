@@ -499,6 +499,7 @@
       ]);
     }
   </script>
+  <script src="js/branding.js"></script>
   <script>
 async function updateBrandingLinks() {
   const res = await fetch('/api/branding');
@@ -513,5 +514,6 @@ async function updateBrandingLinks() {
 }
 updateBrandingLinks();
 </script>
+<img data-dynamic-logo class="logo" alt="Logo" />
 </body>
 </html>

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const supabase = require('../supabase');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
@@ -36,10 +36,11 @@ router.post('/register', async (req, res) => {
 
     try {
         // Check if the email already exists
-        const { rows: existingUsers } = await db.query(
-            'SELECT * FROM "Users" WHERE "email" = $1',
-            [email]
-        );
+        const { data: existingUsers, error: existError } = await supabase
+            .from('Users')
+            .select('*')
+            .eq('email', email);
+        if (existError) throw existError;
         if (existingUsers.length > 0) {
             return res.status(400).json({ error: 'تم انشاء هذا الحساب من قبل , قم بتسجيل الدخول الان' });
         }
@@ -49,11 +50,12 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
         // Insert the new user into the database
-        const { rows } = await db.query(
-            'INSERT INTO "Users" ("name", "email", "gender", "birth_date", "phone", "password_hash") VALUES ($1, $2, $3, $4, $5, $6) RETURNING "id"',
-            [name, email, gender, birth_date, phone, hashedPassword]
-        );
-        res.json({ message: 'تم انشاء الحساب بنجاح..', userId: rows[0].id });
+        const { data, error } = await supabase
+            .from('Users')
+            .insert([{ name, email, gender, birth_date, phone, password_hash: hashedPassword }])
+            .select('id');
+        if (error) throw error;
+        res.json({ message: 'تم انشاء الحساب بنجاح..', userId: data[0].id });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'خطا في الخادم' });
@@ -78,10 +80,11 @@ router.post('/login', async (req, res) => {
 
     try {
         // Fetch the user from the database
-        const { rows } = await db.query(
-            'SELECT * FROM "Users" WHERE "email" = $1',
-            [email]
-        );
+        const { data: rows, error: userError } = await supabase
+            .from('Users')
+            .select('*')
+            .eq('email', email);
+        if (userError) throw userError;
         const user = rows[0];
         if (!user) {
             attempts.count++;
@@ -136,8 +139,12 @@ router.post('/forgot-password', async (req, res) => {
 
     try {
         // Check if user exists
-        const { rows } = await db.query('SELECT * FROM "Users" WHERE email = $1', [email]);
-        if (rows.length === 0) {
+        const { data: rows, error: userError } = await supabase
+            .from('Users')
+            .select('*')
+            .eq('email', email);
+        if (userError) throw userError;
+        if (!rows || rows.length === 0) {
             return res.status(404).json({ error: 'لم يتم العثور على مستخدم بهذا البريد الإلكتروني.' });
         }
 
@@ -197,10 +204,11 @@ router.post('/reset-password', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
         // Update password in database
-        await db.query(
-            'UPDATE "Users" SET password_hash = $1 WHERE email = $2',
-            [hashedPassword, resetData.email]
-        );
+        const { error } = await supabase
+            .from('Users')
+            .update({ password_hash: hashedPassword })
+            .eq('email', resetData.email);
+        if (error) throw error;
 
         // Remove used token
         passwordResetTokens.delete(token);

@@ -12,9 +12,9 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
     showMessage('يجب أن يكون الاسم الكامل 3 أحرف على الأقل ويحتوي فقط على أحرف ومسافة.', 'danger');
     return;
   }
-  // Validation: Phone (starts with 0 and has 11 digits)
-  if (!/^0[0-9]{10}$/.test(phone_number)) {
-    showMessage('يرجى إدخال رقم هاتف صالح يبدأ بـ 0 ومكون من 11 رقمًا.', 'danger');
+  // Validation: Phone (starts with 0 and has 10 digits)
+  if (!/^0[0-9]{9}$/.test(phone_number)) {
+    showMessage('يرجى إدخال رقم هاتف صالح يبدأ بـ 0 ومكون من 10 أرقام.', 'danger');
     return;
   }
   // Validation: Subject (at least 3 chars)

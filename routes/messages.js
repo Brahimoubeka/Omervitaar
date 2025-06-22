@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const supabase = require('../supabase');
 const jwt = require('jsonwebtoken');
 
 const secret = process.env.JWT_SECRET;
@@ -43,12 +43,12 @@ router.post('/messages', optionalVerifyToken, async (req, res) => {
     const sent_at = new Date().toISOString();
 
     try {
-        const { rows } = await db.query(
-            `INSERT INTO "Messages" ("user_id", "full_name", "phone_number", "subject", "message_text", "sent_at")
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING "id"`,
-            [userId, full_name, phone_number, subject, message_text, sent_at]
-        );
-        res.json({ message: 'شكرا لتواصلكم معنا سيتم معالجة طلبكم في اقرب وقت', messageId: rows[0].id });
+        const { data, error } = await supabase
+            .from('Messages')
+            .insert([{ user_id: userId, full_name, phone_number, subject, message_text, sent_at }])
+            .select('id');
+        if (error) throw error;
+        res.json({ message: 'شكرا لتواصلكم معنا سيتم معالجة طلبكم في اقرب وقت', messageId: data[0].id });
     } catch (err) {
         console.error('Mesaj eklenirken hata oluştu:', err);
         res.status(500).json({ error: 'خطأ في الخادم' });
@@ -60,24 +60,19 @@ router.get('/admin/messages', optionalVerifyToken, async (req, res) => {
     if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Yönetici erişimi gerekli.' });
     }
-    const query = `
-        SELECT 
-            m."id",
-            m."message_text",
-            m."subject",
-            m."sent_at",
-            m."full_name",
-            m."phone_number",
-            m."user_id",
-            u."name" AS "user_name",
-            u."email" AS "user_email"
-        FROM "Messages" m
-        LEFT JOIN "Users" u ON m."user_id" = u."id"
-        WHERE m."archive_status" IS NULL OR m."archive_status" = 'live'
-        ORDER BY m."sent_at" DESC
-    `;
     try {
-        const { rows } = await db.query(query);
+        const { data, error } = await supabase
+            .from('Messages')
+            .select('id, message_text, subject, sent_at, full_name, phone_number, user_id, Users(name, email)')
+            .or('archive_status.is.null,archive_status.eq.live')
+            .order('sent_at', { ascending: false });
+        if (error) throw error;
+        // Map user_name and user_email
+        const rows = (data || []).map(m => ({
+            ...m,
+            user_name: m.Users?.name,
+            user_email: m.Users?.email
+        }));
         res.json(rows);
     } catch (err) {
         console.error('Mesajlar alınırken hata oluştu:', err);
@@ -92,10 +87,11 @@ router.patch('/admin/messages/:id/archive', optionalVerifyToken, async (req, res
     }
     const messageId = req.params.id;
     try {
-        await db.query(
-            `UPDATE "Messages" SET "archive_status" = 'archived' WHERE "id" = $1`,
-            [messageId]
-        );
+        const { error } = await supabase
+            .from('Messages')
+            .update({ archive_status: 'archived' })
+            .eq('id', messageId);
+        if (error) throw error;
         res.json({ message: 'تم أرشفة الرسالة' });
     } catch (err) {
         console.error('Arşivleme işlemi sırasında hata:', err);

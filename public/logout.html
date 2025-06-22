@@ -12,7 +12,7 @@
         <div class="footer-container">
             <div class="footer-logo">
                 <a href="index.html">
-                    <img src="images/logo.png" alt="Omervita Logo">
+                    <img data-dynamic-logo src="images/logo.png" alt="Omervita Logo">
                 </a>
             </div>
             <div class="footer-section">
@@ -42,6 +42,7 @@
     </footer> -->
 
     <script src="js/header.js"></script>
+    <script src="js/branding.js"></script>
     <script>
         // Clear the JWT token and any user-related info from localStorage
         localStorage.removeItem('token');
@@ -49,5 +50,6 @@
         window.location.href = 'login.html';
     </script>
     <p>جاري تسجيل الخروج...</p>
+    <img data-dynamic-logo class="logo" alt="Logo" />
 </body>
 </html>
