@@ -339,6 +339,20 @@
     body {
       padding-top: 110px;
     }
+    
+    /* Increase top padding on mobile for fixed navbar */
+    @media (max-width: 768px) {
+      body {
+        padding-top: 160px;
+      }
+    }
+    
+    /* Even more padding for very small screens */
+    @media (max-width: 576px) {
+      body {
+        padding-top: 180px;
+      }
+    }
 
     /* Footer */
     footer {
@@ -519,7 +533,62 @@
       animation: fadeInUp 0.8s ease-out;
     }
 
+    /* Enhance category section on mobile */
+    @media (max-width: 768px) {
+      .category-shortcuts-section {
+        padding-top: 30px !important;
+        margin-top: 10px !important;
+      }
+      
+      .category-shortcuts-section h2 {
+        margin-top: 10px;
+        font-size: 1.8rem;
+      }
+    }
+
+    /* Custom scrollbar styling for category section */
+    .category-shortcuts-scroll::-webkit-scrollbar {
+      height: 6px;
+      background-color: #f8f9fa;
+      border-radius: 10px;
+    }
     
+    .category-shortcuts-scroll::-webkit-scrollbar-thumb {
+      background-color: var(--orange-accent);
+      border-radius: 10px;
+    }
+    
+    .category-shortcuts-scroll::-webkit-scrollbar-track {
+      background-color: #f1f1f1;
+      border-radius: 10px;
+    }
+    
+    /* Make scrollbar more visible on mobile */
+    @media (max-width: 768px) {
+      .category-shortcuts-scroll {
+        padding-bottom: 16px; /* Additional padding to ensure scrollbar is visible */
+        margin-bottom: 5px;
+        overflow-x: scroll; /* Force scroll to be visible */
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .category-shortcuts-scroll::-webkit-scrollbar {
+        height: 8px; /* Slightly larger on mobile for better touch targets */
+      }
+      
+      /* Visual indicator to show scrolling is available */
+      .category-shortcuts-section:after {
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 50px;
+        height: 100%;
+        background: linear-gradient(to left, rgba(248, 249, 250, 0.8), rgba(248, 249, 250, 0));
+        pointer-events: none;
+        z-index: 1;
+      }
+    }
   </style>
 
   <!-- Meta Pixel Code -->
@@ -571,47 +640,45 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     </div>
   </nav>
   <!-- Category Shortcuts Section -->
-<section class="category-shortcuts-section py-4" style="background:var(--light-gray);">
+<section class="category-shortcuts-section py-4 mt-4" style="background:var(--light-gray); position: relative;">
   <div class="container">
     <div class="row text-center mb-4">
       <h2 class="fw-bold mb-3" style="color: var(--military-green); letter-spacing: .5px;">فئاتنا</h2>
+      <p class="d-block d-md-none text-muted small mb-0" style="font-size: 0.85rem;"><i class="bi bi-arrow-left-right me-1"></i> اسحب للتصفح</p>
     </div>
-    <div class="category-shortcuts-scroll" style="display: flex; flex-direction: row; overflow-x: auto; gap: 12px; padding-bottom: 8px; scrollbar-width: thin; scrollbar-color: var(--orange-accent) var(--light-gray);">
-      <a href="products.html?category=2" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 110px;">
-        <div class="cat-shortcut-card shadow-sm" style="padding: 18px 8px 12px 8px; min-height: 0;">
-          <div class="cat-shortcut-icon bg-pink" style="width: 44px; height: 44px; font-size: 1.3rem;">
+    <div class="category-shortcuts-scroll" style="display: flex; flex-direction: row; overflow-x: auto; gap: 15px; padding-bottom: 12px; scrollbar-width: thin; scrollbar-color: var(--orange-accent) var(--light-gray); -webkit-overflow-scrolling: touch;">
+      <a href="products.html?category=2" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+        <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
+          <div class="cat-shortcut-icon bg-pink" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-droplet-half"></i>
           </div>
-          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 2px;">العناية بالبشرة</div>
+          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">العناية بالبشرة</div>
         </div>
       </a>
-      <a href="products.html?category=1" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 110px;">
-        <div class="cat-shortcut-card shadow-sm" style="padding: 18px 8px 12px 8px; min-height: 0;">
-          <div class="cat-shortcut-icon bg-orange" style="width: 44px; height: 44px; font-size: 1.3rem;">
+      <a href="products.html?category=1" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+        <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
+          <div class="cat-shortcut-icon bg-orange" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-scissors"></i>
           </div>
-          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 2px;">العناية بالشعر</div>
+          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">العناية بالشعر</div>
         </div>
       </a>
-      <a href="products.html?category=3" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 110px;">
-        <div class="cat-shortcut-card shadow-sm" style="padding: 18px 8px 12px 8px; min-height: 0;">
-          <div class="cat-shortcut-icon bg-green" style="width: 44px; height: 44px; font-size: 1.3rem;">
+      <a href="products.html?category=3" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+        <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
+          <div class="cat-shortcut-icon bg-green" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-capsule"></i>
           </div>
-          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 2px;">أغذية صحية </div>
+          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">أغذية صحية</div>
         </div>
       </a>
-
-            <a href="products.html?category=4" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 110px;">
-        <div class="cat-shortcut-card shadow-sm" style="padding: 18px 8px 12px 8px; min-height: 0;">
-          <div class="cat-shortcut-icon bg-orange" style="width: 44px; height: 44px; font-size: 1.3rem;">
-<i class="bi bi-egg-fried"></i>
+      <a href="products.html?category=4" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+        <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
+          <div class="cat-shortcut-icon bg-orange" style="width: 50px; height: 50px; font-size: 1.4rem;">
+            <i class="bi bi-egg-fried"></i>
           </div>
-          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 2px;">التوابل</div>
+          <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">التوابل</div>
         </div>
       </a>
-
-      
     </div>
   </div>
 </section>
@@ -645,7 +712,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   <section class="hero-gradient">
     <div class="container">
       <div class="row align-items-center">
-        <div class="col-lg-8 hero-content animate-fade-in">
+        <div class="col-lg-8 hero-content animate-fade-in" dir="rtl">
           <h1 class="hero-title"> نؤمن بنمط حياة صحي</h1>
           <p class="hero-subtitle">
             .نضع صحتك وراحتك في المقام الأول
@@ -926,6 +993,29 @@ updateBrandingLinks();
     scrollToTopBtn.addEventListener('click', function() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+    
+    // Hint scroll for category section on mobile
+    if (window.innerWidth <= 768) {
+      const categoryScroll = document.querySelector('.category-shortcuts-scroll');
+      if (categoryScroll) {
+        // After page load, slightly scroll the category container to show there's more content
+        window.addEventListener('load', function() {
+          setTimeout(() => {
+            categoryScroll.scrollTo({
+              left: 60,
+              behavior: 'smooth'
+            });
+            // Then scroll back to start after a delay
+            setTimeout(() => {
+              categoryScroll.scrollTo({
+                left: 0,
+                behavior: 'smooth'
+              });
+            }, 800);
+          }, 1500);
+        });
+      }
+    }
   </script>
   <script>
     // Dynamically load categories into navbar dropdown
