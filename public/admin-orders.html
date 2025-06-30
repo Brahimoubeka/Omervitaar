@@ -98,28 +98,27 @@
     #pagination-controls .btn {
         min-width: 180px;
         font-weight: 600;
-        border-radius: 30px;
-        padding: 10px 20px;
-        margin: 5px;
-        transition: all 0.3s ease;
     }
-    #pagination-controls .btn-primary {
-        background: var(--military-green);
-        border-color: var(--military-green);
+    
+    /* Date filter styling */
+    .date-filter-container {
+        width: 180px;
     }
-    #pagination-controls .btn-primary:hover {
-        background: var(--light-military);
-        border-color: var(--light-military);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    #date-filter {
+        border-radius: 20px;
+        border: 1px solid var(--light-military);
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        background-color: white;
+        transition: box-shadow 0.2s, border-color 0.2s;
     }
-    #pagination-controls .btn-secondary {
-        background: var(--dark-charcoal);
-        border-color: var(--dark-charcoal);
+    #date-filter:focus {
+        box-shadow: 0 0 0 0.25rem rgba(255, 191, 0, 0.25);
+        border-color: var(--orange-accent);
     }
-    #pagination-controls .btn-secondary:hover {
-        background: #555;
-        border-color: #555;
+    #orders-count {
+        font-size: 0.9rem;
+        background: linear-gradient(135deg, var(--military-green), var(--light-military)) !important;
     }
 
     /* Modal style upgrades */
@@ -307,6 +306,17 @@
       to { opacity: 1; transform: translateY(0);}
     }
     .animate-fade-in { animation: fadeInUp 0.8s ease-out;}
+
+    /* Date filter animation */
+    @keyframes highlight-filter {
+        0% { background-color: white; }
+        50% { background-color: rgba(255, 191, 0, 0.2); }
+        100% { background-color: white; }
+    }
+    
+    .filter-changed {
+        animation: highlight-filter 1s ease-out;
+    }
   </style>
 </head>
 <body>
@@ -334,6 +344,21 @@
 
   <main class="container my-5 animate-fade-in">
     <h1 class="mb-4"><i class="bi bi-truck me-2"></i>مجموعات الطلبات</h1>
+
+    <!-- Date Filter -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="date-filter-container">
+        <select id="date-filter" class="form-select form-select-sm" aria-label="تصفية حسب التاريخ">
+          <option value="all" selected>جميع الطلبات</option>
+          <option value="24h">آخر 24 ساعة</option>
+          <option value="7d">آخر 7 أيام</option>
+          <option value="1m">آخر شهر</option>
+        </select>
+      </div>
+      <div id="orders-count" class="badge bg-primary rounded-pill p-2">
+        إجمالي الطلبات: <span id="total-orders-count">0</span>
+      </div>
+    </div>
 
     <!-- Order groups -->
     <div id="admin-orders-container" class="list-group">

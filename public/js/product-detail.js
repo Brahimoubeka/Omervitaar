@@ -262,6 +262,95 @@ async function loadProductDetail() {
     name.innerHTML = `<i class="bi bi-box-seam me-2" style="color:var(--military-green,#715100)"></i>
       <span style="color:var(--military-green,#715100); font-weight:700;">${product.name}</span>`;
     detailsCol.appendChild(name);
+    
+    // Add star rating below the title
+    if (product.avgRating !== null && product.avgRating !== undefined) {
+      const ratingDiv = document.createElement('div');
+      ratingDiv.className = 'product-rating mb-3 d-flex align-items-center';
+      
+      // Get the average rating and round to nearest 0.5
+      const avgRating = Math.round(product.avgRating * 2) / 2;
+      
+      // Create stars
+      const starsHtml = renderStars(avgRating);
+      
+      ratingDiv.innerHTML = `
+        <div class="stars-container me-2">
+          ${starsHtml}
+        </div>
+        <span class="rating-value text-warning fw-bold" style="font-size: 1.1rem;">${avgRating.toFixed(1)}</span>
+        <span class="review-count text-muted ms-2">(${product.reviewCount || 0} تقييم)</span>
+      `;
+      
+      detailsCol.appendChild(ratingDiv);
+    }
+    
+    // Update breadcrumb with product information
+    updateBreadcrumb(product);
+
+    // --- SEO: Dynamic Meta Description ---
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.content = product.description
+      ? product.description.substring(0, 160)
+      : `${product.name} - تسوق الآن من Omervita!`;
+
+    // --- SEO: Open Graph & Twitter Card Tags ---
+    function setOrUpdateMeta(property, content) {
+      let tag = document.querySelector(`meta[property='${property}']`);
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute('property', property);
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', content);
+    }
+    setOrUpdateMeta('og:title', `${product.name} | Omervita`);
+    setOrUpdateMeta('og:description', product.description ? product.description.substring(0, 160) : '');
+    setOrUpdateMeta('og:image', images[0]);
+    setOrUpdateMeta('og:url', window.location.href);
+    setOrUpdateMeta('og:type', 'product');
+    setOrUpdateMeta('twitter:card', 'summary_large_image');
+    setOrUpdateMeta('twitter:title', `${product.name} | Omervita`);
+    setOrUpdateMeta('twitter:description', product.description ? product.description.substring(0, 160) : '');
+    setOrUpdateMeta('twitter:image', images[0]);
+
+    // --- SEO: Structured Data (JSON-LD) ---
+    const productJsonLd = {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": product.name,
+      "image": images,
+      "description": product.description,
+      "sku": product.id,
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "DZD",
+        "price": product.price,
+        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      }
+    };
+    let script = document.getElementById('product-jsonld');
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'product-jsonld';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(productJsonLd);
+
+    // --- SEO: Canonical URL ---
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    canonical.href = window.location.href;
 
     // --- CATEGORY BADGES with icon ---
     if (product.categories && product.categories.length > 0) {
@@ -301,7 +390,7 @@ async function loadProductDetail() {
     // Add to Cart Button 
     const addToCartButton = document.createElement('button');
     addToCartButton.innerHTML = `<i class="bi bi-cart-plus me-1"></i>أضف إلى السلة`;
-    addToCartButton.classList.add('btn', 'btn-primary', 'mt-3', 'px-4', 'py-2');
+    addToCartButton.classList.add('btn', 'btn-primary', 'mt-3', 'px-4', 'py-2', 'add-to-cart-btn');
     if (product.stock === 0) {
       addToCartButton.disabled = true;
       addToCartButton.style.opacity = '.6';
@@ -322,7 +411,9 @@ async function loadProductDetail() {
       }
       localStorage.setItem('cart', JSON.stringify(cart));
       updateCartCounter();
-      showCartMessage('<i class="bi bi-check-circle-fill"></i> تم إضافة المنتج إلى السلة!', 'success');
+      
+      // Show enhanced cart popup with product info
+      showCartMessage('<i class="bi bi-check-circle-fill"></i> تم إضافة المنتج إلى السلة!', 'success', product);
     });
     detailsCol.appendChild(addToCartButton);
 
@@ -473,7 +564,8 @@ async function loadReviews(productId) {
   }
 }
 
-function showCartMessage(message, type = 'success') {
+function showCartMessage(message, type = 'success', product = null) {
+  // Simple notification
   const container = document.getElementById('cart-message-container');
   const alertId = `alert-${Date.now()}`;
   const alertDiv = document.createElement('div');
@@ -489,6 +581,57 @@ function showCartMessage(message, type = 'success') {
     const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
     alert.close();
   }, 3000);
+  
+  // Enhanced cart popup
+  if (product) {
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cartPopupModal = new bootstrap.Modal(document.getElementById('cartPopupModal'));
+    
+    // Set product details
+    document.getElementById('cartPopupProductName').textContent = product.name;
+    document.getElementById('cartPopupProductPrice').textContent = `دج${product.price}`;
+    
+    // Calculate cart total
+    let total = 0;
+    const itemsContainer = document.getElementById('cartPopupItemsList');
+    itemsContainer.innerHTML = '';
+    
+    // Show cart items (limited to 3)
+    if (cart.length > 0) {
+      const displayItems = cart.slice(0, 3);
+      displayItems.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        const itemElement = document.createElement('div');
+        itemElement.className = 'd-flex justify-content-between align-items-center mb-2';
+        itemElement.innerHTML = `
+          <div>
+            <span class="fw-medium">${item.name}</span>
+            <span class="text-muted ms-2">x${item.quantity}</span>
+          </div>
+          <span>دج${itemTotal}</span>
+        `;
+        itemsContainer.appendChild(itemElement);
+      });
+      
+      // If there are more items
+      if (cart.length > 3) {
+        const moreItems = document.createElement('div');
+        moreItems.className = 'text-center text-muted small mt-2';
+        moreItems.textContent = `+ ${cart.length - 3} منتجات أخرى`;
+        itemsContainer.appendChild(moreItems);
+      }
+    } else {
+      itemsContainer.innerHTML = '<p class="text-center text-muted my-2">لا توجد منتجات في السلة</p>';
+    }
+    
+    // Update total
+    document.getElementById('cartPopupTotal').textContent = `دج${total}`;
+    
+    // Show the modal
+    cartPopupModal.show();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -679,6 +822,31 @@ if (productId && !isNaN(parseInt(productId))) {
             ...(token ? { Authorization: 'Bearer ' + token } : {})
         }
     });
+}
+
+// Function to update breadcrumb navigation
+function updateBreadcrumb(product) {
+  const breadcrumb = document.getElementById('product-breadcrumb');
+  if (!breadcrumb) return;
+  
+  // Set product name in breadcrumb
+  const productNameItem = breadcrumb.querySelector('.product-name');
+  if (productNameItem) {
+    productNameItem.textContent = product.name || "منتج";
+  }
+  
+  // Set category link in breadcrumb
+  const categoryItem = breadcrumb.querySelector('.category-link');
+  if (categoryItem && product.categories && product.categories.length > 0) {
+    const primaryCategory = product.categories[0]; // Use the first category
+    categoryItem.innerHTML = `<a href="products.html?category=${primaryCategory.id}">${primaryCategory.name}</a>`;
+    categoryItem.style.display = 'list-item';
+  } else if (categoryItem) {
+    categoryItem.style.display = 'none'; // Hide category if not available
+  }
+  
+  // Set document title for better SEO
+  document.title = `${product.name} | Omervita`;
 }
 
 

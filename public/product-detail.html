@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <!-- Google Fonts: Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+   <!-- Add Cairo Arabic font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  
   <style>
     :root {
       --military-green: #715100;
@@ -18,11 +21,40 @@
       --light-gray: #f8f9fa;
       --white: #ffffff;
     }
-    * { font-family: 'Inter', sans-serif; }
+    * { font-family: 'cairo', 'Inter', sans-serif; }
 
     body {
       background: var(--light-gray);
       padding-top: 70px;
+    }
+
+    /* Breadcrumb custom styling */
+    .breadcrumb {
+      background-color: #f8f9fa;
+      padding: 0.75rem 1rem;
+      border-radius: 0.25rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .breadcrumb-item + .breadcrumb-item::before {
+      content: ">";
+      color: #6c757d;
+    }
+    
+    .breadcrumb-item a {
+      color: #715100;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    
+    .breadcrumb-item a:hover {
+      color: #ff7300;
+      text-decoration: underline;
+    }
+    
+    .breadcrumb-item.active {
+      color: #6c757d;
+      font-weight: 500;
     }
 
     .navbar-nav .nav-link {
@@ -119,6 +151,39 @@ hr{
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    
+    /* Star ratings styling */
+    .product-rating .stars-container {
+      display: inline-flex;
+      align-items: center;
+    }
+    
+    .product-rating .stars-container i {
+      font-size: 1.2rem;
+      margin-right: 2px;
+    }
+    
+    .product-rating .rating-value {
+      font-weight: bold;
+    }
+    
+    .product-rating .review-count {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    
+    /* Animation for stars on hover */
+    @keyframes star-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    
+    .product-rating:hover .stars-container i {
+      animation: star-pulse 1s ease-in-out;
+      animation-delay: calc(var(--i) * 0.1s);
+    }
+    
     /* Reviews */
     #reviews-section h2 {
       font-weight: 700;
@@ -405,6 +470,45 @@ hr{
     font-size: 0.9rem;
   }
 }
+
+/* Add margin between Add to Cart and My Cart buttons */
+.add-to-cart-btn {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+/* Breadcrumb styling */
+.breadcrumb {
+  background-color: rgba(248, 249, 250, 0.7);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  margin-bottom: 1.5rem;
+}
+
+.breadcrumb-item a {
+  color: var(--military-green);
+  text-decoration: none;
+  transition: color 0.2s, text-decoration 0.2s;
+  font-weight: 500;
+}
+
+.breadcrumb-item a:hover {
+  color: var(--orange-accent);
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: var(--dark-charcoal);
+  font-weight: 600;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "\f285";
+  font-family: "Bootstrap-icons";
+  color: #999;
+  padding: 0 0.5rem;
+}
   </style>
 
   <!-- Meta Pixel Code -->
@@ -438,7 +542,14 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
-          <li class="nav-item"><a class="nav-link" href="products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-bag me-1"></i> المنتجات
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="productsDropdown" id="categoriesDropdownMenu">
+              <li><span class="dropdown-item text-muted">جاري التحميل...</span></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="contact.html"><i class="bi bi-envelope me-1"></i> اتصل بنا</a></li>
         </ul>
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
@@ -449,7 +560,17 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     </div>
   </nav>
 
-  <main class="container my-5">
+  <main class="container my-5" dir="rtl">
+    <!-- Breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-4">
+      <ol class="breadcrumb" id="product-breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
+        <li class="breadcrumb-item"><a href="products.html"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
+        <li class="breadcrumb-item category-link" style="display: none;"></li>
+        <li class="breadcrumb-item active product-name" aria-current="page"></li>
+      </ol>
+    </nav>
+    
     <div id="product-detail-container" class="row gy-4">
       <div id="product-image-carousel-col" class="col-md-6 mb-4"></div>
       <div id="product-info-col" class="col-md-6"></div>
@@ -513,6 +634,44 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     </div>
   </div>
   <div id="cart-message-container" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+  
+  <!-- Cart Popup Modal -->
+  <div class="modal fade" id="cartPopupModal" tabindex="-1" aria-labelledby="cartPopupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="cartPopupModalLabel"><i class="bi bi-cart-check me-2"></i>تمت الإضافة إلى السلة</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex align-items-center mb-3">
+            <div class="me-3 text-center">
+              <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+            </div>
+            <div>
+              <h6 class="mb-1 fw-bold" id="cartPopupProductName"></h6>
+              <p class="mb-0 text-muted" id="cartPopupProductPrice"></p>
+            </div>
+          </div>
+          <div id="cartPopupItemsList" class="border-top border-bottom py-3 my-3">
+            <!-- Cart items will be displayed here -->
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold">إجمالي السلة:</span>
+            <span class="fw-bold text-success" id="cartPopupTotal"></span>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-arrow-return-left me-1"></i>متابعة التسوق
+          </button>
+          <a href="cart.html" class="btn btn-success">
+            <i class="bi bi-cart-fill me-1"></i>إتمام الطلب
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
  
   <!-- copy link button -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index: 1060">
@@ -638,6 +797,33 @@ async function updateBrandingLinks() {
 }
 updateBrandingLinks();
 </script>
+  <script>
+    // Dynamically load categories into navbar dropdown
+    async function loadCategoriesDropdown() {
+      try {
+        const res = await fetch('/api/categories');
+        const categories = await res.json();
+        const menu = document.getElementById('categoriesDropdownMenu');
+        menu.innerHTML = '';
+        if (Array.isArray(categories) && categories.length > 0) {
+          categories.forEach(cat => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.className = 'dropdown-item';
+            a.href = `products.html?category=${cat.id}`;
+            a.textContent = cat.name;
+            li.appendChild(a);
+            menu.appendChild(li);
+          });
+        } else {
+          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
+        }
+      } catch (e) {
+        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
+      }
+    }
+    loadCategoriesDropdown();
+  </script>
 
 </body>
 </html>

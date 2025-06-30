@@ -6,6 +6,7 @@ let allOrdersGrouped = {}; // Store grouped orders globally for recalculation
 let orderKeys = []; // Store the keys (group IDs) of the orders to manage pagination
 let displayedCount = 0; // Keep track of how many orders are currently shown
 const ordersIncrement = 5; // How many orders to show at a time
+let allOrdersRaw = []; // Store all raw orders data from the API
 
 /**
  * Renders a single order group item and appends it to the container.
@@ -35,7 +36,7 @@ function renderOrderGroup(group) {
     dateSpan.innerHTML = new Date(firstOrder.order_date).toLocaleString();
 
     const archiveBtn = document.createElement('button');
-    archiveBtn.className = 'btn btn-warning btn-sm';
+    archiveBtn.className = 'btn btn-warning btn-sm me-2';
     archiveBtn.innerHTML = 'أرشفة';
     archiveBtn.onclick = () => {
         document.getElementById('archive-order-modal-group').innerHTML = group;
@@ -43,9 +44,17 @@ function renderOrderGroup(group) {
         const archiveModal = new bootstrap.Modal(document.getElementById('archiveOrderModal'));
         archiveModal.show();
     };
+    
+    // Copy Order Button
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'btn btn-info btn-sm text-white';
+    copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>نسخ';
+    copyBtn.setAttribute('title', 'نسخ تفاصيل الطلب');
+    copyBtn.onclick = () => copyOrderDetails(group);
 
     div.appendChild(groupBtn);
     div.appendChild(dateSpan);
+    div.appendChild(copyBtn);
     div.appendChild(archiveBtn);
     container.appendChild(div);
 }
@@ -115,6 +124,7 @@ async function loadAdminOrders() {
     const token = localStorage.getItem('token');
     const container = document.getElementById('admin-orders-container');
     const paginationControls = document.getElementById('pagination-controls');
+    const dateFilter = document.getElementById('date-filter').value;
     
     container.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">جارٍ التحميل...</span></div></div>';
     paginationControls.style.display = 'none'; // Hide buttons while loading
@@ -128,29 +138,23 @@ async function loadAdminOrders() {
 
         if (orders.length === 0) {
             container.innerHTML = '<p class="text-center">لم يتم العثور على أي طلب.</p>';
+            document.getElementById('total-orders-count').textContent = '0';
             return;
         }
-
-        // Group orders by order_group and store globally
-        allOrdersGrouped = orders.reduce((acc, order) => {
-            if (!acc[order.order_group]) acc[order.order_group] = [];
-            acc[order.order_group].push(order);
-            return acc;
-        }, {});
-
-        // Get the keys and sort by most recent date first
-        orderKeys = Object.keys(allOrdersGrouped).sort((a, b) => {
-            const dateA = new Date(allOrdersGrouped[a][0].order_date);
-            const dateB = new Date(allOrdersGrouped[b][0].order_date);
-            return dateB - dateA;
-        });
-
-        displayedCount = 0; // Reset the displayed count
-        showMoreOrders(); // Display the initial set of orders
+        
+        // Store all raw orders data
+        allOrdersRaw = orders;
+        
+        // Apply date filter
+        const filteredOrders = filterOrdersByDate(orders, dateFilter);
+        
+        // Process and display filtered orders
+        processAndDisplayOrders(filteredOrders);
 
     } catch (error) {
         console.error('Error loading admin orders:', error);
         container.innerHTML = '<p class="text-center text-danger">حدث خطأ اثناء اضافة الطلبيات.</p>';
+        document.getElementById('total-orders-count').textContent = '0';
     }
 }
 
@@ -329,11 +333,192 @@ window.updateOrderStatus = async function(orderId, newStatus, group) {
 };
 
 /**
+ * Copies the order details to the clipboard and shows a success message.
+ * @param {string} group - The order_group ID.
+ */
+function copyOrderDetails(group) {
+    const groupOrders = allOrdersGrouped[group];
+    if (!groupOrders || groupOrders.length === 0) return;
+    
+    const firstOrder = groupOrders[0];
+    
+    // Create a formatted text representation of the order
+    let orderText = "=== تفاصيل الطلب ===\n\n";
+    
+    // Customer information
+    orderText += "--- معلومات العميل ---\n";
+    orderText += `مجموعة الطلب: ${group}\n`;
+    orderText += `المستخدم: ${firstOrder.userName} (${firstOrder.userEmail})\n`;
+    orderText += `الاسم الكامل: ${firstOrder.first_name || ''} ${firstOrder.last_name || ''}\n`;
+    orderText += `الهاتف: ${firstOrder.shipping_name}\n`;
+    orderText += `العنوان: ${firstOrder.shipping_address}\n`;
+    orderText += `المنطقة: ${firstOrder.city || ''}, ${firstOrder.province || ''}\n`;
+    orderText += `الرمز البريدي: ${firstOrder.postal_code}\n`;
+    orderText += `تاريخ الطلب: ${new Date(firstOrder.order_date).toLocaleString()}\n\n`;
+    
+    // Order items
+    orderText += "--- المنتجات ---\n";
+    groupOrders.forEach((order, index) => {
+        orderText += `${index + 1}. المنتج: ${order.productName}\n`;
+        orderText += `   معرف الطلب: ${order.orderId}\n`;
+        orderText += `   الكمية: ${order.quantity}\n`;
+        orderText += `   سعر الوحدة: دج${(order.price || 0).toFixed(2)}\n`;
+        orderText += `   الحالة: ${order.status}\n\n`;
+    });
+    
+    // Totals
+    const productsTotal = firstOrder.products_price || 0;
+    const deliveryPrice = firstOrder.delivery_price || 0;
+    const currentTotal = firstOrder.total_price || 0;
+    
+    orderText += "--- الإجمالي ---\n";
+    orderText += `إجمالي المنتجات: دج${productsTotal.toFixed(2)}\n`;
+    orderText += `تكلفة الشحن: دج${deliveryPrice.toFixed(2)}\n`;
+    orderText += `الإجمالي النهائي: دج${currentTotal.toFixed(2)}\n`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(orderText)
+        .then(() => {
+            // Show success message
+            showCopySuccessNotification();
+        })
+        .catch(err => {
+            console.error('Failed to copy text: ', err);
+            alert('فشل نسخ تفاصيل الطلب');
+        });
+}
+
+/**
+ * Shows a success notification when order details are copied.
+ */
+function showCopySuccessNotification() {
+    // Check if notification element already exists
+    let notification = document.getElementById('copy-success-notification');
+    
+    if (!notification) {
+        // Create notification element
+        notification = document.createElement('div');
+        notification.id = 'copy-success-notification';
+        notification.className = 'copy-notification';
+        notification.innerHTML = `
+            <div class="alert alert-success d-flex align-items-center" role="alert">
+                <i class="bi bi-clipboard-check me-2"></i>
+                <div>تم نسخ تفاصيل الطلب بنجاح!</div>
+            </div>
+        `;
+        
+        // Style the notification
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease-in-out';
+        
+        // Add to document
+        document.body.appendChild(notification);
+        
+        // Show the notification (delay to allow transition)
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 10);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
+    }
+}
+
+/**
+ * Filters orders based on the selected date range
+ * @param {Array} orders - The original orders array to filter
+ * @param {string} dateFilter - The date filter type (24h, 7d, 1m, all)
+ * @returns {Array} - Filtered orders array
+ */
+function filterOrdersByDate(orders, dateFilter) {
+    if (dateFilter === 'all') return orders;
+    
+    const now = new Date();
+    let cutoffDate;
+    
+    switch(dateFilter) {
+        case '24h':
+            cutoffDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+            break;
+        case '7d':
+            cutoffDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            break;
+        case '1m':
+            cutoffDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+            break;
+        default:
+            return orders;
+    }
+    
+    return orders.filter(order => new Date(order.order_date) >= cutoffDate);
+}
+
+/**
+ * Groups and sorts orders, then displays them
+ * @param {Array} filteredOrders - The filtered orders to group and display
+ */
+function processAndDisplayOrders(filteredOrders) {
+    const container = document.getElementById('admin-orders-container');
+    container.innerHTML = '';
+    
+    if (filteredOrders.length === 0) {
+        container.innerHTML = '<p class="text-center py-4">لم يتم العثور على أي طلب في هذه الفترة.</p>';
+        document.getElementById('pagination-controls').style.display = 'none';
+        document.getElementById('total-orders-count').textContent = '0';
+        return;
+    }
+    
+    // Group orders by order_group
+    allOrdersGrouped = filteredOrders.reduce((acc, order) => {
+        if (!acc[order.order_group]) acc[order.order_group] = [];
+        acc[order.order_group].push(order);
+        return acc;
+    }, {});
+    
+    // Update the orders count
+    document.getElementById('total-orders-count').textContent = Object.keys(allOrdersGrouped).length;
+    
+    // Get the keys and sort by most recent date first
+    orderKeys = Object.keys(allOrdersGrouped).sort((a, b) => {
+        const dateA = new Date(allOrdersGrouped[a][0].order_date);
+        const dateB = new Date(allOrdersGrouped[b][0].order_date);
+        return dateB - dateA;
+    });
+    
+    displayedCount = 0; // Reset the displayed count
+    showMoreOrders(); // Display the initial set of orders
+}
+
+/**
  * Sets up event listeners when the DOM is fully loaded.
  */
 document.addEventListener('DOMContentLoaded', () => {
     // Load the initial set of orders
     loadAdminOrders();
+
+    // Event listener for date filter changes
+    document.getElementById('date-filter').addEventListener('change', function() {
+        const dateFilter = this.value;
+        
+        // Add animation class
+        this.classList.add('filter-changed');
+        setTimeout(() => this.classList.remove('filter-changed'), 1000);
+        
+        // Apply date filter to orders
+        if (allOrdersRaw.length > 0) {
+            const filteredOrders = filterOrdersByDate(allOrdersRaw, dateFilter);
+            processAndDisplayOrders(filteredOrders);
+        }
+    });
 
     // Event listener for the "Show More" button
     document.getElementById('show-more-btn').addEventListener('click', showMoreOrders);

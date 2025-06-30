@@ -85,7 +85,31 @@ function renderProducts(products, append = false) {
     let ratingHtml = '';
     const avg = Number(product.avgRating);
     if (!isNaN(avg)) {
-      ratingHtml = `<span class="ms-2 text-warning" title="التقييم"><i class="bi bi-star-fill"></i> ${avg.toFixed(1)}</span>`;
+      // Generate stars based on rating
+      let starsHtml = '';
+      const roundedRating = Math.round(avg * 2) / 2; // Round to nearest 0.5
+      
+      for (let i = 1; i <= 5; i++) {
+        // Full star
+        if (i <= Math.floor(roundedRating)) {
+          starsHtml += `<i class="bi bi-star-fill text-warning"></i>`;
+        }
+        // Half star
+        else if (i === Math.ceil(roundedRating) && !Number.isInteger(roundedRating)) {
+          starsHtml += `<i class="bi bi-star-half text-warning"></i>`;
+        }
+        // Empty star
+        else {
+          starsHtml += `<i class="bi bi-star text-warning"></i>`;
+        }
+      }
+      
+      ratingHtml = `
+        <div class="d-flex align-items-center mt-1 mb-2">
+          <div class="stars-container" style="font-size: 0.8rem;">${starsHtml}</div>
+          <span class="ms-1 text-warning fw-bold" style="font-size: 0.9rem;">${avg.toFixed(1)}</span>
+          <span class="ms-1 text-muted" style="font-size: 0.8rem;">(${product.reviewCount || 0})</span>
+        </div>`;
     }
 
     productCard.innerHTML = `
@@ -96,13 +120,57 @@ function renderProducts(products, append = false) {
       <div class="product-card-body" >
         <h5 class="product-card-title" style="margin: .1em .1em ;">${product.name}</h5>
         <div class="mb-1">${catBadges}</div>
-        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}${ratingHtml}</div>
-        <button class="btn product-card-button" style="font-size:1.3em;padding:.1em .1em;">عرض التفاصيل</button>
+        ${ratingHtml}
+        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}</div>
+        <div class="d-flex justify-content-between mt-2">
+          <button class="btn product-card-button flex-grow-1 me-2" style="font-size:1.1em;padding:.1em .1em;">عرض التفاصيل</button>
+          ${product.stock === 0 ? 
+            `<button class="btn btn-secondary add-cart-btn flex-grow-1" disabled style="font-size:1.1em;padding:.1em .1em;opacity:.6;cursor:not-allowed;">
+              <i class="bi bi-cart-plus"></i>
+             </button>` : 
+            `<button class="btn btn-primary add-cart-btn flex-grow-1" style="font-size:1.1em;padding:.1em .1em;">
+              <i class="bi bi-cart-plus"></i>
+             </button>`
+          }
+        </div>
       </div>
     `;
     productCard.querySelector('.product-card-button').addEventListener('click', () => {
       window.location.href = `product-detail.html?id=${product.id}`;
     });
+    
+    // Add event listener for the "Add to Cart" button if product is in stock
+    if (product.stock !== 0) {
+      productCard.querySelector('.add-cart-btn').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent parent card click
+        
+        // Add product to cart
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const existingProduct = cart.find(item => item.id === product.id);
+        
+        if (existingProduct) {
+          existingProduct.quantity += 1;
+        } else {
+          cart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1
+          });
+        }
+        
+        localStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Show success message with enhanced cart popup
+        showCartMessage('<i class="bi bi-check-circle-fill"></i> تم إضافة المنتج إلى السلة!', 'success', product);
+        
+        // Update cart counter if function exists
+        if (typeof updateCartCounter === 'function') {
+          updateCartCounter();
+        }
+      });
+    }
+    
     productCol.appendChild(productCard);
     container.appendChild(productCol);
   });
@@ -181,6 +249,7 @@ function filterAndRender() {
   const minPrice = parseFloat(document.getElementById('min-price').value) || null;
   const maxPrice = parseFloat(document.getElementById('max-price').value) || null;
   const minRating = parseInt(document.getElementById('rating-filter').value) || null;
+  const sortPrice = document.getElementById('price-sort').value;
 
   let filtered = allProducts.filter(product => {
     // Search
@@ -201,14 +270,163 @@ function filterAndRender() {
     }
     return ok;
   });
+
+  // Sort by price if selected
+  if (sortPrice) {
+    filtered.sort((a, b) => {
+      const priceA = parseFloat(a.price);
+      const priceB = parseFloat(b.price);
+      return sortPrice === 'asc' ? priceA - priceB : priceB - priceA;
+    });
+  }
+
+  // Update active filters display
+  updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPrice);
+  
+  // Update filter control styles
+  updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, sortPrice);
+  
   renderProducts(filtered);
 }
 
+// Update the visual indication of active filters
+function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPrice) {
+  const activeFiltersContainer = document.getElementById('active-filters');
+  let activeFilters = [];
+  
+  // Search filter
+  if (query) {
+    activeFilters.push({
+      type: 'search',
+      text: `بحث: ${query}`,
+      value: query
+    });
+  }
+  
+  // Category filter
+  if (cat) {
+    const catElement = document.getElementById('category-filter');
+    const catName = catElement.options[catElement.selectedIndex].text;
+    activeFilters.push({
+      type: 'category',
+      text: `الفئة: ${catName}`,
+      value: cat
+    });
+  }
+  
+  // Price range filter
+  if (minPrice !== null || maxPrice !== null) {
+    let priceText = "السعر: ";
+    if (minPrice !== null && maxPrice !== null) {
+      priceText += `${minPrice} - ${maxPrice} دج`;
+    } else if (minPrice !== null) {
+      priceText += `> ${minPrice} دج`;
+    } else {
+      priceText += `< ${maxPrice} دج`;
+    }
+    activeFilters.push({
+      type: 'price',
+      text: priceText,
+      value: 'price'
+    });
+  }
+  
+  // Rating filter
+  if (minRating !== null) {
+    const stars = '★'.repeat(minRating) + '☆'.repeat(5 - minRating);
+    activeFilters.push({
+      type: 'rating',
+      text: `التقييم: ${stars}`,
+      value: minRating
+    });
+  }
+  
+  // Price sorting
+  if (sortPrice) {
+    const sortText = sortPrice === 'asc' ? 'الأرخص للأغلى' : 'الأغلى للأرخص';
+    activeFilters.push({
+      type: 'sort',
+      text: `ترتيب: ${sortText}`,
+      value: sortPrice
+    });
+  }
+  
+  // Update the UI
+  if (activeFilters.length > 0) {
+    activeFiltersContainer.innerHTML = activeFilters.map(filter => {
+      return `<span class="badge filter-badge-${filter.type}" data-filter-type="${filter.type}" data-filter-value="${filter.value}">
+                ${filter.text} <i class="bi bi-x ms-1"></i>
+              </span>`;
+    }).join('');
+    
+    // Add click event listeners to remove filters
+    activeFiltersContainer.querySelectorAll('.badge').forEach(badge => {
+      badge.addEventListener('click', () => {
+        removeFilter(badge.dataset.filterType, badge.dataset.filterValue);
+      });
+    });
+  } else {
+    activeFiltersContainer.innerHTML = '<span class="badge bg-light text-secondary border">لا توجد فلاتر نشطة</span>';
+  }
+}
+
+// Update the styles of filter controls to highlight active ones
+function updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, sortPrice) {
+  // Reset all filter controls
+  document.querySelectorAll('.filter-control').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Add active class to controls with values
+  if (query) document.getElementById('search-bar').classList.add('active');
+  if (cat) document.getElementById('category-filter').classList.add('active');
+  if (minPrice !== null) document.getElementById('min-price').classList.add('active');
+  if (maxPrice !== null) document.getElementById('max-price').classList.add('active');
+  if (minRating !== null) document.getElementById('rating-filter').classList.add('active');
+  if (sortPrice) document.getElementById('price-sort').classList.add('active');
+}
+
+// Remove a filter when clicked
+function removeFilter(type, value) {
+  switch(type) {
+    case 'search':
+      document.getElementById('search-bar').value = '';
+      break;
+    case 'category':
+      document.getElementById('category-filter').value = '';
+      break;
+    case 'price':
+      document.getElementById('min-price').value = '';
+      document.getElementById('max-price').value = '';
+      break;
+    case 'rating':
+      document.getElementById('rating-filter').value = '';
+      break;
+    case 'sort':
+      document.getElementById('price-sort').value = '';
+      break;
+  }
+  
+  filterAndRender(); // Reapply filters and update UI
+}
+
+// Clear all filters
+function clearAllFilters() {
+  document.getElementById('search-bar').value = '';
+  document.getElementById('category-filter').value = '';
+  document.getElementById('min-price').value = '';
+  document.getElementById('max-price').value = '';
+  document.getElementById('rating-filter').value = '';
+  document.getElementById('price-sort').value = '';
+  
+  filterAndRender(); // Reapply filters and update UI
+}
+
 // --- Event Listeners for all filters ---
-document.getElementById('search-bar').addEventListener('input', filterAndRender);
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCategories();
   await loadProductsPaginated(true);
+  
   // Auto-select category if ?category=ID in URL
   const urlParams = new URLSearchParams(window.location.search);
   const cat = urlParams.get('category');
@@ -220,10 +438,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.scrollTo(0, 0); // scroll to top
     }
   }
+  
+  // Set up filter event listeners
+  document.getElementById('search-bar').addEventListener('input', filterAndRender);
   document.getElementById('category-filter').addEventListener('change', filterAndRender);
   document.getElementById('min-price').addEventListener('input', filterAndRender);
   document.getElementById('max-price').addEventListener('input', filterAndRender);
   document.getElementById('rating-filter').addEventListener('change', filterAndRender);
+  document.getElementById('price-sort').addEventListener('change', filterAndRender);
+  
+  // Clear all filters button
+  document.getElementById('clear-filters').addEventListener('click', clearAllFilters);
+  
+  // Pagination buttons
   document.getElementById('show-more-btn').addEventListener('click', () => loadProductsPaginated());
   document.getElementById('show-less-btn').addEventListener('click', () => {
     currentOffset = PAGE_SIZE;
@@ -233,6 +460,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('show-less-btn').style.display = 'none';
     document.getElementById('show-more-btn').style.display = 'block';
   });
+  
+  // Tooltip initialization for filters (if using Bootstrap tooltips)
+  try {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  } catch (e) {
+    console.warn('Bootstrap tooltip initialization failed:', e);
+  }
 });
 
 // --- Global Loading Spinner Notification ---
@@ -257,4 +494,110 @@ function showGlobalLoadingSpinner(message = 'جاري التحميل...') {
 function hideGlobalLoadingSpinner() {
   const spinnerDiv = document.getElementById('global-loading-spinner');
   if (spinnerDiv) spinnerDiv.remove();
+}
+
+// Show cart message notification
+function showCartMessage(message, type = 'info', product = null) {
+  // Remove any existing message
+  const existingMessage = document.getElementById('cart-message');
+  if (existingMessage) {
+    existingMessage.remove();
+  }
+  
+  // Create message element
+  const messageElement = document.createElement('div');
+  messageElement.id = 'cart-message';
+  messageElement.className = `alert alert-${type} cart-message`;
+  messageElement.innerHTML = message;
+  messageElement.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    padding: 10px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideIn 0.3s ease-out forwards;
+    max-width: 300px;
+  `;
+  
+  // Add animation styles
+  const style = document.createElement('style');
+  if (!document.getElementById('cart-message-styles')) {
+    style.id = 'cart-message-styles';
+    style.textContent = `
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+      .cart-message-hide {
+        animation: slideOut 0.3s ease-in forwards;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  // Add to document
+  document.body.appendChild(messageElement);
+  
+  // Auto-dismiss after 3 seconds
+  setTimeout(() => {
+    messageElement.classList.add('cart-message-hide');
+    setTimeout(() => messageElement.remove(), 300);
+  }, 3000);
+  
+  // Enhanced cart popup
+  if (product) {
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cartPopupModal = new bootstrap.Modal(document.getElementById('cartPopupModal'));
+    
+    // Set product details
+    document.getElementById('cartPopupProductName').textContent = product.name;
+    document.getElementById('cartPopupProductPrice').textContent = `دج${product.price}`;
+    
+    // Calculate cart total
+    let total = 0;
+    const itemsContainer = document.getElementById('cartPopupItemsList');
+    itemsContainer.innerHTML = '';
+    
+    // Show cart items (limited to 3)
+    if (cart.length > 0) {
+      const displayItems = cart.slice(0, 3);
+      displayItems.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        
+        const itemElement = document.createElement('div');
+        itemElement.className = 'd-flex justify-content-between align-items-center mb-2';
+        itemElement.innerHTML = `
+          <div>
+            <span class="fw-medium">${item.name}</span>
+            <span class="text-muted ms-2">x${item.quantity}</span>
+          </div>
+          <span>دج${itemTotal}</span>
+        `;
+        itemsContainer.appendChild(itemElement);
+      });
+      
+      // If there are more items
+      if (cart.length > 3) {
+        const moreItems = document.createElement('div');
+        moreItems.className = 'text-center text-muted small mt-2';
+        moreItems.textContent = `+ ${cart.length - 3} منتجات أخرى`;
+        itemsContainer.appendChild(moreItems);
+      }
+    } else {
+      itemsContainer.innerHTML = '<p class="text-center text-muted my-2">لا توجد منتجات في السلة</p>';
+    }
+    
+    // Update total
+    document.getElementById('cartPopupTotal').textContent = `دج${total}`;
+    
+    // Show the modal
+    cartPopupModal.show();
+  }
 }

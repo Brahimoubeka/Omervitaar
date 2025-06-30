@@ -11,7 +11,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <!-- Google Fonts: Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
+   <!-- Add Cairo Arabic font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  
   <style>
     :root {
       --military-green: #715100;
@@ -21,7 +23,7 @@
       --light-gray: #f8f9fa;
       --white: #ffffff;
     }
-    * { font-family: 'Inter', sans-serif; }
+    * { font-family: 'cairo', 'Inter', sans-serif; }
 
     body {
       background: var(--light-gray);
@@ -276,7 +278,14 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
-          <li class="nav-item"><a class="nav-link" href="products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-bag me-1"></i> المنتجات
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="productsDropdown" id="categoriesDropdownMenu">
+              <li><span class="dropdown-item text-muted">جاري التحميل...</span></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="contact.html"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
         </ul>
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
@@ -380,6 +389,33 @@ async function updateBrandingLinks() {
 }
 updateBrandingLinks();
 </script>
+<script>
+    // Dynamically load categories into navbar dropdown
+    async function loadCategoriesDropdown() {
+      try {
+        const res = await fetch('/api/categories');
+        const categories = await res.json();
+        const menu = document.getElementById('categoriesDropdownMenu');
+        menu.innerHTML = '';
+        if (Array.isArray(categories) && categories.length > 0) {
+          categories.forEach(cat => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.className = 'dropdown-item';
+            a.href = `products.html?category=${cat.id}`;
+            a.textContent = cat.name;
+            li.appendChild(a);
+            menu.appendChild(li);
+          });
+        } else {
+          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
+        }
+      } catch (e) {
+        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
+      }
+    }
+    loadCategoriesDropdown();
+  </script>
 
 </body>
 </html>

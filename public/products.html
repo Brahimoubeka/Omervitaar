@@ -11,6 +11,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <!-- Google Fonts: Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+   <!-- Add Cairo Arabic font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  
   
   <style>
     :root {
@@ -21,7 +24,7 @@
       --light-gray: #f8f9fa;
       --white: #ffffff;
     }
-    * { font-family: 'Inter', sans-serif; }
+    * { font-family: 'Cairo','Inter', sans-serif; }
 
     body {
       background: var(--light-gray);
@@ -139,6 +142,16 @@
   font-weight: 700;
 }
 
+/* Star ratings in product cards */
+.stars-container {
+  display: inline-flex;
+  align-items: center;
+}
+
+.stars-container i {
+  margin-right: 1px;
+}
+
 /* badge for low stock */
 .product-badge {
   position: absolute;
@@ -163,8 +176,8 @@
 
     /* Search bar */
     #search-bar {
-      border-radius: 18px;
-      font-size: 1.11em;
+      border-radius: 12px;
+      font-size: 1.05em;
       box-shadow: 0 2px 10px rgba(113,81,0,0.04);
       border: 1.5px solid #e2e2e2;
       transition: border 0.2s;
@@ -172,6 +185,86 @@
     #search-bar:focus {
       border-color: var(--orange-accent);
       box-shadow: 0 0 0 0.10rem rgba(255,191,0,.13);
+    }
+
+    /* Filter section styling */
+    .filter-section {
+      background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+      border: 1px solid rgba(113,81,0,0.1);
+      transition: box-shadow 0.3s ease;
+    }
+    
+    .filter-section:hover {
+      box-shadow: 0 10px 25px rgba(113,81,0,0.08);
+    }
+    
+    .filter-control {
+      border-radius: 10px;
+      border: 1.5px solid #e6e6e6;
+      transition: all 0.2s ease;
+    }
+    
+    .filter-control:focus, .filter-control.active {
+      border-color: var(--orange-accent);
+      box-shadow: 0 0 0 2px rgba(255,191,0,0.15);
+    }
+    
+    .text-military {
+      color: var(--military-green);
+    }
+    
+    #active-filters .badge {
+      padding: 0.6em 1em;
+      font-size: 0.85em;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    #active-filters .badge:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .filter-badge-search {
+      background-color: #e7f3ff !important;
+      color: #0d6efd !important;
+      border-color: #b8daff !important;
+    }
+    
+    .filter-badge-category {
+      background-color: #f0e8ff !important;
+      color: #6610f2 !important;
+      border-color: #d9c8ff !important;
+    }
+    
+    .filter-badge-price {
+      background-color: #fff3cd !important;
+      color: #bb8c05 !important;
+      border-color: #ffe69c !important;
+    }
+    
+    .filter-badge-rating {
+      background-color: #d1e7dd !important;
+      color: #146c43 !important;
+      border-color: #a3cfbb !important;
+    }
+    
+    .filter-badge-sort {
+      background-color: #f8d7da !important;
+      color: #b02a37 !important;
+      border-color: #f5c2c7 !important;
+    }
+    
+    #clear-filters {
+      border-radius: 20px;
+      padding: 0.3em 1em;
+      transition: all 0.2s ease;
+    }
+    
+    #clear-filters:hover {
+      background-color: #dc3545;
+      color: white;
+      border-color: #dc3545;
     }
 
     /* Footer  */
@@ -322,7 +415,14 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
-          <li class="nav-item"><a class="nav-link active" aria-current="page" href="products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-bag me-1"></i> المنتجات
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="productsDropdown" id="categoriesDropdownMenu">
+              <li><span class="dropdown-item text-muted">جاري التحميل...</span></li>
+            </ul>
+          </li>
           <li class="nav-item"><a class="nav-link" href="contact.html"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
         </ul>
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
@@ -335,44 +435,90 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 
   <main class="container my-5">
     <h1 class="mb-4 text-center"><i class="bi bi-basket me-2"></i>منتجاتنا</h1>
-    <!-- Search Bar -->
-    <div class="row align-items-center mb-4 g-2">
-  <!-- Search bar -->
-  <div class="col-12 col-md-4 mb-2 mb-md-0">
-    <input
-      type="text"
-      id="search-bar"
-      class="form-control"
-      placeholder="ابحث في المنتجات..."
-      aria-label="ابحث في المنتجات"
-    />
-  </div>
-  <!-- Category filter -->
-  <div class="col-12 col-md-3 mb-2 mb-md-0">
-    <select id="category-filter" class="form-select">
-      <option value="">كل الفئات</option>
-      <!-- JS will fill options -->
-    </select>
-  </div>
-  <!-- Price filter -->
-  <div class="col-6 col-md-2">
-    <input type="number" id="min-price" class="form-control" placeholder="Min دج">
-  </div>
-  <div class="col-6 col-md-2">
-    <input type="number" id="max-price" class="form-control" placeholder="Max دج">
-  </div>
-  <!-- Rating filter -->
-  <div class="col-12 col-md-1">
-    <select id="rating-filter" class="form-select">
-      <option value="">التقييم</option>
-      <option value="5">5★</option>
-      <option value="4">4★+</option>
-      <option value="3">3★+</option>
-      <option value="2">2★+</option>
-      <option value="1">1★+</option>
-    </select>
-  </div>
-</div>
+    <!-- Filter & Search Section -->
+    <div class="filter-section p-3 mb-4 bg-white rounded-4 shadow-sm">
+      <h5 class="mb-3 text-military fw-bold"><i class="bi bi-funnel me-2"></i>تصفية وبحث</h5>
+      <div class="row align-items-center g-3">
+        <!-- Search bar -->
+        <div class="col-12 col-md-4 mb-2 mb-md-0">
+          <label for="search-bar" class="form-label small fw-bold">بحث</label>
+          <div class="input-group">
+            <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              id="search-bar"
+              class="form-control filter-control"
+              placeholder="ابحث في المنتجات..."
+              aria-label="ابحث في المنتجات"
+            />
+          </div>
+        </div>
+        <!-- Category filter -->
+        <div class="col-12 col-md-3 mb-2 mb-md-0">
+          <label for="category-filter" class="form-label small fw-bold">الفئة</label>
+          <select id="category-filter" class="form-select filter-control">
+            <option value="">كل الفئات</option>
+            <!-- JS will fill options -->
+          </select>
+        </div>
+        <!-- Price range filter -->
+        <div class="col-12 col-md-4">
+          <label class="form-label small fw-bold">نطاق السعر</label>
+          <div class="d-flex">
+            <div class="input-group me-2">
+              <span class="input-group-text bg-transparent">من</span>
+              <input type="number" id="min-price" class="form-control filter-control" placeholder="دج">
+            </div>
+            <div class="input-group">
+              <span class="input-group-text bg-transparent">إلى</span>
+              <input type="number" id="max-price" class="form-control filter-control" placeholder="دج">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Second row for additional filters -->
+      <div class="row mt-3">
+        <!-- Rating filter -->
+        <div class="col-12 col-md-3 mb-2 mb-md-0">
+          <label for="rating-filter" class="form-label small fw-bold">التقييم</label>
+          <select id="rating-filter" class="form-select filter-control">
+            <option value="">جميع التقييمات</option>
+            <option value="5">5★</option>
+            <option value="4">4★+</option>
+            <option value="3">3★+</option>
+            <option value="2">2★+</option>
+            <option value="1">1★+</option>
+          </select>
+        </div>
+        
+        <!-- Price sorting -->
+        <div class="col-12 col-md-3 mb-2 mb-md-0">
+          <label for="price-sort" class="form-label small fw-bold">ترتيب حسب السعر</label>
+          <select id="price-sort" class="form-select filter-control">
+            <option value="">بدون ترتيب</option>
+            <option value="asc">من الأرخص للأغلى</option>
+            <option value="desc">من الأغلى للأرخص</option>
+          </select>
+        </div>
+        
+        <!-- Active filters display -->
+        <div class="col-12 col-md-6">
+          <label class="form-label small fw-bold">الفلاتر النشطة</label>
+          <div id="active-filters" class="d-flex flex-wrap gap-2">
+            <!-- JS will fill active filters here -->
+            <span class="badge bg-light text-secondary border">لا توجد فلاتر نشطة</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Clear all filters button -->
+      <div class="text-end mt-3">
+        <button id="clear-filters" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-x-circle me-1"></i>إزالة جميع الفلاتر
+        </button>
+      </div>
+    </div>
 
     <!-- Container to display products -->
     <div id="products-container" class="row row-cols-1 row-cols-sm-1 row-cols-md-3 row-cols-lg-4 g-4">
@@ -471,6 +617,71 @@ updateBrandingLinks();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   </script>
+<script>
+    // Dynamically load categories into navbar dropdown
+    async function loadCategoriesDropdown() {
+      try {
+        const res = await fetch('/api/categories');
+        const categories = await res.json();
+        const menu = document.getElementById('categoriesDropdownMenu');
+        menu.innerHTML = '';
+        if (Array.isArray(categories) && categories.length > 0) {
+          categories.forEach(cat => {
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.className = 'dropdown-item';
+            a.href = `products.html?category=${cat.id}`;
+            a.textContent = cat.name;
+            li.appendChild(a);
+            menu.appendChild(li);
+          });
+        } else {
+          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
+        }
+      } catch (e) {
+        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
+      }
+    }
+    loadCategoriesDropdown();
+  </script>
+
+  <!-- Cart Popup Modal -->
+  <div class="modal fade" id="cartPopupModal" tabindex="-1" aria-labelledby="cartPopupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="cartPopupModalLabel"><i class="bi bi-cart-check me-2"></i>تمت الإضافة إلى السلة</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex align-items-center mb-3">
+            <div class="me-3 text-center">
+              <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+            </div>
+            <div>
+              <h6 class="mb-1 fw-bold" id="cartPopupProductName"></h6>
+              <p class="mb-0 text-muted" id="cartPopupProductPrice"></p>
+            </div>
+          </div>
+          <div id="cartPopupItemsList" class="border-top border-bottom py-3 my-3">
+            <!-- Cart items will be displayed here -->
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold">إجمالي السلة:</span>
+            <span class="fw-bold text-success" id="cartPopupTotal"></span>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-arrow-return-left me-1"></i>متابعة التسوق
+          </button>
+          <a href="cart.html" class="btn btn-success">
+            <i class="bi bi-cart-fill me-1"></i>إتمام الطلب
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
