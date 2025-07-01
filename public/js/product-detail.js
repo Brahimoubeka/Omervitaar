@@ -474,7 +474,20 @@ async function loadProductDetail() {
           // Get WhatsApp number from branding API
           const brandingResponse = await fetch('/api/branding');
           const branding = await brandingResponse.json();
-          const whatsappNumber = branding.phone || '+905518560018'; // Fallback number
+          let whatsappNumber = branding.phone || '+905518560018'; // Fallback number
+          
+          // Clean and validate phone number
+          let cleanPhoneNumber = whatsappNumber.replace(/[^0-9]/g, '');
+          
+          // Ensure phone number starts with country code
+          if (!cleanPhoneNumber.startsWith('90') && !cleanPhoneNumber.startsWith('966') && !cleanPhoneNumber.startsWith('213')) {
+            // If no country code detected, assume Turkish number
+            if (cleanPhoneNumber.length === 10) {
+              cleanPhoneNumber = '90' + cleanPhoneNumber;
+            }
+          }
+          
+          console.log('Using WhatsApp number:', cleanPhoneNumber); // Debug log
           
           // Get current product URL
           const productUrl = window.location.href;
@@ -490,18 +503,112 @@ async function loadProductDetail() {
             console.log('Could not copy to clipboard:', err);
           }
           
-          // Open WhatsApp with the message
-          const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
-          window.open(whatsappUrl, '_blank');
+          // Create WhatsApp URL with comprehensive mobile detection
+          let whatsappUrl;
+          
+          // Enhanced mobile detection using multiple methods
+          const userAgent = navigator.userAgent.toLowerCase();
+          const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
+                           window.innerWidth <= 768 || 
+                           'ontouchstart' in window ||
+                           navigator.maxTouchPoints > 0;
+          
+          const isAndroid = /android/i.test(userAgent);
+          const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+          
+          console.log('Device detection:', { isMobile, isAndroid, isIOS, userAgent }); // Debug log
+          
+          // Create appropriate WhatsApp URL based on device
+          if (isMobile) {
+            whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${message}`;
+          } else {
+            whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${message}`;
+          }
+          
+          // Try to open WhatsApp with multiple fallback strategies
+          try {
+            if (isMobile) {
+              // Strategy 1: Direct click simulation (most reliable on mobile)
+              const tempLink = document.createElement('a');
+              tempLink.href = whatsappUrl;
+              tempLink.style.display = 'none';
+              tempLink.target = '_blank';
+              tempLink.rel = 'noopener noreferrer';
+              document.body.appendChild(tempLink);
+              
+              // Use both click and programmatic opening
+              tempLink.click();
+              
+              // Clean up
+              setTimeout(() => {
+                if (document.body.contains(tempLink)) {
+                  document.body.removeChild(tempLink);
+                }
+              }, 100);
+              
+              // Strategy 2: Direct window.open as backup (with delay)
+              setTimeout(() => {
+                try {
+                  if (isIOS) {
+                    // For iOS, try the app scheme first, then web
+                    window.location.href = `whatsapp://send?phone=${cleanPhoneNumber}&text=${message}`;
+                    setTimeout(() => {
+                      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+                    }, 1500);
+                  } else {
+                    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+                  }
+                } catch (e) {
+                  console.log('Fallback strategy failed:', e);
+                  // Final fallback for mobile
+                  window.location.href = whatsappUrl;
+                }
+              }, 500);
+              
+            } else {
+              // For desktop, standard window.open
+              window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+            }
+          } catch (error) {
+            console.log('Primary WhatsApp open failed, trying ultimate fallback:', error);
+            // Ultimate fallback: multiple attempts
+            try {
+              window.open(`https://web.whatsapp.com/send?phone=${cleanPhoneNumber}&text=${message}`, '_blank');
+            } catch (finalError) {
+              // Last resort: navigate to WhatsApp web
+              window.location.href = `https://web.whatsapp.com/send?phone=${cleanPhoneNumber}&text=${message}`;
+            }
+          }
           
         } catch (error) {
           console.error('Error opening WhatsApp:', error);
-          // Fallback: just copy the URL
-          try {
-            await navigator.clipboard.writeText(window.location.href);
-            alert('تم نسخ رابط المنتج. يمكنك لصقه في واتساب.');
-          } catch (err) {
-            alert('حدث خطأ. يرجى المحاولة مرة أخرى.');
+          
+          // Show user-friendly error message with multiple options
+          const productUrl = window.location.href;
+          const message = encodeURIComponent(`عندي استفسار بشأن المنتج: ${productUrl}`);
+          
+          // Create fallback options
+          const webWhatsappUrl = `https://web.whatsapp.com/send?phone=${cleanPhoneNumber}&text=${message}`;
+          const waUrl = `https://wa.me/${cleanPhoneNumber}?text=${message}`;
+          
+          // Show user options
+          const userChoice = confirm(
+            'لم نتمكن من فتح واتساب تلقائياً. هل تريد المحاولة مرة أخرى؟\n\n' +
+            'اضغط "موافق" للمحاولة مرة أخرى\n' +
+            'اضغط "إلغاء" لنسخ رابط المنتج يدوياً'
+          );
+          
+          if (userChoice) {
+            // Try alternative WhatsApp URL
+            window.open(waUrl, '_blank');
+          } else {
+            // Copy URL and show instructions
+            try {
+              await navigator.clipboard.writeText(productUrl);
+              alert(`تم نسخ رابط المنتج!\n\nيمكنك الآن:\n1. فتح واتساب\n2. إرسال رسالة للرقم: ${whatsappNumber}\n3. لصق الرابط في الرسالة`);
+            } catch (err) {
+              alert(`رقم واتساب للتواصل: ${whatsappNumber}\n\nيمكنك نسخ هذا الرابط ولصقه في واتساب:\n${productUrl}`);
+            }
           }
         }
       });
