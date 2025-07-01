@@ -517,76 +517,90 @@
       }
     }
 
-    /* Animations */
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* User CTA Section Styles */
+    .user-cta-section {
+      position: relative;
     }
 
-    .animate-fade-in {
-      animation: fadeInUp 0.8s ease-out;
+    .user-cta-section .btn-user-primary:hover {
+      background: var(--light-military) !important;
+      color: white !important;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 191, 0, 0.5) !important;
     }
 
-    /* Enhance category section on mobile */
+    .user-cta-section .btn-user-secondary:hover {
+      background: var(--orange-accent) !important;
+      color: var(--dark-charcoal) !important;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 191, 0, 0.3);
+    }
+
+    .benefit-item {
+      transition: all 0.3s ease;
+    }
+
+    .benefit-item:hover {
+      transform: translateX(5px);
+    }
+
+    .benefit-item:hover .benefit-icon {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(255, 191, 0, 0.4);
+    }
+
+    .benefit-icon {
+      transition: all 0.3s ease;
+    }
+
+    /* Mobile optimizations for User CTA */
     @media (max-width: 768px) {
-      .category-shortcuts-section {
-        padding-top: 30px !important;
-        margin-top: 10px !important;
+      .user-cta-section {
+        padding: 3rem 0 !important;
       }
       
-      .category-shortcuts-section h2 {
-        margin-top: 10px;
-        font-size: 1.8rem;
+      .user-cta-section .display-6 {
+        font-size: 1.8rem !important;
+      }
+      
+      .user-cta-section .lead {
+        font-size: 1.1rem !important;
+      }
+      
+      .user-cta-section .col-lg-8 {
+        text-align: center !important;
+        margin-bottom: 2rem;
+      }
+      
+      .benefit-item {
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
+      
+      .user-cta-buttons {
+        margin-top: 1.5rem;
+      }
+      
+      .user-cta-buttons .btn {
+        padding: 12px 25px !important;
+        font-size: 1rem !important;
       }
     }
 
-    /* Custom scrollbar styling for category section */
-    .category-shortcuts-scroll::-webkit-scrollbar {
-      height: 6px;
-      background-color: #f8f9fa;
-      border-radius: 10px;
-    }
-    
-    .category-shortcuts-scroll::-webkit-scrollbar-thumb {
-      background-color: var(--orange-accent);
-      border-radius: 10px;
-    }
-    
-    .category-shortcuts-scroll::-webkit-scrollbar-track {
-      background-color: #f1f1f1;
-      border-radius: 10px;
-    }
-    
-    /* Make scrollbar more visible on mobile */
-    @media (max-width: 768px) {
-      .category-shortcuts-scroll {
-        padding-bottom: 16px; /* Additional padding to ensure scrollbar is visible */
-        margin-bottom: 5px;
-        overflow-x: scroll; /* Force scroll to be visible */
-        -webkit-overflow-scrolling: touch;
+    /* Extra small devices */
+    @media (max-width: 576px) {
+      .user-cta-section .display-6 {
+        font-size: 1.6rem !important;
       }
       
-      .category-shortcuts-scroll::-webkit-scrollbar {
-        height: 8px; /* Slightly larger on mobile for better touch targets */
+      .benefit-item span {
+        font-size: 0.9rem;
       }
       
-      /* Visual indicator to show scrolling is available */
-      .category-shortcuts-section:after {
-        content: '';
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        width: 50px;
-        height: 100%;
-        background: linear-gradient(to left, rgba(248, 249, 250, 0.8), rgba(248, 249, 250, 0));
-        pointer-events: none;
-        z-index: 1;
+      .benefit-icon {
+        width: 35px !important;
+        height: 35px !important;
+        font-size: 1rem !important;
       }
     }
   </style>
@@ -781,6 +795,69 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
             </div>
             <h3 class="feature-title">دعم 24/7</h3>
             <p class="feature-text">نحن دائمًا بجانبك. دعم العملاء متوفر 24/7 لأي استفسار.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- User Registration CTA Section -->
+  <section class="user-cta-section py-5" style="background: linear-gradient(135deg, var(--military-green) 0%, var(--light-military) 100%); position: relative; overflow: hidden;">
+    <!-- Background pattern -->
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.4;"></div>
+    
+    <div class="container position-relative">
+      <div class="row align-items-center">
+        <div class="col-lg-8 col-md-7 text-center text-md-start">
+          <div class="user-cta-content" style="color: white;">
+            <h2 class="display-6 fw-bold mb-3" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+              <i class="bi bi-person-circle me-3" style="color: var(--orange-accent);"></i>
+              انضم إلينا الآن!
+            </h2>
+            <p class="lead mb-4" style="opacity: 0.95; font-size: 1.2rem; line-height: 1.6;">
+              سجل الدخول الآن أو أنشئ حساباً لتجربة تسوق أكثر سلاسة
+            </p>
+            <div class="user-benefits mb-4">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="benefit-item d-flex align-items-center">
+                    <div class="benefit-icon me-3" style="width: 40px; height: 40px; background: var(--orange-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem;">
+                      <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <span style="font-weight: 500;">تسوق أسرع وأسهل</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="benefit-item d-flex align-items-center">
+                    <div class="benefit-icon me-3" style="width: 40px; height: 40px; background: var(--orange-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem;">
+                      <i class="bi bi-clock-history"></i>
+                    </div>
+                    <span style="font-weight: 500;">تتبع طلباتك</span>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="benefit-item d-flex align-items-center">
+                    <div class="benefit-icon me-3" style="width: 40px; height: 40px; background: var(--orange-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem;">
+                      <i class="bi bi-gift"></i>
+                    </div>
+                    <span style="font-weight: 500;">عروض حصرية للأعضاء</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-5 text-center">
+          <div class="user-cta-buttons">
+            <a href="login.html" class="btn btn-user-primary mb-3 w-100" style="background: var(--orange-accent); border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; color: var(--dark-charcoal); transition: all 0.3s ease; text-decoration: none; display: inline-block; box-shadow: 0 4px 15px rgba(255, 191, 0, 0.3);">
+              <i class="bi bi-box-arrow-in-right me-2"></i>
+              سجل الدخول
+            </a>
+            <a href="register.html" class="btn btn-user-secondary w-100" style="background: transparent; border: 2px solid var(--orange-accent); padding: 15px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; color: var(--orange-accent); transition: all 0.3s ease; text-decoration: none; display: inline-block;">
+              <i class="bi bi-person-plus me-2"></i>
+              أنشئ حساب جديد
+            </a>
           </div>
         </div>
       </div>

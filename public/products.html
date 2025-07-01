@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Omervita - المنتجات</title>
+  <!-- Canonical tag for SEO -->
+  <link rel="canonical" href="https://omervita.com/products.html">
   
   <!-- Bootstrap CSS CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -267,6 +269,236 @@
       border-color: #dc3545;
     }
 
+    /* Buying Methods Section Styles */
+    .buying-methods-section {
+      background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+      border: 1px solid rgba(25, 118, 210, 0.1);
+      transition: box-shadow 0.3s ease;
+    }
+    
+    .buying-methods-section:hover {
+      box-shadow: 0 8px 20px rgba(25, 118, 210, 0.08);
+    }
+    
+    .method-section {
+      border-radius: 12px;
+      padding: 1rem;
+      background: white;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .step-item {
+      padding: 0.5rem 0;
+      transition: all 0.2s ease;
+    }
+    
+    .step-item:hover {
+      background: rgba(0,0,0,0.02);
+      border-radius: 8px;
+      padding-left: 0.5rem;
+      margin-left: -0.5rem;
+    }
+    
+    .step-text {
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    
+    .step-number {
+      flex-shrink: 0;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Sliding Filter Panel Styles */
+    .filter-toggle-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 100px;
+      z-index: 1030;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--military-green);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(113, 81, 0, 0.3);
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1.2rem;
+    }
+
+    .filter-toggle-btn:hover {
+      transform: scale(1.1);
+      background: var(--light-military);
+      box-shadow: 0 6px 20px rgba(113, 81, 0, 0.4);
+    }
+
+    .sliding-filter-panel {
+      position: fixed;
+      top: 0;
+      right: -420px;
+      width: 420px;
+      height: 100vh;
+      background-color: white;
+      box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
+      z-index: 1040;
+      padding: 0;
+      overflow-y: auto;
+      transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .sliding-filter-panel.active {
+      right: 0;
+    }
+
+    .sliding-filter-panel-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1039;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .sliding-filter-panel-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .sliding-filter-panel-header {
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .sliding-filter-panel-header h5 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+
+    .sliding-filter-panel-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 50%;
+      transition: all 0.2s;
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sliding-filter-panel-close:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: rotate(90deg);
+    }
+
+    .sliding-filter-panel-content {
+      padding: 20px;
+    }
+
+    .sliding-filter-section {
+      background: linear-gradient(to bottom, #ffffff, #f9f9f9);
+      border: 1px solid rgba(113,81,0,0.1);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .sliding-filter-section:hover {
+      box-shadow: 0 8px 20px rgba(113,81,0,0.08);
+    }
+
+    .sliding-filter-section h6 {
+      color: var(--military-green);
+      font-weight: 600;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sliding-filter-control {
+      border-radius: 10px;
+      border: 1.5px solid #e6e6e6;
+      transition: all 0.2s ease;
+      margin-bottom: 15px;
+    }
+
+    .sliding-filter-control:focus, .sliding-filter-control.active {
+      border-color: var(--orange-accent);
+      box-shadow: 0 0 0 2px rgba(255,191,0,0.15);
+    }
+
+    .sliding-active-filters {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+
+    .sliding-active-filters .badge {
+      padding: 0.6em 1em;
+      font-size: 0.85em;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      margin: 2px;
+    }
+
+    .sliding-clear-filters {
+      width: 100%;
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--military-green);
+      color: white;
+      border: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      margin-top: 20px;
+    }
+
+    .sliding-clear-filters:hover {
+      background: var(--light-military);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(113, 81, 0, 0.3);
+    }
+
+    @media (max-width: 576px) {
+      .sliding-filter-panel {
+        width: 90vw;
+        right: -90vw;
+      }
+      
+      .filter-toggle-btn {
+        width: 50px;
+        height: 50px;
+        bottom: 80px;
+        right: 15px;
+      }
+    }
+
     /* Footer  */
     footer {
       background: var(--dark-charcoal) !important;
@@ -435,89 +667,144 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 
   <main class="container my-5">
     <h1 class="mb-4 text-center"><i class="bi bi-basket me-2"></i>منتجاتنا</h1>
-    <!-- Filter & Search Section -->
-    <div class="filter-section p-3 mb-4 bg-white rounded-4 shadow-sm">
-      <h5 class="mb-3 text-military fw-bold"><i class="bi bi-funnel me-2"></i>تصفية وبحث</h5>
-      <div class="row align-items-center g-3">
-        <!-- Search bar -->
-        <div class="col-12 col-md-4 mb-2 mb-md-0">
-          <label for="search-bar" class="form-label small fw-bold">بحث</label>
-          <div class="input-group">
-            <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
-            <input
-              type="text"
-              id="search-bar"
-              class="form-control filter-control"
-              placeholder="ابحث في المنتجات..."
-              aria-label="ابحث في المنتجات"
-            />
-          </div>
+    
+    <!-- Buying Methods Section - Minimized -->
+    <div class="buying-methods-section p-3 mb-3 bg-white rounded-3 shadow-sm" style="border: 1px solid #e3f2fd;">
+      <div class="row align-items-center">
+        <div class="col-8">
+          <h6 class="mb-1 text-primary"><i class="bi bi-info-circle me-1"></i>طرق الشراء من الموقع</h6>
+          <small class="text-muted">اكتشف الطريقة المناسبة لك للطلب</small>
         </div>
-        <!-- Category filter -->
-        <div class="col-12 col-md-3 mb-2 mb-md-0">
-          <label for="category-filter" class="form-label small fw-bold">الفئة</label>
-          <select id="category-filter" class="form-select filter-control">
-            <option value="">كل الفئات</option>
-            <!-- JS will fill options -->
-          </select>
-        </div>
-        <!-- Price range filter -->
-        <div class="col-12 col-md-4">
-          <label class="form-label small fw-bold">نطاق السعر</label>
-          <div class="d-flex">
-            <div class="input-group me-2">
-              <span class="input-group-text bg-transparent">من</span>
-              <input type="number" id="min-price" class="form-control filter-control" placeholder="دج">
-            </div>
-            <div class="input-group">
-              <span class="input-group-text bg-transparent">إلى</span>
-              <input type="number" id="max-price" class="form-control filter-control" placeholder="دج">
-            </div>
-          </div>
+        <div class="col-4 text-end">
+          <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#buyingMethodsDetails" aria-expanded="false">
+            <i class="bi bi-question-circle me-1"></i>شرح مفصل
+          </button>
         </div>
       </div>
       
-      <!-- Second row for additional filters -->
-      <div class="row mt-3">
-        <!-- Rating filter -->
-        <div class="col-12 col-md-3 mb-2 mb-md-0">
-          <label for="rating-filter" class="form-label small fw-bold">التقييم</label>
-          <select id="rating-filter" class="form-select filter-control">
-            <option value="">جميع التقييمات</option>
-            <option value="5">5★</option>
-            <option value="4">4★+</option>
-            <option value="3">3★+</option>
-            <option value="2">2★+</option>
-            <option value="1">1★+</option>
-          </select>
-        </div>
-        
-        <!-- Price sorting -->
-        <div class="col-12 col-md-3 mb-2 mb-md-0">
-          <label for="price-sort" class="form-label small fw-bold">ترتيب حسب السعر</label>
-          <select id="price-sort" class="form-select filter-control">
-            <option value="">بدون ترتيب</option>
-            <option value="asc">من الأرخص للأغلى</option>
-            <option value="desc">من الأغلى للأرخص</option>
-          </select>
-        </div>
-        
-        <!-- Active filters display -->
-        <div class="col-12 col-md-6">
-          <label class="form-label small fw-bold">الفلاتر النشطة</label>
-          <div id="active-filters" class="d-flex flex-wrap gap-2">
-            <!-- JS will fill active filters here -->
-            <span class="badge bg-light text-secondary border">لا توجد فلاتر نشطة</span>
+      <!-- Detailed buying methods - collapsible -->
+      <div class="collapse mt-3" id="buyingMethodsDetails">
+        <div class="card card-body border-0 bg-light">
+          <!-- Method 1 -->
+          <div class="method-section mb-4">
+            <h6 class="text-success mb-3">
+              <i class="bi bi-1-circle-fill me-2"></i>الطريقة الأولى (المفضلة): مع إنشاء حساب
+            </h6>
+            <div class="steps-container">
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">1</span>
+                <span class="step-text">
+                  <a href="login.html" class="text-decoration-none fw-medium">سجل الدخول</a> أو 
+                  <a href="register.html" class="text-decoration-none fw-medium">أنشئ حساب جديد</a>
+                </span>
+              </div>
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">2</span>
+                <span class="step-text">أضف منتج أو أكثر إلى السلة</span>
+              </div>
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">3</span>
+                <span class="step-text">
+                  توجه إلى <a href="cart.html" class="text-decoration-none fw-medium">السلة</a> واضغط على "إتمام الطلب"
+                </span>
+              </div>
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">4</span>
+                <span class="step-text">املأ معلوماتك الإجبارية</span>
+              </div>
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">5</span>
+                <span class="step-text">أرسل الطلبية - ستحصل على إيميل فاتورة الشراء</span>
+              </div>
+              <div class="step-item d-flex align-items-start">
+                <span class="step-number bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;"><i class="bi bi-star" style="font-size: 0.7rem;"></i></span>
+                <span class="step-text">
+                  يمكنك تتبع طلباتك من قسم <a href="orders.html" class="text-decoration-none fw-medium">"طلباتي"</a> في القائمة
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <!-- Method 2 -->
+          <div class="method-section mb-3">
+            <h6 class="text-warning mb-3">
+              <i class="bi bi-2-circle-fill me-2"></i>الطريقة الثانية: بدون إنشاء حساب
+            </h6>
+            <div class="steps-container">
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">1</span>
+                <span class="step-text">نفس الخطوات السابقة لكن بدون إنشاء حساب</span>
+              </div>
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">2</span>
+                <span class="step-text">"بعد ملا المعلومات قم بإرسال الطلبية سيظهر لك زر "نسخ تفاصيل الطلب</span>
+              </div>
+              <div class="step-item d-flex align-items-start mb-2">
+                <span class="step-number bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">3</span>
+                <span class="step-text">اضغط للنسخ ثم توجه إلى واتساب الذي سيظهر لك</span>
+              </div>
+              <div class="step-item d-flex align-items-start">
+                <span class="step-number bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">4</span>
+                <span class="step-text">قم بلصق وإرسال الطلبية</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Important Note -->
+          <div class="alert alert-info border-0 mb-0" style="background: linear-gradient(135deg, #e3f2fd, #f0f8ff);">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-exclamation-triangle-fill text-info me-2" style="font-size: 1.2rem;"></i>
+              <div>
+                <strong>ملاحظة مهمة:</strong>
+                <span>بعد إرسال الطلبية سيتواصل معكم فريقنا لتأكيد الطلبية</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
-      <!-- Clear all filters button -->
-      <div class="text-end mt-3">
-        <button id="clear-filters" class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-x-circle me-1"></i>إزالة جميع الفلاتر
-        </button>
+    </div>
+
+    <!-- Filter & Search Section - Minimized (use sliding panel for full filters) -->
+    <div class="filter-section p-2 mb-3 bg-white rounded-3 shadow-sm" style="border: 1px solid #eee;">
+      <div class="row align-items-center">
+        <div class="col-8">
+          <small class="text-muted"><i class="bi bi-info-circle me-1"></i>استخدم زر الفلتر للوصول إلى جميع خيارات التصفية</small>
+        </div>
+        <div class="col-4 text-end">
+          <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('filterToggleBtn').click()">
+            <i class="bi bi-funnel me-1"></i>فتح الفلاتر
+          </button>
+        </div>
       </div>
+      
+      <!-- Hidden original filter elements for JavaScript functionality -->
+      <div style="display: none;">
+        <input type="text" id="search-bar" class="form-control">
+        <select id="category-filter" class="form-select"></select>
+        <input type="number" id="min-price" class="form-control">
+        <input type="number" id="max-price" class="form-control">
+        <select id="rating-filter" class="form-select">
+          <option value="">جميع التقييمات</option>
+          <option value="1">⭐ وما فوق</option>
+          <option value="2">⭐⭐ وما فوق</option>
+          <option value="3">⭐⭐⭐ وما فوق</option>
+          <option value="4">⭐⭐⭐⭐ وما فوق</option>
+          <option value="5">⭐⭐⭐⭐⭐ فقط</option>
+        </select>
+        <select id="price-sort" class="form-select">
+          <option value="">ترتيب السعر</option>
+          <option value="asc">من الأرخص للأغلى</option>
+          <option value="desc">من الأغلى للأرخص</option>
+        </select>
+        <button id="clear-filters" class="btn btn-outline-secondary">مسح الفلاتر</button>
+      </div>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div class="mb-3">
+      <div id="active-filters" class="d-flex flex-wrap gap-2"></div>
     </div>
 
     <!-- Container to display products -->
@@ -530,7 +817,107 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     </div>
   </main>
 
-  <!-- Scroll to Top Arrow -->
+  <!-- Filter Toggle Button -->
+  <button class="filter-toggle-btn" id="filterToggleBtn" title="فتح مرشح المنتجات">
+    <i class="bi bi-funnel-fill"></i>
+  </button>
+
+  <!-- Filter Panel Overlay -->
+  <div class="sliding-filter-panel-overlay" id="filterPanelOverlay"></div>
+
+  <!-- Sliding Filter Panel -->
+  <div class="sliding-filter-panel" id="slidingFilterPanel">
+    <div class="sliding-filter-panel-header">
+      <h5><i class="bi bi-funnel me-2"></i>تصفية وبحث المنتجات</h5>
+      <button class="sliding-filter-panel-close" id="filterPanelClose" title="إغلاق">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <div class="sliding-filter-panel-content">
+      <!-- Search Section -->
+      <div class="sliding-filter-section">
+        <h6><i class="bi bi-search"></i>البحث</h6>
+        <div class="input-group">
+          <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            id="sliding-search-bar"
+            class="form-control sliding-filter-control"
+            placeholder="ابحث في المنتجات..."
+            aria-label="ابحث في المنتجات"
+          />
+        </div>
+      </div>
+
+      <!-- Category Section -->
+      <div class="sliding-filter-section">
+        <h6><i class="bi bi-tags"></i>الفئة</h6>
+        <select id="sliding-category-filter" class="form-select sliding-filter-control">
+          <option value="">كل الفئات</option>
+          <!-- JS will fill options -->
+        </select>
+      </div>
+
+      <!-- Price Range Section -->
+      <div class="sliding-filter-section">
+        <h6><i class="bi bi-currency-dollar"></i>نطاق السعر</h6>
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="input-group">
+              <span class="input-group-text bg-transparent">من</span>
+              <input type="number" id="sliding-min-price" class="form-control sliding-filter-control" placeholder="دج">
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="input-group">
+              <span class="input-group-text bg-transparent">إلى</span>
+              <input type="number" id="sliding-max-price" class="form-control sliding-filter-control" placeholder="دج">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating Section -->
+      <div class="sliding-filter-section">
+        <h6><i class="bi bi-star"></i>التقييم</h6>
+        <select id="sliding-rating-filter" class="form-select sliding-filter-control">
+          <option value="">جميع التقييمات</option>
+          <option value="5">5★</option>
+          <option value="4">4★+</option>
+          <option value="3">3★+</option>
+          <option value="2">2★+</option>
+          <option value="1">1★+</option>
+        </select>
+      </div>
+
+      <!-- Price Sorting Section -->
+      <div class="sliding-filter-section">
+        <h6><i class="bi bi-sort-numeric-down"></i>ترتيب حسب السعر</h6>
+        <select id="sliding-price-sort" class="form-select sliding-filter-control">
+          <option value="">بدون ترتيب</option>
+          <option value="asc">من الأرخص للأغلى</option>
+          <option value="desc">من الأغلى للأرخص</option>
+        </select>
+      </div>
+
+      <!-- Active Filters Section -->
+      <div class="sliding-active-filters">
+        <h6><i class="bi bi-check-circle"></i>الفلاتر النشطة</h6>
+        <div id="sliding-active-filters" class="d-flex flex-wrap gap-2">
+          <!-- JS will fill active filters here -->
+          <span class="badge bg-light text-secondary border">لا توجد فلاتر نشطة</span>
+        </div>
+      </div>
+
+      <!-- Clear Filters Button -->
+      <button id="sliding-clear-filters" class="sliding-clear-filters">
+        <i class="bi bi-x-circle me-2"></i>إزالة جميع الفلاتر
+      </button>
+    </div>
+  </div>
+
+  <!-- Scroll to top button -->
   <button id="scrollToTopBtn" style="position: fixed; bottom: 32px; right: 24px; z-index: 9999; display: none; background: var(--orange-accent); color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.3rem; cursor: pointer; transition: background 0.2s;">
     <i class="bi bi-arrow-up-short"></i>
   </button>

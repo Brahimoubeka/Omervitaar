@@ -80,7 +80,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     // password : min 8, at least 1 big letter, 1 number, 1 symbol
     const passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     if (!passwordPattern.test(password)) {
-        showMessage(messageDiv, "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل، وتحتوي على حرف كبير واحد على الأقل، ورقم واحد، ورمز واحد.", "danger");
+        showMessage(messageDiv, " (مثال: Userme@1)يجب أن تتكون كلمة المرور من 8 أحرف لاتينية على الأقل، وتحتوي على حرف كبير واحد على الأقل، ورقم واحد، ورمز واحد.", "danger");
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnHtml;
         return;

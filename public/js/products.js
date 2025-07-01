@@ -368,6 +368,11 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
   } else {
     activeFiltersContainer.innerHTML = '<span class="badge bg-light text-secondary border">لا توجد فلاتر نشطة</span>';
   }
+  
+  // Also update sliding panel active filters
+  if (typeof updateSlidingActiveFilters === 'function') {
+    updateSlidingActiveFilters();
+  }
 }
 
 // Update the styles of filter controls to highlight active ones
@@ -440,12 +445,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   
   // Set up filter event listeners
-  document.getElementById('search-bar').addEventListener('input', filterAndRender);
-  document.getElementById('category-filter').addEventListener('change', filterAndRender);
-  document.getElementById('min-price').addEventListener('input', filterAndRender);
-  document.getElementById('max-price').addEventListener('input', filterAndRender);
-  document.getElementById('rating-filter').addEventListener('change', filterAndRender);
-  document.getElementById('price-sort').addEventListener('change', filterAndRender);
+  document.getElementById('search-bar').addEventListener('input', () => {
+    syncOriginalToSlidingPanel();
+    filterAndRender();
+  });
+  document.getElementById('category-filter').addEventListener('change', () => {
+    syncOriginalToSlidingPanel();
+    filterAndRender();
+  });
+  document.getElementById('min-price').addEventListener('input', () => {
+    syncOriginalToSlidingPanel();
+    filterAndRender();
+  });
+  document.getElementById('max-price').addEventListener('input', () => {
+    syncOriginalToSlidingPanel();
+    filterAndRender();
+  });
+  document.getElementById('rating-filter').addEventListener('change', () => {
+    syncOriginalToSlidingPanel();
+    filterAndRender();
+  });
+  document.getElementById('price-sort').addEventListener('change', () => {
+    syncOriginalToSlidingPanel();
+    filterAndRender();
+  });
   
   // Clear all filters button
   document.getElementById('clear-filters').addEventListener('click', clearAllFilters);
@@ -470,6 +493,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     console.warn('Bootstrap tooltip initialization failed:', e);
   }
+
+  // Sliding filter panel setup
+  setupSlidingFilterPanel();
 });
 
 // --- Global Loading Spinner Notification ---
@@ -600,4 +626,275 @@ function showCartMessage(message, type = 'info', product = null) {
     // Show the modal
     cartPopupModal.show();
   }
+}
+
+// Sliding Filter Panel Functionality
+function setupSlidingFilterPanel() {
+  // Add a small delay to ensure DOM is fully loaded
+  setTimeout(() => {
+    const filterPanel = document.getElementById('slidingFilterPanel');
+    const filterToggleBtn = document.getElementById('filterToggleBtn');
+    const filterPanelClose = document.getElementById('filterPanelClose');
+    const filterPanelOverlay = document.getElementById('filterPanelOverlay');
+
+    if (!filterPanel || !filterToggleBtn || !filterPanelClose || !filterPanelOverlay) {
+      console.warn('Some sliding filter panel elements not found');
+      return;
+    }
+
+    // Open the filter panel
+    function openFilterPanel() {
+      filterPanel.classList.add('active');
+      filterPanelOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling when panel is open
+      syncFiltersToSlidingPanel(); // Sync current filters to sliding panel
+    }
+
+    // Close the filter panel
+    function closeFilterPanel() {
+      filterPanel.classList.remove('active');
+      filterPanelOverlay.classList.remove('active');
+      document.body.style.overflow = ''; // Re-enable scrolling
+    }
+
+    // Event listeners
+    filterToggleBtn.addEventListener('click', openFilterPanel);
+    filterPanelClose.addEventListener('click', closeFilterPanel);
+    filterPanelOverlay.addEventListener('click', closeFilterPanel);
+
+    // Close panel with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && filterPanel.classList.contains('active')) {
+        closeFilterPanel();
+      }
+    });
+
+    // Setup sliding panel filters
+    setupSlidingPanelFilters();
+  }, 500); // Increased delay to ensure DOM is ready
+}
+
+function setupSlidingPanelFilters() {
+  // Populate sliding panel categories
+  const slidingCategoryFilter = document.getElementById('sliding-category-filter');
+  if (slidingCategoryFilter && allCategories.length > 0) {
+    slidingCategoryFilter.innerHTML = `<option value="">كل الفئات</option>`;
+    allCategories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = cat.name;
+      slidingCategoryFilter.appendChild(opt);
+    });
+  }
+
+  // Add event listeners for sliding panel filters
+  const slidingSearchBar = document.getElementById('sliding-search-bar');
+  const slidingCategoryFilterEl = document.getElementById('sliding-category-filter');
+  const slidingMinPrice = document.getElementById('sliding-min-price');
+  const slidingMaxPrice = document.getElementById('sliding-max-price');
+  const slidingRatingFilter = document.getElementById('sliding-rating-filter');
+  const slidingPriceSort = document.getElementById('sliding-price-sort');
+  const slidingClearFilters = document.getElementById('sliding-clear-filters');
+
+  // Search filter
+  if (slidingSearchBar) {
+    slidingSearchBar.addEventListener('input', () => {
+      document.getElementById('search-bar').value = slidingSearchBar.value; // Sync with original
+      filterAndRender();
+    });
+  }
+
+  // Category filter
+  if (slidingCategoryFilterEl) {
+    slidingCategoryFilterEl.addEventListener('change', () => {
+      document.getElementById('category-filter').value = slidingCategoryFilterEl.value; // Sync with original
+      filterAndRender();
+    });
+  }
+
+  // Price filters
+  if (slidingMinPrice) {
+    slidingMinPrice.addEventListener('input', () => {
+      document.getElementById('min-price').value = slidingMinPrice.value; // Sync with original
+      filterAndRender();
+    });
+  }
+
+  if (slidingMaxPrice) {
+    slidingMaxPrice.addEventListener('input', () => {
+      document.getElementById('max-price').value = slidingMaxPrice.value; // Sync with original
+      filterAndRender();
+    });
+  }
+
+  // Rating filter
+  if (slidingRatingFilter) {
+    slidingRatingFilter.addEventListener('change', () => {
+      document.getElementById('rating-filter').value = slidingRatingFilter.value; // Sync with original
+      filterAndRender();
+    });
+  }
+
+  // Price sort
+  if (slidingPriceSort) {
+    slidingPriceSort.addEventListener('change', () => {
+      document.getElementById('price-sort').value = slidingPriceSort.value; // Sync with original
+      filterAndRender();
+    });
+  }
+
+  // Clear filters
+  if (slidingClearFilters) {
+    slidingClearFilters.addEventListener('click', () => {
+      clearAllFilters();
+      syncFiltersToSlidingPanel();
+    });
+  }
+}
+
+function syncFiltersToSlidingPanel() {
+  // Sync current filter values to sliding panel
+  const searchBar = document.getElementById('search-bar');
+  const categoryFilter = document.getElementById('category-filter');
+  const minPrice = document.getElementById('min-price');
+  const maxPrice = document.getElementById('max-price');
+  const ratingFilter = document.getElementById('rating-filter');
+  const priceSort = document.getElementById('price-sort');
+
+  const slidingSearchBar = document.getElementById('sliding-search-bar');
+  const slidingCategoryFilter = document.getElementById('sliding-category-filter');
+  const slidingMinPrice = document.getElementById('sliding-min-price');
+  const slidingMaxPrice = document.getElementById('sliding-max-price');
+  const slidingRatingFilter = document.getElementById('sliding-rating-filter');
+  const slidingPriceSort = document.getElementById('sliding-price-sort');
+
+  if (searchBar && slidingSearchBar) slidingSearchBar.value = searchBar.value;
+  if (categoryFilter && slidingCategoryFilter) slidingCategoryFilter.value = categoryFilter.value;
+  if (minPrice && slidingMinPrice) slidingMinPrice.value = minPrice.value;
+  if (maxPrice && slidingMaxPrice) slidingMaxPrice.value = maxPrice.value;
+  if (ratingFilter && slidingRatingFilter) slidingRatingFilter.value = ratingFilter.value;
+  if (priceSort && slidingPriceSort) slidingPriceSort.value = priceSort.value;
+}
+
+function syncOriginalToSlidingPanel() {
+  // Sync original filter values to sliding panel (reverse of syncFiltersToSlidingPanel)
+  const searchBar = document.getElementById('search-bar');
+  const categoryFilter = document.getElementById('category-filter');
+  const minPrice = document.getElementById('min-price');
+  const maxPrice = document.getElementById('max-price');
+  const ratingFilter = document.getElementById('rating-filter');
+  const priceSort = document.getElementById('price-sort');
+
+  const slidingSearchBar = document.getElementById('sliding-search-bar');
+  const slidingCategoryFilter = document.getElementById('sliding-category-filter');
+  const slidingMinPrice = document.getElementById('sliding-min-price');
+  const slidingMaxPrice = document.getElementById('sliding-max-price');
+  const slidingRatingFilter = document.getElementById('sliding-rating-filter');
+  const slidingPriceSort = document.getElementById('sliding-price-sort');
+
+  if (searchBar && slidingSearchBar) slidingSearchBar.value = searchBar.value;
+  if (categoryFilter && slidingCategoryFilter) slidingCategoryFilter.value = categoryFilter.value;
+  if (minPrice && slidingMinPrice) slidingMinPrice.value = minPrice.value;
+  if (maxPrice && slidingMaxPrice) slidingMaxPrice.value = maxPrice.value;
+  if (ratingFilter && slidingRatingFilter) slidingRatingFilter.value = ratingFilter.value;
+  if (priceSort && slidingPriceSort) slidingPriceSort.value = priceSort.value;
+}
+
+function updateSlidingActiveFilters() {
+  const container = document.getElementById('sliding-active-filters');
+  if (!container) return;
+
+  container.innerHTML = ''; // Clear current badges
+
+  const searchTerm = document.getElementById('sliding-search-bar')?.value.trim();
+  const selectedCategory = document.getElementById('sliding-category-filter')?.value;
+  const minPrice = document.getElementById('sliding-min-price')?.value;
+  const maxPrice = document.getElementById('sliding-max-price')?.value;
+  const selectedRating = document.getElementById('sliding-rating-filter')?.value;
+  const selectedSort = document.getElementById('sliding-price-sort')?.value;
+
+  let hasActiveFilters = false;
+
+  if (searchTerm) {
+    const badge = createSlidingFilterBadge('search', `البحث: ${searchTerm}`, 'filter-badge-search');
+    container.appendChild(badge);
+    hasActiveFilters = true;
+  }
+
+  if (selectedCategory) {
+    const categoryName = allCategories.find(c => c.id == selectedCategory)?.name || selectedCategory;
+    const badge = createSlidingFilterBadge('category', `الفئة: ${categoryName}`, 'filter-badge-category');
+    container.appendChild(badge);
+    hasActiveFilters = true;
+  }
+
+  if (minPrice || maxPrice) {
+    const priceText = minPrice && maxPrice ? `${minPrice} - ${maxPrice} دج` :
+                     minPrice ? `من ${minPrice} دج` :
+                     `حتى ${maxPrice} دج`;
+    const badge = createSlidingFilterBadge('price', `السعر: ${priceText}`, 'filter-badge-price');
+    container.appendChild(badge);
+    hasActiveFilters = true;
+  }
+
+  if (selectedRating) {
+    const badge = createSlidingFilterBadge('rating', `التقييم: ${selectedRating}★+`, 'filter-badge-rating');
+    container.appendChild(badge);
+    hasActiveFilters = true;
+  }
+
+  if (selectedSort) {
+    const sortText = selectedSort === 'asc' ? 'الأرخص أولاً' : 'الأغلى أولاً';
+    const badge = createSlidingFilterBadge('sort', `الترتيب: ${sortText}`, 'filter-badge-sort');
+    container.appendChild(badge);
+    hasActiveFilters = true;
+  }
+
+  if (!hasActiveFilters) {
+    const noFilters = document.createElement('span');
+    noFilters.className = 'badge bg-light text-secondary border';
+    noFilters.textContent = 'لا توجد فلاتر نشطة';
+    container.appendChild(noFilters);
+  }
+}
+
+function createSlidingFilterBadge(type, text, className) {
+  const badge = document.createElement('span');
+  badge.className = `badge border ${className}`;
+  badge.innerHTML = `${text} <i class="bi bi-x ms-1" style="cursor: pointer;"></i>`;
+  
+  badge.querySelector('i').addEventListener('click', () => {
+    clearSlidingFilter(type);
+  });
+  
+  return badge;
+}
+
+function clearSlidingFilter(type) {
+  switch (type) {
+    case 'search':
+      document.getElementById('sliding-search-bar').value = '';
+      document.getElementById('search-bar').value = '';
+      break;
+    case 'category':
+      document.getElementById('sliding-category-filter').value = '';
+      document.getElementById('category-filter').value = '';
+      break;
+    case 'price':
+      document.getElementById('sliding-min-price').value = '';
+      document.getElementById('sliding-max-price').value = '';
+      document.getElementById('min-price').value = '';
+      document.getElementById('max-price').value = '';
+      break;
+    case 'rating':
+      document.getElementById('sliding-rating-filter').value = '';
+      document.getElementById('rating-filter').value = '';
+      break;
+    case 'sort':
+      document.getElementById('sliding-price-sort').value = '';
+      document.getElementById('price-sort').value = '';
+      break;
+  }
+  filterAndRender();
+  updateSlidingActiveFilters();
 }
