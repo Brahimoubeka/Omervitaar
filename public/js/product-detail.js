@@ -374,7 +374,7 @@ async function loadProductDetail() {
     const price = document.createElement('p');
     price.classList.add('fs-5', 'mb-3');
     price.innerHTML = `<span class="product-card-price" style="color: rgb(255, 115, 0);font-weight:700;font-size:1.28em;">
-    <i class="bi bi-tag"></i> دج${product.price}
+    <i class="bi bi-tag"></i> ${product.price} دج
     </span>`;
     detailsCol.appendChild(price);
 
