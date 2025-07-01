@@ -234,6 +234,43 @@ hr{
       color: var(--military-green);
       font-weight: 500;
     }
+    
+    /* Call-to-action buttons styling */
+    #complete-order-btn {
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      border: none;
+      box-shadow: 0 4px 15px rgba(113, 81, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    #complete-order-btn:hover {
+      background: linear-gradient(135deg, var(--light-military), var(--orange-accent));
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(113, 81, 0, 0.4);
+    }
+    
+    #contact-about-product-btn {
+      border: 2px solid var(--military-green);
+      color: var(--military-green);
+      background: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(113, 81, 0, 0.1);
+    }
+    
+    #contact-about-product-btn:hover {
+      background: var(--military-green);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(113, 81, 0, 0.3);
+    }
+    
+    @media (max-width: 768px) {
+      #complete-order-btn, #contact-about-product-btn {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+    
     /* Star rating */
     .star-rating {
     display: flex;
@@ -578,10 +615,27 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
       <div id="product-info-col" class="col-md-6"></div>
       <hr>
       <div class="row mt-3" id="product-categories-row"></div>
+
+      
+       <!-- Call to Action Buttons -->
+      <div class="row mt-4 mb-4">
+        <div class="col-12">
+          <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <button id="complete-order-btn" class="btn btn-success btn-lg px-4 py-3" style="border-radius: 12px; font-weight: 600;">
+              <i class="bi bi-cart-check-fill me-2"></i>إتمام طلب هذا المنتج
+            </button>
+            <button id="contact-about-product-btn" class="btn btn-outline-primary btn-lg px-4 py-3" style="border-radius: 12px; font-weight: 600;">
+              <i class="bi bi-whatsapp me-2"></i>تواصل معنا بشأن المنتج
+            </button>
+          </div>
+        </div>
+      </div>
+
+
       <div id="related-products-row" class="my-5"></div>
       <hr>
 
-
+    
     </div>
     <!-- Button to trigger Add Review modal -->
     <div class="text-end my-4">

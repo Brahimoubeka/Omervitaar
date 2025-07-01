@@ -112,13 +112,18 @@ function renderProducts(products, append = false) {
         </div>`;
     }
 
+    // Truncate title if longer than 60 characters
+    const truncatedTitle = product.name.length > 60 
+      ? product.name.substring(0, 60) + '...' 
+      : product.name;
+
     productCard.innerHTML = `
       <div class="product-img-box position-relative">
         ${carouselHTML}
         ${badgeHTML}
       </div>
       <div class="product-card-body" >
-        <h5 class="product-card-title" style="margin: .1em .1em ;">${product.name}</h5>
+        <h5 class="product-card-title" style="margin: .1em .1em ;" title="${product.name}">${truncatedTitle}</h5>
         <div class="mb-1">${catBadges}</div>
         ${ratingHtml}
         <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}</div>
@@ -135,6 +140,12 @@ function renderProducts(products, append = false) {
         </div>
       </div>
     `;
+    
+    // Make title clickable to go to product details
+    productCard.querySelector('.product-card-title').addEventListener('click', () => {
+      window.location.href = `product-detail.html?id=${product.id}`;
+    });
+    
     productCard.querySelector('.product-card-button').addEventListener('click', () => {
       window.location.href = `product-detail.html?id=${product.id}`;
     });

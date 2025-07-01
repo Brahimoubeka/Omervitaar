@@ -160,6 +160,9 @@ async function loadProductDetail() {
     if (!response.ok) throw new Error('المنتج غير موجود.');
     const product = await response.json();
 
+    // Store product data globally for button functionality
+    window.currentProduct = product;
+
     let images = [];
     try {
       const imagesResp = await fetch(`/api/products/${product.id}/images`);
@@ -425,6 +428,84 @@ async function loadProductDetail() {
       window.location.href = 'cart.html';
     });
     detailsCol.appendChild(goToCartButton);
+
+    // Call-to-action buttons functionality
+  
+    // Complete Order Button - adds product to cart and redirects to cart page
+    const completeOrderBtn = document.getElementById('complete-order-btn');
+    if (completeOrderBtn) {
+      // Hide button if product is out of stock
+      if (product.stock === 0) {
+        completeOrderBtn.style.display = 'none';
+      } else {
+        completeOrderBtn.style.display = 'inline-block';
+        
+        completeOrderBtn.addEventListener('click', () => {
+          // Get current product data from the global variable or fetch it
+          if (window.currentProduct) {
+            // Add product to cart if not already added
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const existingProduct = cart.find(item => item.id === window.currentProduct.id);
+            
+            if (!existingProduct) {
+              // Add 1 piece of the product to cart
+              cart.push({
+                id: window.currentProduct.id,
+                name: window.currentProduct.name,
+                price: window.currentProduct.price,
+                image: window.currentProduct.images?.[0] || window.currentProduct.imagePath,
+                quantity: 1
+              });
+              localStorage.setItem('cart', JSON.stringify(cart));
+            }
+            
+            // Redirect to cart page
+            window.location.href = 'cart.html';
+          }
+        });
+      }
+    }
+    
+    // Contact About Product Button - copies product URL and opens WhatsApp
+    const contactAboutProductBtn = document.getElementById('contact-about-product-btn');
+    if (contactAboutProductBtn) {
+      contactAboutProductBtn.addEventListener('click', async () => {
+        try {
+          // Get WhatsApp number from branding API
+          const brandingResponse = await fetch('/api/branding');
+          const branding = await brandingResponse.json();
+          const whatsappNumber = branding.phone || '+905518560018'; // Fallback number
+          
+          // Get current product URL
+          const productUrl = window.location.href;
+          
+          // Create WhatsApp message
+          const message = encodeURIComponent(`عندي استفسار بشأن المنتج: ${productUrl}`);
+          
+          // Copy URL to clipboard (optional, for user convenience)
+          try {
+            await navigator.clipboard.writeText(productUrl);
+          } catch (err) {
+            // Clipboard API might not work in some browsers
+            console.log('Could not copy to clipboard:', err);
+          }
+          
+          // Open WhatsApp with the message
+          const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}?text=${message}`;
+          window.open(whatsappUrl, '_blank');
+          
+        } catch (error) {
+          console.error('Error opening WhatsApp:', error);
+          // Fallback: just copy the URL
+          try {
+            await navigator.clipboard.writeText(window.location.href);
+            alert('تم نسخ رابط المنتج. يمكنك لصقه في واتساب.');
+          } catch (err) {
+            alert('حدث خطأ. يرجى المحاولة مرة أخرى.');
+          }
+        }
+      });
+    }
 
     // --- RELATED PRODUCTS ---
     renderRelatedProducts(product);
