@@ -36,6 +36,8 @@ app.use('/api', reviewsRoutes);
 const analyticsRoutes = require('./routes/analytics');
 app.use('/api', analyticsRoutes);
 
+const chatbotRoutes = require('./routes/chatbot');
+app.use('/api', chatbotRoutes);
 
 // --- Supabase Branding Table Helpers ---
 
