@@ -12,22 +12,18 @@ const BRANDING_PATH = path.join(__dirname, 'branding.json');
 // Set trust proxy so req.protocol and x-forwarded-proto work correctly on Render
 app.set('trust proxy', true);
 
-// --- Improved HTTPS and www redirect to avoid redirect loops (except on localhost) ---
+// --- Only force HTTPS, do NOT force www (let Render handle www redirects) ---
 app.use((req, res, next) => {
   const host = req.headers.host || '';
   const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
   if (isLocal) return next();
 
-  // Determine if HTTPS and www are present
+  // Always force HTTPS
   const isHttps = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https';
-  const isWww = host.startsWith('www.');
-
-  // If not HTTPS or not www, redirect to the correct version
-  if (!isHttps || !isWww) {
-    let newHost = host;
-    if (!isWww) newHost = 'www.' + host.replace(/^www\./, '');
-    return res.redirect(301, 'https://' + newHost + req.originalUrl);
+  if (!isHttps) {
+    return res.redirect(301, 'https://' + host + req.originalUrl);
   }
+
   next();
 });
 
