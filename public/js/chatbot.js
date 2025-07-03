@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatbotMessages = document.getElementById('chatbot-messages');
   const md = window.markdownit();
   let allProducts = [];
+  let lastSuggestedProductId = null;
 
   // Fix for iOS zoom-in on input focus
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -58,8 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return !harmfulPatterns.test(message);
   }
 
-  async function sendMessage() {
-    const message = chatbotInput.value.trim();
+  async function sendMessage(customMessage) {
+    const message = (typeof customMessage === 'string' ? customMessage : chatbotInput.value.trim());
     if (!message) return;
 
     // Validate input before sending
@@ -80,6 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
     appendMessage(sanitizedMessage, 'user-message');
     chatbotInput.value = '';
 
+    // Detect if user is asking for more/another suggestion
+    const moreKeywords = [
+      'more', 'another', 'else', 'other', 'suggestion', 'اقتراح', 'آخر', 'ثاني', 'مزيد', 'غيره', 'غيرها', 'شيء آخر', 'شي اخر', 'منتج آخر', 'منتج اخر', 'هل لديك المزيد', 'هل يوجد غير', 'هل يوجد منتج آخر', 'هل يوجد منتج اخر'
+    ];
+    const isMoreRequest = moreKeywords.some(word => message.toLowerCase().includes(word));
+
+    // Prepare request body
+    const requestBody = { message: sanitizedMessage };
+    if (isMoreRequest && lastSuggestedProductId) {
+      requestBody.lastProductId = lastSuggestedProductId;
+    }
+
     try {
       const response = await fetch('/api/chatbot', {
         method: 'POST',
@@ -87,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest' // CSRF protection
         },
-        body: JSON.stringify({ message: sanitizedMessage })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -95,18 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      
       // Remove loading indicator
       const loadingIndicator = document.querySelector('.loading-indicator');
       if (loadingIndicator) {
         loadingIndicator.remove();
       }
-      
       // Validate response structure
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid response format');
       }
-      
       // Validate and sanitize response data
       if (Array.isArray(data.products)) {
         allProducts = data.products.map(product => ({
@@ -117,9 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
           imagePath: typeof product.imagePath === 'string' ? sanitizeMessage(product.imagePath) : null
         }));
       }
-      
+      // Try to extract the last suggested product ID from the bot's response
+      const productIdMatch = data.response.match(/\[PRODUCT:\{"id":(\d+)\}\]/);
+      if (productIdMatch) {
+        lastSuggestedProductId = Number(productIdMatch[1]);
+      }
       if (typeof data.response === 'string') {
-        appendMessage(sanitizeMessage(data.response), 'bot-message arabic');
+        appendMessage(sanitizeMessage(data.response), 'bot-message arabic', message);
       } else {
         throw new Error('Invalid response format');
       }
@@ -131,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function appendMessage(message, className) {
+  function appendMessage(message, className, originalUserMessage) {
     // First, try to replace any text-based product IDs with numeric ones
     let processedMessage = message;
     
@@ -194,6 +208,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     chatbotMessages.appendChild(messageElement);
+    // Add 'more like this' link if a product was suggested and originalUserMessage is present
+    if (originalUserMessage && /\[PRODUCT:\{"id":\d+\}\]/.test(message)) {
+      const moreBtn = document.createElement('button');
+      moreBtn.textContent = 'المزيد من المنتجات لهذا الطلب';
+      moreBtn.className = 'chatbot-more-btn';
+      moreBtn.onclick = function() {
+        chatbotInput.value = `أحتاج المزيد من المنتجات لـ ${originalUserMessage}`;
+        sendMessage(chatbotInput.value);
+      };
+      chatbotMessages.appendChild(moreBtn);
+    }
     // Removed automatic scrolling - user can scroll manually
   }
 

@@ -94,6 +94,68 @@ function sanitizeProducts(products) {
   }));
 }
 
+// Helper: Get all categories
+async function getAllCategories() {
+  const { data, error } = await supabase.from('Categories').select('id, name');
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+  return data;
+}
+
+// Helper: Get category IDs by names
+async function getCategoryIdsByNames(names) {
+  if (!names.length) return [];
+  const { data, error } = await supabase
+    .from('Categories')
+    .select('id, name')
+    .in('name', names);
+  if (error) {
+    console.error('Error fetching category IDs:', error);
+    return [];
+  }
+  return data.map(c => c.id);
+}
+
+// Helper: Get product IDs by category IDs
+async function getProductIdsByCategoryIds(categoryIds) {
+  if (!categoryIds.length) return [];
+  const { data, error } = await supabase
+    .from('ProductCategories')
+    .select('product_id')
+    .in('category_id', categoryIds);
+  if (error) {
+    console.error('Error fetching product IDs:', error);
+    return [];
+  }
+  // Remove duplicates
+  return [...new Set(data.map(pc => pc.product_id))];
+}
+
+// Helper: Get products by IDs
+async function getProductsByIds(productIds) {
+  if (!productIds.length) return [];
+  const { data, error } = await supabase
+    .from('Products')
+    .select('id, name, description, price, ProductImages(imagePath)')
+    .in('id', productIds);
+  if (error) {
+    console.error('Error fetching products by IDs:', error);
+    return [];
+  }
+  return data.map(p => ({
+    ...p,
+    imagePath: p.ProductImages && p.ProductImages.length > 0 ? p.ProductImages[0].imagePath : null,
+    ProductImages: undefined
+  }));
+}
+
+// Keywords to detect 'more suggestions' intent
+const moreSuggestionsKeywords = [
+  'more', 'another', 'else', 'other', 'suggestion', 'اقتراح', 'آخر', 'ثاني', 'مزيد', 'غيره', 'غيرها', 'شيء آخر', 'شي اخر', 'منتج آخر', 'منتج اخر', 'هل لديك المزيد', 'هل يوجد غير', 'هل يوجد منتج آخر', 'هل يوجد منتج اخر'
+];
+
 // Apply rate limiting, input validation, request size limit, and timeout to chatbot endpoint
 router.post('/chatbot', 
   chatbotLimiter, 
@@ -102,6 +164,7 @@ router.post('/chatbot',
   validateInput, 
   async (req, res) => {
     const userMessage = req.body.message;
+    const lastProductId = req.body.lastProductId || null;
 
     // Detect contact info requests (Arabic and English keywords)
     const contactKeywords = [
@@ -111,78 +174,74 @@ router.post('/chatbot',
       return res.json({ response: 'يمكنك الذهاب إلى صفحة التواصل الخاصة بنا وستجد جميع معلومات الاتصال هناك.', products: [] });
     }
 
+    // Detect 'more suggestions' intent
+    const isMoreSuggestions = moreSuggestionsKeywords.some(word => userMessage.toLowerCase().includes(word));
+
     try {
-      const products = await getProducts();
+      // 1. Get all categories
+      const allCategories = await getAllCategories();
+      const categoryNames = allCategories.map(c => c.name);
+
+      // 2. Ask Gemini to classify the message into category names
+      const categoryPrompt = `Given the following list of product categories: [${categoryNames.join(', ')}],\nClassify the user's request into the most relevant categories (return as a JSON array of category names, in English or Arabic, no explanation):\nUser message: ${userMessage}`;
+      let aiCategoryNames = [];
+      try {
+        const catResp = await getGeminiResponse(categoryPrompt);
+        aiCategoryNames = JSON.parse(catResp.match(/\[.*\]/s)?.[0] || '[]');
+      } catch (e) {
+        console.error('AI category classification failed:', e);
+      }
+      if (!Array.isArray(aiCategoryNames) || !aiCategoryNames.length) {
+        aiCategoryNames = categoryNames;
+      }
+
+      // 3. Get category IDs
+      const categoryIds = await getCategoryIdsByNames(aiCategoryNames);
+      // 4. Get product IDs for those categories
+      const productIds = await getProductIdsByCategoryIds(categoryIds);
+      // 5. Get products for those IDs
+      let products = await getProductsByIds(productIds);
       const branding = await getBranding();
+
+      // If user wants more suggestions, exclude last suggested product
+      let excludedProduct = null;
+      if (isMoreSuggestions && lastProductId) {
+        products = products.filter(p => p.id !== Number(lastProductId));
+        excludedProduct = Number(lastProductId);
+      }
 
       // Sanitize products before using in prompt
       const sanitizedProducts = sanitizeProducts(products);
-      
-      // Prepare individual product data with clear IDs for the prompt
       const productsForPrompt = sanitizedProducts.map(p => 
         `ID: ${p.id} | Name: ${p.name} | Price: ${p.price} SAR | Description: ${p.description.substring(0, 100)}...`
       ).join('\n');
 
-      const orderInstructions = `
-للشراء: يرجى النظر إلى القسم الموجود في أعلى صفحة المنتجات حيث ستجد شرح تفصيلي لخطوات الطلب والدفع.
-      `;
+      const orderInstructions = `\nللشراء: يرجى النظر إلى القسم الموجود في أعلى صفحة المنتجات حيث ستجد شرح تفصيلي لخطوات الطلب والدفع.\n      `;
+      const contactInfo = `\nهاتف: ${branding.phone || ''}\nبريد إلكتروني: ${branding.email || ''}\nفيسبوك: فيسبوك Omervita\nانستغرام: انستغرام Omervita\nتيك توك: تيك توك Omervita\n      `;
+      const unrelatedQueryResponse = `\nعذراً، أنا هنا فقط لمساعدتك في العثور على المنتجات المناسبة لك وحل المشكلات المتعلقة بالتسوق. إذا كان لديك أسئلة أخرى، يرجى التواصل معنا عبر صفحة التواصل هنا على الموقع.`;
+      const noOtherProductResponse = 'لم أجد منتجات أخرى مثل هذا المنتج، لكن قد لا أكون فهمتك جيدًا. يمكنك البحث يدويًا أو التواصل معنا عبر واتساب.';
 
-      const contactInfo = `
-هاتف: ${branding.phone || ''}
-بريد إلكتروني: ${branding.email || ''}
-فيسبوك: فيسبوك Omervita
-انستغرام: انستغرام Omervita
-تيك توك: تيك توك Omervita
-      `;
+      // If user wants more suggestions and there are no other products
+      if (isMoreSuggestions && sanitizedProducts.length === 0) {
+        return res.json({ response: noOtherProductResponse, products: [] });
+      }
 
-      const unrelatedQueryResponse = `
-عذراً، أنا هنا فقط لمساعدتك في العثور على المنتجات المناسبة لك وحل المشكلات المتعلقة بالتسوق. إذا كان لديك أسئلة أخرى، يرجى التواصل معنا عبر صفحة التواصل هنا على الموقع.`;
+      // 6. Construct prompt with only relevant products
+      let prompt = `You are a helpful customer service bot for Omervita (${branding.companyName || 'Omervita'}), \n                     and you are speaking to customers directly from our website's product page.\n                     Please respond in Arabic language only.\n                     \n                     IMPORTANT: Below is the list of our products with their IDs. \n                     When you mention a product, you MUST use the numeric ID in this format: [PRODUCT:{\"id\":1}]\n                     Never use text in the product ID field, only numbers.\n                     \n                     Products:\n                     ${productsForPrompt}\n                     \n                     Contact information:\n                     ${contactInfo}\n                     `;
 
-      // Construct prompt with sanitized data and context-aware instructions
-      const prompt = `You are a helpful customer service bot for Omervita (${branding.companyName || 'Omervita'}), 
-                     and you are speaking to customers directly from our website's product page.
-                     Please respond in Arabic language only.
-                     
-                     IMPORTANT: Below is the list of our products with their IDs. 
-                     When you mention a product, you MUST use the numeric ID in this format: [PRODUCT:{"id":1}]
-                     Never use text in the product ID field, only numbers.
-                     
-                     Products:
-                     ${productsForPrompt}
-                     
-                     Contact information:
-                     ${contactInfo}
-                     
-                     VERY IMPORTANT INSTRUCTIONS:
-                     1. You are a chatbot embedded IN our website's products page.
-                     2. When someone asks about how to buy, purchase, or order, respond with this exact message:${orderInstructions}
-                     3. CRUCIAL: When recommending or discussing products, you MUST:
-                        - Use ONLY numeric IDs in the product reference
-                        - Format must be exactly: [PRODUCT:{"id":1}] where 1 is replaced with the product's numeric ID
-                        - NEVER use product names as IDs, ONLY use numbers
-                        - NEVER use Arabic text in the ID field
-                     4. When someone asks for contact information, provide the full contact details listed above.
-                        IMPORTANT: Use plain text only for contact information. DO NOT use bold text, links, HTML tags, or any special formatting.
-                     5. If the user's message is random, unclear, or not related to our products, ordering, or customer service,
-                        ALWAYS respond with this exact message:${unrelatedQueryResponse}
-                     6. Only engage with queries about:
-                        - Our products and their uses
-                        - How to purchase
-                        - Order status
-                        - Contact information
-                        - Basic customer service
-                     7. For any other topics, use the unrelated query response above.
-                     
-                     User message: ${userMessage}`;
+      // Add special instruction for more suggestions (make it high priority)
+      if (isMoreSuggestions && excludedProduct) {
+        prompt += `\nVERY IMPORTANT: The user is asking for another suggestion. You MUST suggest a different product from the list above that serves a similar purpose, and DO NOT suggest the product with ID ${excludedProduct}. If there are no other products, reply with this exact message in Arabic: لم أجد منتجات أخرى مثل هذا المنتج، لكن قد لا أكون فهمتك جيدًا. يمكنك البحث يدويًا أو التواصل معنا عبر واتساب. Do NOT use any other message in this case.`;
+      }
+
+      prompt += `\n\nVERY IMPORTANT INSTRUCTIONS:\n1. You are a chatbot embedded IN our website's products page.\n2. When someone asks about how to buy, purchase, or order, respond with this exact message:${orderInstructions}\n3. CRUCIAL: When recommending or discussing products, you MUST:\n   - Use ONLY numeric IDs in the product reference\n   - Format must be exactly: [PRODUCT:{\"id\":1}] where 1 is replaced with the product's numeric ID\n   - NEVER use product names as IDs, ONLY use numbers\n   - NEVER use Arabic text in the ID field\n4. When someone asks for contact information, provide the full contact details listed above.\n   IMPORTANT: Use plain text only for contact information. DO NOT use bold text, links, HTML tags, or any special formatting.\n5. If the user's message is random, unclear, or not related to our products, ordering, or customer service, you MUST FIRST try to match the user's request to the closest available product category (even if the request is indirect or implicit, such as a symptom or a problem). Only if you cannot match to any category, then respond with this exact message:${unrelatedQueryResponse}\n6. If the user asks for a cure, solution, or treatment, DO NOT use medical disclaimers or say you cannot provide advice. Instead, say: 'هنا ما يمكنك استخدامه لمشكلتك، ولكن أنصحك بالتواصل مع فريقنا أولاً لإرشادك بشكل أفضل.' before suggesting products.\n7. Only engage with queries about:\n   - Our products and their uses\n   - How to purchase\n   - Order status\n   - Contact information\n   - Basic customer service\n8. For any other topics, use the unrelated query response above.\n\nUser message: ${userMessage}`;
 
       const response = await getGeminiResponse(prompt);
 
-      // Send sanitized response
       res.json({
-        response: String(response).slice(0, 2000), // Limit response length
+        response: String(response).slice(0, 2000),
         products: sanitizedProducts
       });
-
     } catch (error) {
       console.error('Error in chatbot route:', error);
       res.status(500).json({ 

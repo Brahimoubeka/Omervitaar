@@ -1,0 +1,17 @@
+.chatbot-more-btn {
+  display: block;
+  margin: 12px auto 0 auto;
+  padding: 8px 18px;
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #bbb;
+  border-radius: 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+.chatbot-more-btn:hover {
+  background: #e0e0e0;
+  color: #007b8a;
+  border-color: #007b8a;
+}
