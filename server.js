@@ -9,6 +9,9 @@ const supabase = require('./supabase');
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
 
+// Set trust proxy so req.protocol and x-forwarded-proto work correctly on Render
+app.set('trust proxy', true);
+
 // --- Improved HTTPS and www redirect to avoid redirect loops (except on localhost) ---
 app.use((req, res, next) => {
   const host = req.headers.host || '';
@@ -16,17 +19,14 @@ app.use((req, res, next) => {
   if (isLocal) return next();
 
   // Determine if HTTPS and www are present
-  const isHttps = req.headers['x-forwarded-proto'] === 'https';
+  const isHttps = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https';
   const isWww = host.startsWith('www.');
 
-  // Only redirect if not both HTTPS and www
+  // If not HTTPS or not www, redirect to the correct version
   if (!isHttps || !isWww) {
     let newHost = host;
     if (!isWww) newHost = 'www.' + host.replace(/^www\./, '');
-    const redirectUrl = 'https://' + newHost + req.originalUrl;
-    if (req.protocol + '://' + host + req.originalUrl !== redirectUrl) {
-      return res.redirect(301, redirectUrl);
-    }
+    return res.redirect(301, 'https://' + newHost + req.originalUrl);
   }
   next();
 });
