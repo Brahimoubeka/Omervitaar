@@ -9,23 +9,25 @@ const supabase = require('./supabase');
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
 
-// --- Force HTTPS and www redirects (except on localhost) ---
+// --- Improved HTTPS and www redirect to avoid redirect loops (except on localhost) ---
 app.use((req, res, next) => {
-  // Only run in production (not localhost)
   const host = req.headers.host || '';
   const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
   if (isLocal) return next();
 
-  // Force HTTPS
-  if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
-    return res.redirect(301, 'https://' + host + req.originalUrl);
-  }
+  // Determine if HTTPS and www are present
+  const isHttps = req.headers['x-forwarded-proto'] === 'https';
+  const isWww = host.startsWith('www.');
 
-  // Force www
-  if (!host.startsWith('www.')) {
-    return res.redirect(301, 'https://www.' + host.replace(/^https?:\/\//, '').replace(/^www\./, '') + req.originalUrl);
+  // Only redirect if not both HTTPS and www
+  if (!isHttps || !isWww) {
+    let newHost = host;
+    if (!isWww) newHost = 'www.' + host.replace(/^www\./, '');
+    const redirectUrl = 'https://' + newHost + req.originalUrl;
+    if (req.protocol + '://' + host + req.originalUrl !== redirectUrl) {
+      return res.redirect(301, redirectUrl);
+    }
   }
-
   next();
 });
 
