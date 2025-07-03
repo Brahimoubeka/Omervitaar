@@ -87,20 +87,51 @@ router.get('/products', async (req, res) => {
   }
 });
 
-// GET /api/products/paginate?offset=0&limit=8
+// GET /api/products/paginate?offset=0&limit=8&category=ID
 router.get('/products/paginate', async (req, res) => {
-  let { offset, limit } = req.query;
+  let { offset, limit, category } = req.query;
   offset = parseInt(offset, 10) || 0;
   limit = parseInt(limit, 10) || 8;
   try {
-    const { data, error } = await supabase
-      .from('Products')
-      .select('*')
-      .order('id', { ascending: false })
-      .range(offset, offset + limit - 1);
-    if (error) throw error;
+    let products = [];
+    if (category) {
+      // Get product IDs for this category
+      const { data: pcData, error: pcError } = await supabase
+        .from('ProductCategories')
+        .select('product_id')
+        .eq('category_id', category);
+      if (pcError) throw pcError;
+      let productIds = (pcData || []).map(pc => pc.product_id);
+      if (productIds.length === 0) {
+        return res.json([]); // No products in this category
+      }
+      // Apply offset/limit to productIds array
+      const pagedIds = productIds.slice(offset, offset + limit);
+      if (pagedIds.length === 0) {
+        return res.json([]); // No more products in this category
+      }
+      // Fetch only the paged products
+      const { data, error } = await supabase
+        .from('Products')
+        .select('*')
+        .in('id', pagedIds)
+        .order('id', { ascending: false });
+      if (error) throw error;
+      // Sort products to match pagedIds order (descending by id)
+      products = pagedIds
+        .map(id => data.find(p => p.id === id))
+        .filter(Boolean);
+    } else {
+      const { data, error } = await supabase
+        .from('Products')
+        .select('*')
+        .order('id', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (error) throw error;
+      products = data;
+    }
     // Add categories, thumbnail, avgRating, reviewCount, and images for each product
-    for (const product of data) {
+    for (const product of products) {
       product.categories = await getCategoriesForProduct(product.id);
       product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
       const stats = await getProductRatingStats(product.id);
@@ -115,7 +146,7 @@ router.get('/products/paginate', async (req, res) => {
       if (imgError) throw imgError;
       product.images = imgRows.length > 0 ? imgRows.map(r => r.imagePath) : (product.imagePath ? [product.imagePath] : []);
     }
-    res.json(data);
+    res.json(products);
   } catch (err) {
     console.error('Error in /products/paginate:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });

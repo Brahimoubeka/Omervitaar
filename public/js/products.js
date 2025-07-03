@@ -1,8 +1,5 @@
 let allProducts = [];
 let allCategories = [];
-let currentOffset = 0;
-const PAGE_SIZE = 8;
-let allLoaded = false;
 
 // Helper to get all categories for filter dropdown
 async function loadCategories() {
@@ -203,7 +200,6 @@ async function loadProducts() {
       try {
         const imgResp = await fetch(`/api/products/${prod.id}/images`);
         const imgs = await imgResp.json();
-        // fetch average rating per product from backend 
         return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
       } catch {
         return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
@@ -211,43 +207,12 @@ async function loadProducts() {
     }));
 
     // Sort products to show newest first
-    productsWithImages.sort((a, b) => {
-      
-      //sort by ID ( higher ID = newer)
-      return b.id - a.id;
-    });
+    productsWithImages.sort((a, b) => b.id - a.id);
 
     allProducts = productsWithImages;
     renderProducts(allProducts);
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
-  } finally {
-    hideGlobalLoadingSpinner();
-  }
-}
-
-async function loadProductsPaginated(reset = false) {
-  if (reset) {
-    currentOffset = 0;
-    allLoaded = false;
-    allProducts = [];
-    document.getElementById('show-less-btn').style.display = 'none';
-  }
-  if (allLoaded) return;
-  showGlobalLoadingSpinner('جاري تحميل المنتجات...');
-  try {
-    const resp = await fetch(`/api/products/paginate?offset=${currentOffset}&limit=${PAGE_SIZE}`);
-    if (!resp.ok) throw new Error('تعذر جلب المنتجات');
-    const products = await resp.json();
-    if (products.length < PAGE_SIZE) allLoaded = true;
-    currentOffset += products.length;
-    allProducts = allProducts.concat(products);
-    renderProducts(allProducts, false);
-    // Show/hide buttons
-    document.getElementById('show-more-btn').style.display = allLoaded ? 'none' : 'block';
-    document.getElementById('show-less-btn').style.display = currentOffset > PAGE_SIZE ? 'block' : 'none';
-  } catch (e) {
-    console.error(e);
   } finally {
     hideGlobalLoadingSpinner();
   }
@@ -441,7 +406,7 @@ function clearAllFilters() {
 // --- Event Listeners for all filters ---
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCategories();
-  await loadProductsPaginated(true);
+  await loadProducts();
   
   // Auto-select category if ?category=ID in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -483,17 +448,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Clear all filters button
   document.getElementById('clear-filters').addEventListener('click', clearAllFilters);
-  
-  // Pagination buttons
-  document.getElementById('show-more-btn').addEventListener('click', () => loadProductsPaginated());
-  document.getElementById('show-less-btn').addEventListener('click', () => {
-    currentOffset = PAGE_SIZE;
-    allLoaded = false;
-    allProducts = allProducts.slice(0, PAGE_SIZE);
-    renderProducts(allProducts, false);
-    document.getElementById('show-less-btn').style.display = 'none';
-    document.getElementById('show-more-btn').style.display = 'block';
-  });
   
   // Tooltip initialization for filters (if using Bootstrap tooltips)
   try {
