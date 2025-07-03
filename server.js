@@ -9,6 +9,35 @@ const supabase = require('./supabase');
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
 
+// --- Force HTTPS and www redirects (except on localhost) ---
+app.use((req, res, next) => {
+  // Only run in production (not localhost)
+  const host = req.headers.host || '';
+  const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  if (isLocal) return next();
+
+  // Force HTTPS
+  if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect(301, 'https://' + host + req.originalUrl);
+  }
+
+  // Force www
+  if (!host.startsWith('www.')) {
+    return res.redirect(301, 'https://www.' + host.replace(/^https?:\/\//, '').replace(/^www\./, '') + req.originalUrl);
+  }
+
+  next();
+});
+
+// --- Redirect /index.html and /index to root (/) for SEO duplicate fix ---
+app.use((req, res, next) => {
+  const url = req.url.split('?')[0];
+  if (url === '/index.html' || url === '/index') {
+    return res.redirect(301, '/');
+  }
+  next();
+});
+
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
