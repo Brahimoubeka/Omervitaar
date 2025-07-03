@@ -1,0 +1,9 @@
+# robots.txt for SEO
+# Allow all search engines to crawl everything
+User-agent: *
+Disallow:
+
+# Do NOT block Meta Pixel, Google Console, or Gemini API endpoints
+# (No Disallow rules for these resources)
+
+Sitemap: https://omervita.com/sitemap.xml

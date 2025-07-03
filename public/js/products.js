@@ -26,6 +26,42 @@ function renderProducts(products, append = false) {
   const container = document.getElementById('products-container');
   if (!append) container.innerHTML = '';
 
+  // --- SEO: Generate JSON-LD for all visible products ---
+  const productsJsonLd = products.map(product => {
+    // Use first image as main image
+    let image = (product.images && product.images[0]) || product.imagePath || 'https://omervita.com/images/logo.png';
+    // Use first category name if available
+    let category = (product.categories && product.categories[0] && product.categories[0].name) || '';
+    // Build offer object
+    let offer = {
+      '@type': 'Offer',
+      'price': product.price,
+      'priceCurrency': 'DZD',
+      'availability': product.stock === 0 ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+      'url': `https://omervita.com/product-detail.html?id=${product.id}`
+    };
+    return {
+      '@context': 'https://schema.org/',
+      '@type': 'Product',
+      'name': product.name,
+      'image': image.startsWith('http') ? image : `https://omervita.com/${image.replace(/^\/*/, '')}`,
+      'description': product.description || '',
+      'sku': product.sku || product.id,
+      'brand': {
+        '@type': 'Brand',
+        'name': 'Omervita'
+      },
+      'category': category,
+      'offers': offer
+    };
+  });
+  // Inject JSON-LD into the placeholder script
+  const jsonLdScript = document.getElementById('products-jsonld');
+  if (jsonLdScript) {
+    jsonLdScript.textContent = JSON.stringify(productsJsonLd, null, 2);
+  }
+  // --- END SEO JSON-LD ---
+
   products.forEach(product => {
     const productCol = document.createElement('div');
     productCol.classList.add('col', 'mb-4', 'd-flex', 'justify-content-center');
@@ -66,7 +102,7 @@ function renderProducts(products, append = false) {
     if (product.stock === 0) {
       badges.push(`<span class="product-badge" style="background:#e84141;color:#fff;">غير متوفر</span>`);
     } else if (product.stock !== undefined && product.stock < 6) {
-      badges.push(`<span class="product-badge">كمية قليلة</span>`);
+      badges.push(`<span class="product-badge">كمية محدودة</span>`);
     }
     let badgeHTML = badges.join('');
 

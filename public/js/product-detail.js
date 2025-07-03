@@ -327,14 +327,20 @@ async function loadProductDetail() {
       "@context": "https://schema.org/",
       "@type": "Product",
       "name": product.name,
-      "image": images,
+      "image": images.map(img => img.startsWith('http') ? img : `https://omervita.com/${img.replace(/^\/*/, '')}`),
       "description": product.description,
-      "sku": product.id,
+      "sku": product.sku || product.id,
+      "brand": {
+        "@type": "Brand",
+        "name": "Omervita"
+      },
+      "category": (product.categories && product.categories[0] && product.categories[0].name) || '',
       "offers": {
         "@type": "Offer",
         "priceCurrency": "DZD",
         "price": product.price,
-        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "url": window.location.href
       }
     };
     let script = document.getElementById('product-jsonld');
@@ -344,7 +350,7 @@ async function loadProductDetail() {
       script.id = 'product-jsonld';
       document.head.appendChild(script);
     }
-    script.textContent = JSON.stringify(productJsonLd);
+    script.textContent = JSON.stringify(productJsonLd, null, 2);
 
     // --- SEO: Canonical URL ---
     let canonical = document.querySelector('link[rel="canonical"]');

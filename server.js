@@ -11,6 +11,7 @@ const BRANDING_PATH = path.join(__dirname, 'branding.json');
 
 // Set trust proxy so req.protocol and x-forwarded-proto work correctly on Render
 app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // --- Only force HTTPS, do NOT force www (let Render handle www redirects) ---
 app.use((req, res, next) => {
@@ -203,6 +204,9 @@ app.post('/api/admin/slide', async (req, res) => {
     res.status(500).json({ error: 'خطأ أثناء تحديث صورة السلايد', details: e.message });
   }
 });
+
+// Disable Express server signature for security and SEO
+app.disable('x-powered-by');
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
