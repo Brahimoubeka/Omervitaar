@@ -144,8 +144,51 @@ function hideGlobalLoadingSpinner() {
   if (spinnerDiv) spinnerDiv.remove();
 }
 
+// --- Skeleton Loading for Product Detail ---
+function renderProductDetailSkeleton() {
+  // Only update the contents of the child columns, not the parent container
+  const imgCol = document.getElementById('product-image-carousel-col');
+  const infoCol = document.getElementById('product-info-col');
+  if (imgCol) {
+    imgCol.innerHTML = '<div class="product-carousel-box skeleton-detail-img"></div>';
+  }
+  if (infoCol) {
+    infoCol.innerHTML = `
+      <div class="skeleton-detail-title mb-3"></div>
+      <div class="skeleton-detail-price mb-2"></div>
+      <div class="skeleton-detail-rating mb-2"></div>
+      <div class="skeleton-detail-badges mb-2"></div>
+      <div class="skeleton-detail-desc mb-4"></div>
+      <div class="d-flex gap-2">
+        <div class="skeleton-detail-btn flex-grow-1"></div>
+        <div class="skeleton-detail-btn flex-grow-1"></div>
+      </div>
+    `;
+  }
+}
+
+// --- Skeleton CSS for Product Detail ---
+(function addProductDetailSkeletonStyles() {
+  if (document.getElementById('skeleton-detail-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'skeleton-detail-styles';
+  style.textContent = `
+    .skeleton-detail-img { width: 100%; height: 400px; background: #e0e0e0; border-radius: 18px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-title { height: 36px; width: 70%; background: #e0e0e0; border-radius: 10px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-price { height: 24px; width: 30%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-rating { height: 22px; width: 40%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-badges { height: 18px; width: 50%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-desc { height: 90px; width: 100%; background: #e0e0e0; border-radius: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-btn { height: 48px; background: #e0e0e0; border-radius: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    @keyframes skeletonPulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    @media (max-width: 991px) { .skeleton-detail-img { height: 230px; } }
+  `;
+  document.head.appendChild(style);
+})();
+
 // MAIN FUNCTION: loadProductDetail
 async function loadProductDetail() {
+  renderProductDetailSkeleton();
   showGlobalLoadingSpinner('جاري تحميل تفاصيل المنتج...');
   const params = getQueryParams();
   productId = params.id;

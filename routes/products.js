@@ -46,41 +46,91 @@ async function getProductRatingStats(productId) {
   return { avgRating, reviewCount };
 }
 
+// Helper: Batch fetch and map related data for products
+async function enrichProducts(products) {
+  if (!products || products.length === 0) return [];
+
+  const productIds = products.map(p => p.id);
+
+  // Fetch all categories for these products
+  const { data: catRows } = await supabase
+    .from('ProductCategories')
+    .select('product_id, Categories(id, name)')
+    .in('product_id', productIds);
+
+  // Fetch all images for these products
+  const { data: imgRows } = await supabase
+    .from('ProductImages')
+    .select('product_id, imagePath, id')
+    .in('product_id', productIds);
+
+  // Fetch all ratings for these products
+  const { data: ratingRows } = await supabase
+    .from('Reviews')
+    .select('product_id, rating')
+    .in('product_id', productIds);
+
+  // Map categories, images, and ratings to products
+  const catMap = {};
+  (catRows || []).forEach(row => {
+    if (!catMap[row.product_id]) catMap[row.product_id] = [];
+    if (row.Categories) catMap[row.product_id].push({ id: row.Categories.id, name: row.Categories.name });
+  });
+
+  const imgMap = {};
+  (imgRows || []).forEach(row => {
+    if (!imgMap[row.product_id]) imgMap[row.product_id] = [];
+    imgMap[row.product_id].push({ imagePath: row.imagePath, id: row.id });
+  });
+
+  const ratingMap = {};
+  (ratingRows || []).forEach(row => {
+    if (!ratingMap[row.product_id]) ratingMap[row.product_id] = [];
+    ratingMap[row.product_id].push(Number(row.rating));
+  });
+
+  // Attach to each product
+  products.forEach(product => {
+    product.categories = catMap[product.id] || [];
+    const images = (imgMap[product.id] || []).sort((a, b) => a.id - b.id).map(i => i.imagePath);
+    product.images = images.length > 0 ? images : (product.imagePath ? [product.imagePath] : []);
+    product.thumbnail = product.images[0] || product.imagePath || 'images/default-product.jpg';
+    const ratings = ratingMap[product.id] || [];
+    product.avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+    product.reviewCount = ratings.length;
+    // Ensure name/description are strings
+    product.name = Array.isArray(product.name) ? (product.name[0] || '') : (product.name || '');
+    product.description = Array.isArray(product.description) ? (product.description[0] || '') : (product.description || '');
+  });
+
+  return products;
+}
+
 // GET /api/products
 router.get('/products', async (req, res) => {
   const { category, limit } = req.query;
   try {
-    let products;
+    let products = [];
     if (category) {
-      const { data, error } = await supabase
+      const { data: pcData } = await supabase
+        .from('ProductCategories')
+        .select('product_id')
+        .eq('category_id', category);
+      const productIds = (pcData || []).map(pc => pc.product_id);
+      if (productIds.length === 0) return res.json([]);
+      const { data } = await supabase
         .from('Products')
         .select('*')
-        .in('id',
-          (await supabase
-            .from('ProductCategories')
-            .select('product_id')
-            .eq('category_id', category)).data?.map(pc => pc.product_id) || []
-        )
+        .in('id', productIds)
         .order('id', { ascending: false })
         .limit(limit || 3);
-      if (error) throw error;
       products = data;
     } else {
-      const { data, error } = await supabase.from('Products').select('*');
-      if (error) throw error;
+      const { data } = await supabase.from('Products').select('*');
       products = data;
     }
-    for (const product of products) {
-      // --- Fix: Always send name/description as string ---
-      product.name = Array.isArray(product.name) ? (product.name[0] || '') : (product.name || '');
-      product.description = Array.isArray(product.description) ? (product.description[0] || '') : (product.description || '');
-      product.categories = await getCategoriesForProduct(product.id);
-      product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
-      const stats = await getProductRatingStats(product.id);
-      product.avgRating = stats.avgRating;
-      product.reviewCount = stats.reviewCount;
-    }
-    res.json(products);
+    const enriched = await enrichProducts(products);
+    res.json(enriched);
   } catch (err) {
     console.error('Error retrieving product:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });
@@ -95,58 +145,30 @@ router.get('/products/paginate', async (req, res) => {
   try {
     let products = [];
     if (category) {
-      // Get product IDs for this category
-      const { data: pcData, error: pcError } = await supabase
+      const { data: pcData } = await supabase
         .from('ProductCategories')
         .select('product_id')
         .eq('category_id', category);
-      if (pcError) throw pcError;
       let productIds = (pcData || []).map(pc => pc.product_id);
-      if (productIds.length === 0) {
-        return res.json([]); // No products in this category
-      }
-      // Apply offset/limit to productIds array
+      if (productIds.length === 0) return res.json([]);
       const pagedIds = productIds.slice(offset, offset + limit);
-      if (pagedIds.length === 0) {
-        return res.json([]); // No more products in this category
-      }
-      // Fetch only the paged products
-      const { data, error } = await supabase
+      if (pagedIds.length === 0) return res.json([]);
+      const { data } = await supabase
         .from('Products')
         .select('*')
         .in('id', pagedIds)
         .order('id', { ascending: false });
-      if (error) throw error;
-      // Sort products to match pagedIds order (descending by id)
-      products = pagedIds
-        .map(id => data.find(p => p.id === id))
-        .filter(Boolean);
+      products = pagedIds.map(id => data.find(p => p.id === id)).filter(Boolean);
     } else {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('Products')
         .select('*')
         .order('id', { ascending: false })
         .range(offset, offset + limit - 1);
-      if (error) throw error;
       products = data;
     }
-    // Add categories, thumbnail, avgRating, reviewCount, and images for each product
-    for (const product of products) {
-      product.categories = await getCategoriesForProduct(product.id);
-      product.thumbnail = await getFirstImageForProduct(product.id) || product.imagePath || 'images/default-product.jpg';
-      const stats = await getProductRatingStats(product.id);
-      product.avgRating = stats.avgRating;
-      product.reviewCount = stats.reviewCount;
-      // Add images array for carousel
-      const { data: imgRows, error: imgError } = await supabase
-        .from('ProductImages')
-        .select('imagePath')
-        .eq('product_id', product.id)
-        .order('id', { ascending: true });
-      if (imgError) throw imgError;
-      product.images = imgRows.length > 0 ? imgRows.map(r => r.imagePath) : (product.imagePath ? [product.imagePath] : []);
-    }
-    res.json(products);
+    const enriched = await enrichProducts(products);
+    res.json(enriched);
   } catch (err) {
     console.error('Error in /products/paginate:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });
@@ -172,18 +194,46 @@ router.get('/products/latest', async (req, res) => {
 router.get('/products/:id', async (req, res) => {
   const productId = req.params.id;
   try {
-    const { data, error } = await supabase
+    // Fetch product row
+    const { data: prodRows, error: prodError } = await supabase
       .from('Products')
       .select('*')
       .eq('id', productId);
-    if (error) throw error;
-    const row = data[0];
+    if (prodError) throw prodError;
+    const row = prodRows[0];
     if (!row) return res.status(404).json({ error: 'لم يتم العثور على المنتج' });
-    row.categories = await getCategoriesForProduct(row.id);
-    row.thumbnail = await getFirstImageForProduct(row.id) || row.imagePath || 'images/default-product.jpg';
-    const stats = await getProductRatingStats(row.id);
-    row.avgRating = stats.avgRating;
-    row.reviewCount = stats.reviewCount;
+
+    // Batch fetch related data
+    const [catRows, imgRows, ratingRows] = await Promise.all([
+      supabase
+        .from('ProductCategories')
+        .select('category_id, Categories(id, name)')
+        .eq('product_id', productId),
+      supabase
+        .from('ProductImages')
+        .select('imagePath, id')
+        .eq('product_id', productId)
+        .order('id', { ascending: true }),
+      supabase
+        .from('Reviews')
+        .select('rating')
+        .eq('product_id', productId)
+    ]);
+
+    // Categories
+    row.categories = (catRows.data || []).filter(r => r.Categories).map(r => ({ id: r.Categories.id, name: r.Categories.name }));
+    // Images
+    const images = (imgRows.data || []).sort((a, b) => a.id - b.id).map(i => i.imagePath);
+    row.images = images.length > 0 ? images : (row.imagePath ? [row.imagePath] : []);
+    row.thumbnail = row.images[0] || row.imagePath || 'images/default-product.jpg';
+    // Ratings
+    const ratings = (ratingRows.data || []).map(r => Number(r.rating)).filter(r => !isNaN(r));
+    row.avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+    row.reviewCount = ratings.length;
+    // Ensure name/description are strings
+    row.name = Array.isArray(row.name) ? (row.name[0] || '') : (row.name || '');
+    row.description = Array.isArray(row.description) ? (row.description[0] || '') : (row.description || '');
+
     res.json(row);
   } catch (err) {
     console.error('Error retrieving product:', err);

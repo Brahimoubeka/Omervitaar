@@ -223,6 +223,11 @@ function renderProducts(products, append = false) {
 
 // Loads products and fetches their images for carousel use
 async function loadProducts() {
+  // Responsive skeleton count
+  let skeletonCount = 8;
+  if (window.innerWidth < 600) skeletonCount = 2;
+  else if (window.innerWidth < 900) skeletonCount = 4;
+  renderSkeletonProducts(skeletonCount);
   showGlobalLoadingSpinner('جاري تحميل المنتجات...');
   try {
     const response = await fetch('/api/products');
@@ -899,3 +904,83 @@ function clearSlidingFilter(type) {
   filterAndRender();
   updateSlidingActiveFilters();
 }
+
+// --- Skeleton Loading ---
+function renderSkeletonProducts(count = 8) {
+  const container = document.getElementById('products-container');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const col = document.createElement('div');
+    col.className = 'col mb-4 d-flex justify-content-center';
+    col.innerHTML = `
+      <div class="product-card skeleton-card">
+        <div class="product-img-box skeleton-img"></div>
+        <div class="product-card-body">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-price"></div>
+          <div class="skeleton-badges"></div>
+          <div class="skeleton-btn"></div>
+        </div>
+      </div>
+    `;
+    container.appendChild(col);
+  }
+}
+
+// --- Patch loadProducts to show skeletons ---
+async function loadProducts() {
+  // Responsive skeleton count
+  let skeletonCount = 8;
+  if (window.innerWidth < 600) skeletonCount = 2;
+  else if (window.innerWidth < 900) skeletonCount = 4;
+  renderSkeletonProducts(skeletonCount);
+  showGlobalLoadingSpinner('جاري تحميل المنتجات...');
+  try {
+    const response = await fetch('/api/products');
+    if (!response.ok) {
+      throw new Error('تعذر جلب المنتجات');
+    }
+    let products = await response.json();
+
+    // For each product, fetch images array from /api/products/:id/images
+    const productsWithImages = await Promise.all(products.map(async (prod) => {
+      try {
+        const imgResp = await fetch(`/api/products/${prod.id}/images`);
+        const imgs = await imgResp.json();
+        return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
+      } catch {
+        return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
+      }
+    }));
+
+    // Sort products to show newest first
+    productsWithImages.sort((a, b) => b.id - a.id);
+
+    allProducts = productsWithImages;
+    renderProducts(allProducts);
+  } catch (error) {
+    console.error('حدث خطأ أثناء تحميل المنتجات:', error);
+  } finally {
+    hideGlobalLoadingSpinner();
+  }
+}
+
+// --- Skeleton CSS ---
+(function addSkeletonStyles() {
+  if (document.getElementById('skeleton-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'skeleton-styles';
+  style.textContent = `
+    .skeleton-card { background: #f6f6f6; position: relative; overflow: hidden; }
+    .skeleton-img { width: 100%; min-height: 210px; max-height: 260px; background: #e0e0e0; border-radius: 15px 20px 0 0; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-title { height: 22px; width: 80%; background: #e0e0e0; border-radius: 8px; margin: 18px 0 10px 0; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-price { height: 18px; width: 40%; background: #e0e0e0; border-radius: 8px; margin-bottom: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-badges { height: 16px; width: 60%; background: #e0e0e0; border-radius: 8px; margin-bottom: 10px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-btn { height: 36px; width: 100%; background: #e0e0e0; border-radius: 12px; margin-top: 10px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    @keyframes skeletonPulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    @media (max-width: 900px) { .skeleton-card { min-width: 45vw; max-width: 90vw; } }
+    @media (max-width: 600px) { .skeleton-card { min-width: 90vw; max-width: 98vw; } }
+  `;
+  document.head.appendChild(style);
+})();
