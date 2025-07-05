@@ -1,10 +1,10 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Omervita - المنتجات</title>
-  <link rel="stylesheet" href="js/chatbot-more-btn.css">
+  <link rel="stylesheet" href="js/chatbot-ui.css">
   <!-- Canonical tag for SEO -->
   <link rel="canonical" href="https://omervita.com/products.html">
   <!-- Bootstrap CSS CDN -->
@@ -681,20 +681,22 @@
     }
 
     .chatbot-header {
-      background: linear-gradient(135deg, var(--military-green), var(--light-military));
-      color: white;
-      padding: 20px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      border-top-left-radius: 20px;
-      border-top-right-radius: 20px;
+      justify-content: center;
+      background: #ff7300;
+      color: #fff;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      min-height: 48px;
+      position: relative;
     }
 
     .chatbot-header h5 {
       margin: 0;
-      font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 1.1em;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
 
     #close-chatbot {
@@ -710,6 +712,9 @@
       align-items: center !important;
       justify-content: center !important;
       transition: all 0.3s ease !important;
+      position: absolute;
+      left: 10px;
+      top: 10px;
     }
 
     #close-chatbot:hover {
@@ -837,6 +842,7 @@
       display: flex !important;
       flex-direction: column !important;
       width: 200px;
+      height: 250px;
       animation: productCardAppear 0.4s ease-out;
     }
 
@@ -889,6 +895,8 @@
       flex-direction: column;
       flex-grow: 1;
       order: 2; /* Content second */
+      height: 110px;
+      justify-content: space-between;
     }
 
     .product-card-chatbot .product-card-title {
@@ -1102,7 +1110,7 @@
     @media (max-width: 480px) {
       .chatbot-window {
         width: calc(100vw - 30px);
-        height: 60vh; /* Reduced height on mobile */
+        height: 60vh; /* Reduced height */
         max-width: 320px;
         top: 50%; /* Center vertically */
         right: 10px; /* Positioning from right */
@@ -1137,130 +1145,62 @@
       }
     }
 
-    .product-card-chatbot a {
-        text-decoration: none;
-        color: inherit;
-        display: block;
-        transition: all 0.3s ease;
-    }
-
-    /* Mobile responsive chatbot */
-    @media (max-width: 768px) {
-      .chatbot-container {
-        bottom: 15px;
-        right: 15px;
-      }
-
-      .chatbot-button {
-        width: 55px;
-        height: 55px;
-        font-size: 22px;
-      }
-
-      .chatbot-window {
-        width: calc(100vw - 40px);
-        height: 70vh;
-        max-width: 350px;
-        border-radius: 15px;
-        bottom: 75px;
-        right: 0;
-        position: absolute;
-      }
-
-      .chatbot-header {
-        padding: 15px;
-      }
-
-      .chatbot-header h5 {
-        font-size: 1rem;
-      }
-
-      .chatbot-messages {
-        padding: 15px;
-      }
-
-      .message {
-        max-width: 90%;
-        padding: 10px 15px;
-        font-size: 14px;
-      }
-
-      .chatbot-input {
-        padding: 15px;
-      }
-
-      .chatbot-input input {
-        padding: 10px 15px;
-        font-size: 14px;
-      }
-
-      .chatbot-input button {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
-      }
-
-      .product-card-chatbot {
-        width: 180px;
-        margin: 8px 0;
-      }
-
-      .product-card-chatbot .product-img-box {
-        height: 100px;
-      }
-
-      .product-card-chatbot .product-card-title {
-        font-size: 0.85rem;
-        min-height: 30px;
-      }
-
-      .product-card-chatbot .product-card-price {
-        font-size: 0.9rem;
-      }
-
-      .bot-message a {
-        padding: 6px 12px;
-        font-size: 13px;
-        margin: 3px 6px 3px 0;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .chatbot-window {
-        width: calc(100vw - 30px);
-        height: 65vh;
-        max-width: 320px;
-        bottom: 70px;
-        right: 0;
-      }
-
-      .chatbot-container {
-        bottom: 10px;
-        right: 10px;
-      }
-
-      .chatbot-button {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
-      }
-
-      .product-card-chatbot {
-        width: 160px;
-      }
-
-      .product-card-chatbot .product-img-box {
-        height: 90px;
-      }
-
-      .bot-message a {
-        display: block;
-        text-align: center;
-        margin: 6px 0;
-        width: 100%;
-      }
-    }
-
+    .product-card-chatbot {
+  min-width: 140px !important;
+  max-width: 140px !important;
+  border-radius: 14px !important;
+  margin: 8px 0 !important;
+  box-shadow: 0 4px 12px rgba(44,44,44,0.10);
+  padding: 0 !important;
+  height: 170px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.product-card-chatbot .product-img-box {
+  min-height: 80px !important;
+  max-height: 90px !important;
+  height: 80px !important;
+  border-radius: 12px 12px 0 0 !important;
+  background: #f8f8f8 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.product-card-chatbot .product-img-box img {
+  height: 80px !important;
+  width: 100% !important;
+  object-fit: contain !important;
+  background: #f8f8f8 !important;
+}
+.product-card-chatbot .product-card-body {
+  padding: 0.5rem 0.5rem 0.7rem 0.5rem !important;
+  min-height: 60px !important;
+  height: 60px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: #fff !important;
+  border-radius: 0 0 14px 14px !important;
+}
+.product-card-chatbot .product-card-title {
+  font-size: 0.85rem !important;
+  min-height: 28px !important;
+  line-height: 1.1 !important;
+  margin-bottom: 0.2rem !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.product-card-chatbot .product-card-price {
+  font-size: 0.95rem !important;
+  margin: 0.1em 0 0 0 !important;
+  color: rgb(255,115,0) !important;
+  font-weight: 700 !important;
+}
   </style>
 
   <!-- Meta Pixel Code -->
@@ -1684,6 +1624,7 @@ updateBrandingLinks();
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-success text-white">
           <h5 class="modal-title" id="cartPopupModalLabel"><i class="bi bi-cart-check me-2"></i>تمت الإضافة إلى السلة</h5>
+          <h5 class="modal-title" id="cartPopupModalLabel"><i class="bi bi-cart-check me-2"></i>تمت الإضافة إلى السلة</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
         </div>
         <div class="modal-body">
@@ -1719,10 +1660,11 @@ updateBrandingLinks();
   <!-- Chatbot -->
   <div class="chatbot-container">
     <div class="chatbot-window" id="chatbot-window">
-      <div class="chatbot-header">
-        <h5>  الآلي Omervita مساعد </h5>
-        <button id="close-chatbot" style="background: none; border: none; color: white; font-size: 20px;">&times;</button>
+      <div class="chatbot-header" id="chatbot-header" style="position: relative; display: flex; align-items: center; justify-content: center; background: #ff7300; color: #fff; border-top-left-radius: 16px; border-top-right-radius: 16px; min-height: 48px;">
+        <h5 style="margin: 0; font-size: 1.1em; font-weight: 700; letter-spacing: 0.5px;">الآلي Omervita مساعد</h5>
+        <button id="close-chatbot" style="background: none; border: none; color: white; font-size: 24px; line-height: 1; cursor: pointer; position: absolute; left: 10px; top: 10px;">&times;</button>
       </div>
+      <div id="new-chat-btn-container" style="position: absolute; top: 60px; right: 10px; z-index: 10;"></div>
       <div class="chatbot-messages" id="chatbot-messages">
         <div class="message bot-message arabic">
           <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">

@@ -265,7 +265,7 @@ router.get('/categories', async (req, res) => {
       .select('id, name')
       .order('name', { ascending: true });
     if (error) throw error;
-    res.json(data);
+    res.json(data); // Revert: return array only
   } catch (err) {
     res.status(500).json({ error: 'Kategoriler alınırken hata oluştu.' });
   }
