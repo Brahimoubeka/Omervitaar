@@ -1032,14 +1032,12 @@ function showShareToast(message) {
 // Function to open image modal at specific slide
 function openImageModal(startIndex = 0) {
   const modal = new bootstrap.Modal(document.getElementById('imageModal'));
-  
   // Set the modal carousel to the clicked image
   const modalCarousel = document.getElementById('modalCarousel');
-  const carousel = new bootstrap.Carousel(modalCarousel);
-  
+  // Initialize the modal carousel with interval: false to disable auto-slide
+  const carousel = new bootstrap.Carousel(modalCarousel, { interval: false, ride: false });
   // Go to the specific slide
   carousel.to(startIndex);
-  
   // Show the modal
   modal.show();
 }

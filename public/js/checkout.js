@@ -408,19 +408,19 @@ async function showMessage(message, type = 'success') {
     // Make the login/create account part clickable
     message = message.replace(
       /(الرجاء تسجيل الدخول او انشاء حساب أولا|you must be logged in|يجب عليك تسجيل الدخول)/gi,
-      `<a href='login.html' style='color:#0d6efd;text-decoration:underline;font-weight:600;'>تسجيل الدخول أو إنشاء حساب</a>`
+      `الرجاء تسجيل الدخول او انشاء حساب أولا<br><a href='login.html' style='color:#0d6efd;text-decoration:underline;font-weight:600;'>تسجيل الدخول أو إنشاء حساب</a>`
     );
+    // Add copy order info button FIRST
+    message += `<br>أو قم بنسخ معلومات الطلبية <button id='copy-order-info-btn' class='btn btn-outline-secondary btn-sm mt-2' type='button'><i class='bi bi-clipboard'></i> نسخ تفاصيل الطلب</button> ثم قم بارسالها لنا عبر وتساب .`;
     try {
       const res = await fetch('/api/branding');
       const branding = await res.json();
       const phone = branding.phone ? branding.phone.replace(/[^\d+]/g, '') : '';
       if (phone) {
         const whatsappUrl = `https://wa.me/${phone.replace(/^\+/, '')}`;
-        message += `<br><span style="font-size:1.08em;color:#0a7c3a;font-weight:500;">أو يمكنك الطلب مباشرة من هذا الرقم على <a href='${whatsappUrl}' target='_blank' style='color:#25d366;text-decoration:underline;'><i class='bi bi-whatsapp'></i> واتساب</a>: <b dir='ltr'>${phone}</b></span>`;
+        message += `<br><span style="font-size:1.08em;color:#0a7c3a;font-weight:500;"> <a href='${whatsappUrl}' target='_blank' style='color:#25d366;text-decoration:underline;'><i class='bi bi-whatsapp'></i> واتساب</a>: <b dir='ltr'>${phone}</b></span>`;
       }
     } catch {}
-    // Add copy order info button
-    message += `<br><button id='copy-order-info-btn' class='btn btn-outline-secondary btn-sm mt-2' type='button'><i class='bi bi-clipboard'></i> نسخ تفاصيل الطلب</button>`;
   }
   container.innerHTML = `
     <div class="alert alert-${type} alert-dismissible fade show" role="alert">

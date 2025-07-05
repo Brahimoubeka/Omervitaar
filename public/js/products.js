@@ -74,7 +74,7 @@ function renderProducts(products, append = false) {
     if (product.images && Array.isArray(product.images) && product.images.length > 1) {
       const carouselId = `product-carousel-${product.id}`;
       carouselHTML = `
-        <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel"  >
+        <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000" >
           <div class="carousel-inner">
             ${product.images.map((src, idx) => `
               <div class="carousel-item${idx === 0 ? ' active' : ''}">
@@ -101,7 +101,7 @@ function renderProducts(products, append = false) {
     let badges = [];
     if (product.stock === 0) {
       badges.push(`<span class="product-badge" style="background:#e84141;color:#fff;">غير متوفر</span>`);
-    } else if (product.stock !== undefined && product.stock < 6) {
+    } else if (product.stock !== undefined && product.stock < 10) {
       badges.push(`<span class="product-badge">كمية محدودة</span>`);
     }
     let badgeHTML = badges.join('');
@@ -217,6 +217,15 @@ function renderProducts(products, append = false) {
     
     productCol.appendChild(productCard);
     container.appendChild(productCol);
+    // --- Ensure Bootstrap carousel auto-slides ---
+    if (product.images && Array.isArray(product.images) && product.images.length > 1) {
+      setTimeout(() => {
+        const el = document.getElementById(`product-carousel-${product.id}`);
+        if (el && window.bootstrap && window.bootstrap.Carousel) {
+          new window.bootstrap.Carousel(el, { interval: 3000, ride: 'carousel' });
+        }
+      }, 0);
+    }
   });
 }
 

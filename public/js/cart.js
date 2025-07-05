@@ -15,6 +15,15 @@ function loadCart() {
       </div>
     `;
     document.getElementById('cart-total').innerHTML = '';
+    // Disable checkout button if cart is empty
+    const checkoutBtn = document.getElementById('checkout-button');
+    if (checkoutBtn) {
+      checkoutBtn.disabled = true;
+      checkoutBtn.classList.add('btn-secondary');
+      checkoutBtn.classList.remove('btn-primary');
+      checkoutBtn.style.opacity = '0.6';
+      checkoutBtn.style.cursor = 'not-allowed';
+    }
     return;
   }
 
@@ -92,6 +101,16 @@ function loadCart() {
       <i class="bi bi-cash-coin me-1"></i>المجموع: دج${total.toFixed(2)}
     </span>
   `;
+
+  // Enable checkout button if cart has items
+  const checkoutBtn = document.getElementById('checkout-button');
+  if (checkoutBtn) {
+    checkoutBtn.disabled = false;
+    checkoutBtn.classList.remove('btn-secondary');
+    checkoutBtn.classList.add('btn-primary');
+    checkoutBtn.style.opacity = '';
+    checkoutBtn.style.cursor = '';
+  }
 }
 
 function saveCartAndReload(cart) {

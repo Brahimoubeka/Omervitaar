@@ -83,6 +83,11 @@
       font-weight: 500; 
       margin-bottom: 0.5rem;
     }
+    .form-label .required-text {
+      color: #e84141;
+      font-weight: 600;
+      font-size: 0.98em;
+    }
     .input-group-text {
         background-color: var(--light-gray);
         border-color: #e0e0e0;
@@ -293,7 +298,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
             <h5 class="section-title"><i class="bi bi-person-lines-fill me-2"></i>المعلومات الشخصية</h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label for="firstName" class="form-label">الاسم(اجباري):</label>
+                <label for="firstName" class="form-label">الاسم(<span class="required-text">اجباري</span>):</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
                     <input type="text" id="firstName" name="firstName" maxlength="40" class="form-control" placeholder="اسمك" />
@@ -301,7 +306,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
                 <div class="invalid-feedback">يجب أن يكون على الأقل 3 أحرف، ويجب استخدام الأحرف فقط.</div>
               </div>
               <div class="col-md-6 mb-3">
-                <label for="lastName" class="form-label">اللقب(اجباري):</label>
+                <label for="lastName" class="form-label">اللقب(<span class="required-text">اجباري</span>):</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
                     <input type="text" id="lastName" name="lastName" maxlength="40" class="form-control" placeholder="لقبك" />
@@ -310,7 +315,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
               </div>
             </div>
             <div class="mb-4">
-              <label for="shippingName" class="form-label">رقم الهاتف(اجباري):</label>
+              <label for="shippingName" class="form-label">رقم الهاتف(<span class="required-text">اجباري</span>):</label>
               <div class="input-group">
                  <span class="input-group-text"><i class="bi bi-telephone"></i></span>
                  <input type="tel" id="shippingName" name="shippingName" maxlength="11" class="form-control" placeholder="مثال: 0555444332" />
@@ -329,7 +334,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                  <label for="city" class="form-label">المدينة(اجباري):</label>
+                  <label for="city" class="form-label">المدينة(<span class="required-text">اجباري</span>):</label>
                   <select id="city" name="city" class="form-select">
                     <option value="">(اجباري)اختر الولاية</option>
                     <option value="Adrar">Adrar</option>
@@ -394,7 +399,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label for="province" class="form-label">المنطقة(اجباري):</label>
+                  <label for="province" class="form-label">المنطقة(<span class="required-text">اجباري</span>):</label>
                   <input type="text" id="province" name="province" class="form-control" placeholder="اكتب المنطقة أو الدائرة" required />
                 </div>
             </div>
@@ -435,6 +440,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
               <span>المجموع الكلي:</span>
               <span id="final-total">دج0.00</span>
             </div>
+            <p class="text-muted mt-2 mb-0" style="font-size:0.8em; background-color: rgba(0, 128, 0, 0.226);">اذا كان هناك تخفيض او عرض جاري , فسيتم تلقائيا من طرف فريقنا, بعد ارسال الطلبية سيتم التواصل معكم من طرف فريقنا لتأكيد الطلبية</p>
           </div>
           
           <button type="submit" form="checkout-form" class="btn btn-primary w-100">
