@@ -763,9 +763,9 @@ async function loadProductDetail() {
 
     loadReviews(productId);
     
-    // Initialize auto-refresh for real-time updates
-    console.log('🔄 Product loaded successfully, enabling auto-refresh...');
-    enableAutoRefresh();
+    // Auto-refresh disabled - service worker removed
+    console.log('🔄 Auto-refresh disabled - service worker and caching removed');
+    // enableAutoRefresh(); // Removed - no longer needed
   } catch (error) {
     console.error('Error loading product details:', error);
     hideGlobalLoadingSpinner();
@@ -813,15 +813,23 @@ async function loadProductDetail() {
 async function renderRelatedProducts(product) {
   // Find all category IDs for this product
   const mainCatIds = (product.categories || []).map(cat => cat.id);
-  if (!mainCatIds.length) {
-    document.getElementById('related-products-row').innerHTML = '';
+  const relatedProductsRow = document.getElementById('related-products-row');
+  
+  if (!relatedProductsRow) {
+    console.warn('Related products container not found');
     return;
   }
+  
+  if (!mainCatIds.length) {
+    relatedProductsRow.innerHTML = '';
+    return;
+  }
+  
   // We'll use only the first category for backend query (as the API supports single category param)
   const mainCat = mainCatIds[0];
   try {
-    // Add cache-busting timestamp to get fresh related products
-    const resp = await fetch(`/api/products?category=${mainCat}&limit=6&_t=${Date.now()}`);
+    // No more cache-busting needed since service worker is removed
+    const resp = await fetch(`/api/products?category=${mainCat}&limit=6`);
     let products = await resp.json();
 
     // Filter out products that are NOT in any of the current product's categories 
@@ -832,13 +840,13 @@ async function renderRelatedProducts(product) {
     );
 
     if (!products.length) {
-      document.getElementById('related-products-row').innerHTML = '';
+      relatedProductsRow.innerHTML = '';
       return;
     }
     // Only last 3 (skip current, already filtered)
     products = products.slice(0, 3);
 
-    document.getElementById('related-products-row').innerHTML = `
+    relatedProductsRow.innerHTML = `
   <div class="related-products-box my-4">
     <h4 class="mb-3" style="color:var(--military-green,#715100);"><i class="bi bi-grid-3x3-gap me-2"></i>منتجات مشابهة</h4>
     <div class="row g-3">
@@ -875,14 +883,17 @@ async function renderRelatedProducts(product) {
 
   } catch (error) {
     console.error('Error loading related products:', error);
-    document.getElementById('related-products-row').innerHTML = `
-      <div class="col-12">
-        <div class="alert alert-light text-center" role="alert">
-          <i class="bi bi-info-circle me-2"></i>
-          <span>لا يمكن عرض المنتجات المرتبطة في الوقت الحالي</span>
+    const relatedProductsRow = document.getElementById('related-products-row');
+    if (relatedProductsRow) {
+      relatedProductsRow.innerHTML = `
+        <div class="col-12">
+          <div class="alert alert-light text-center" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            <span>لا يمكن عرض المنتجات المرتبطة في الوقت الحالي</span>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
   }
 }
 //load reviews
@@ -1389,188 +1400,6 @@ function updateBreadcrumbStructuredData(product) {
   breadcrumbScript.textContent = JSON.stringify(breadcrumbSchema, null, 2);
 }
 
-// Auto-refresh functionality for real-time updates
-
-// Function to enable smart auto-refresh - only refresh when returning to page
-function enableAutoRefresh(intervalMs = 30000) { // Not used for continuous refresh
-  console.log('🔄 Enabling smart auto-refresh for product detail');
-  
-  // Don't start continuous refresh, just mark as enabled
-  if (autoRefreshInterval) {
-    clearInterval(autoRefreshInterval);
-    autoRefreshInterval = null;
-  }
-  
-  // Show refresh indicator briefly
-  showRefreshIndicator();
-  
-  // Mark that we've refreshed once for this page visit
-  hasRefreshedOnce = true;
-  lastRefreshTime = Date.now();
-  
-  console.log('🔄 Smart refresh enabled - will only refresh when returning to page');
-}
-
-// Add manual refresh button for testing auto-update
-function addManualRefreshButton() {
-  if (document.getElementById('manual-refresh-btn')) return;
-  const btn = document.createElement('button');
-  btn.id = 'manual-refresh-btn';
-  btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
-  btn.className = 'btn btn-outline-primary btn-sm position-fixed';
-  btn.style.cssText = 'top: 80px; right: 20px; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
-  btn.onclick = async function() {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...';
-    await forceFullProductRefresh();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
-  };
-  document.body.appendChild(btn);
-}
-
-// Force a full reload of product details, reviews, and related products
-async function forceFullProductRefresh() {
-  if (!productId) return;
-  
-  console.log('🔄 Force refreshing product data...');
-  showRefreshNotification('جاري تحديث بيانات المنتج...');
-  
-  try {
-    // Refresh reviews first (fastest)
-    await loadReviews(productId);
-    
-    // Refresh related products
-    if (window.currentProduct) {
-      await renderRelatedProducts(window.currentProduct);
-    }
-    
-    // Update timestamp
-    lastRefreshTime = Date.now();
-    
-    showRefreshNotification('تم تحديث بيانات المنتج!');
-    console.log('🔄 Product refresh completed');
-  } catch (error) {
-    console.error('❌ Force refresh failed:', error);
-    showRefreshNotification('فشل في تحديث البيانات');
-  }
-}
-
-// Handle page visibility changes - refresh only when returning to page
-document.addEventListener('visibilitychange', () => {
-  const wasPageVisible = isPageVisible;
-  isPageVisible = !document.hidden;
-  
-  if (isPageVisible && !wasPageVisible) {
-    // Page became visible after being hidden - check if we should refresh
-    const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-    const minRefreshInterval = 30000; // 30 seconds minimum between refreshes
-    
-    if (timeSinceLastRefresh > minRefreshInterval && typeof productId !== 'undefined' && productId) {
-      console.log('🔄 Page became visible, refreshing data...');
-      forceFullProductRefresh();
-      lastRefreshTime = Date.now();
-    } else {
-      console.log('🔄 Page became visible but refresh skipped (too recent)');
-    }
-  }
-});
-
-// Handle page focus/blur events for better detection
-window.addEventListener('focus', () => {
-  if (!isPageVisible) {
-    isPageVisible = true;
-    // Check if we should refresh when window gets focus
-    const timeSinceLastRefresh = Date.now() - lastRefreshTime;
-    const minRefreshInterval = 30000; // 30 seconds
-    
-    if (timeSinceLastRefresh > minRefreshInterval && typeof productId !== 'undefined' && productId) {
-      console.log('🔄 Window focused, refreshing data...');
-      forceFullProductRefresh();
-      lastRefreshTime = Date.now();
-    }
-  }
-});
-
-window.addEventListener('blur', () => {
-  // Don't immediately set to false, let visibilitychange handle it
-});
-
-// Clean up on page unload
-window.addEventListener('beforeunload', () => {
-  disableAutoRefresh();
-});
-
-// User-friendly refresh notification
-function showRefreshNotification(message = 'تم تحديث البيانات') {
-  // Create or update existing notification
-  let notification = document.getElementById('refresh-notification');
-  if (!notification) {
-    notification = document.createElement('div');
-    notification.id = 'refresh-notification';
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(25, 135, 84, 0.9);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 9999;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transform: translateX(100%);
-      transition: transform 0.3s ease;
-    `;
-    document.body.appendChild(notification);
-  }
-  
-  notification.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${message}`;
-  
-  // Show notification
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-  }, 100);
-  
-  // Hide notification after 3 seconds
-  setTimeout(() => {
-    notification.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 300);
-  }, 3000);
-}
-
-// Optional: Add refresh indicator when auto-refresh is active
-function showRefreshIndicator() {
-  let indicator = document.getElementById('refresh-indicator');
-  if (!indicator) {
-    indicator = document.createElement('div');
-    indicator.id = 'refresh-indicator';
-    indicator.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(13, 202, 240, 0.9);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 12px;
-      z-index: 9998;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    `;
-    indicator.innerHTML = `<i class="bi bi-check-circle me-1"></i>التحديث الذكي مفعل`;
-    document.body.appendChild(indicator);
-  }
-  
-  // Auto-hide after 3 seconds (shorter since it's not continuous)
-  setTimeout(() => {
-    if (indicator.parentNode) {
-      indicator.parentNode.removeChild(indicator);
-    }
-  }, 3000);
-}
+// Auto-refresh functionality removed - no longer needed without service worker caching
 
 
