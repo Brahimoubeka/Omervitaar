@@ -7,13 +7,19 @@ function renderStars(rating) {
   return starsHtml;
 }
 
-
 function getQueryParams() {
+  // First check if we're using clean URLs
+  const pageInfo = SlugUtil.getCurrentPageInfo();
+  if (pageInfo.type === 'product' && pageInfo.id) {
+    return { id: pageInfo.id.toString() };
+  }
+  
+  // Fall back to legacy query parameters
   const params = {};
   const queryString = window.location.search.slice(1);
   queryString.split('&').forEach(param => {
     const [key, value] = param.split('=');
-    params[key] = decodeURIComponent(value);
+    if (key && value) params[key] = decodeURIComponent(value);
   });
   return params;
 }
@@ -194,17 +200,54 @@ async function loadProductDetail() {
   productId = params.id;
 
   if (!productId) {
-    document.getElementById('product-detail-container').innerHTML = '<p>لم يتم تحديد معرف المنتج.</p>';
+    hideGlobalLoadingSpinner();
+    const errorContainer = document.getElementById('product-detail-container');
+    errorContainer.innerHTML = `
+      <div class="alert alert-warning text-center" role="alert">
+        <div class="mb-3">
+          <i class="bi bi-question-circle-fill" style="font-size: 2rem; color: #ffc107;"></i>
+        </div>
+        <h4 class="alert-heading">لم يتم تحديد المنتج</h4>
+        <p class="mb-3">لم يتم تحديد معرف المنتج المطلوب عرضه.</p>
+        <hr>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-primary" onclick="window.location.href='/products'">
+            <i class="bi bi-shop me-1"></i>تصفح المنتجات
+          </button>
+          <button class="btn btn-secondary" onclick="window.location.href='/'">
+            <i class="bi bi-house me-1"></i>الصفحة الرئيسية
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Update page meta for no product case
+    document.title = "Omervita - لم يتم تحديد المنتج";
+    
+    // Update breadcrumb for no product case  
+    const breadcrumbContainer = document.getElementById('product-breadcrumb');
+    if (breadcrumbContainer) {
+      breadcrumbContainer.innerHTML = `
+        <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
+        <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
+        <li class="breadcrumb-item active" aria-current="page">منتج غير محدد</li>
+      `;
+    }
     return;
   }
 
   try {
-    const response = await fetch(`/api/products/${productId}`);
+    // Add cache-busting timestamp to ensure fresh product data
+    const response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
     if (!response.ok) throw new Error('المنتج غير موجود.');
     const product = await response.json();
 
     // Store product data globally for button functionality
     window.currentProduct = product;
+
+    // Update page SEO and URL
+    updatePageSEO(product);
+    updateBreadcrumb(product);
 
     let images = [];
     try {
@@ -365,27 +408,69 @@ async function loadProductDetail() {
     setOrUpdateMeta('twitter:description', product.description ? product.description.substring(0, 160) : '');
     setOrUpdateMeta('twitter:image', images[0]);
 
-    // --- SEO: Structured Data (JSON-LD) ---
+    // --- SEO: Enhanced Structured Data (JSON-LD) ---
     const productJsonLd = {
       "@context": "https://schema.org/",
       "@type": "Product",
       "name": product.name,
       "image": images.map(img => img.startsWith('http') ? img : `https://omervita.com/${img.replace(/^\/*/, '')}`),
-      "description": product.description,
-      "sku": product.sku || product.id,
+      "description": product.description || `${product.name} - منتج طبيعي عالي الجودة من Omervita`,
+      "sku": product.sku || `OMERVITA-${product.id}`,
+      "mpn": product.mpn || product.id,
       "brand": {
         "@type": "Brand",
-        "name": "Omervita"
+        "name": "Omervita",
+        "url": "https://omervita.com/"
       },
-      "category": (product.categories && product.categories[0] && product.categories[0].name) || '',
+      "manufacturer": {
+        "@type": "Organization",
+        "name": "Omervita",
+        "url": "https://omervita.com/"
+      },
+      "category": (product.categories && product.categories.length > 0) ? product.categories.map(cat => cat.name).join(', ') : 'العناية الشخصية',
       "offers": {
         "@type": "Offer",
         "priceCurrency": "DZD",
         "price": product.price,
+        "priceValidUntil": new Date(new Date().getTime() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
         "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "url": window.location.href
-      }
+        "url": window.location.href,
+        "seller": {
+          "@type": "Organization",
+          "name": "Omervita",
+          "url": "https://omervita.com/"
+        },
+        "itemCondition": "https://schema.org/NewCondition"
+      },
+      "url": window.location.href
     };
+    
+    // Add aggregate rating if available
+    if (product.avgRating && product.reviewCount > 0) {
+      productJsonLd.aggregateRating = {
+        "@type": "AggregateRating",
+        "ratingValue": product.avgRating,
+        "reviewCount": product.reviewCount,
+        "bestRating": 5,
+        "worstRating": 1
+      };
+    }
+    
+    // Add additional product properties if available
+    if (product.weight) {
+      productJsonLd.weight = {
+        "@type": "QuantitativeValue",
+        "value": product.weight,
+        "unitText": "g"
+      };
+    }
+    
+    if (product.dimensions) {
+      productJsonLd.depth = product.dimensions.depth || null;
+      productJsonLd.height = product.dimensions.height || null;
+      productJsonLd.width = product.dimensions.width || null;
+    }
+    
     let script = document.getElementById('product-jsonld');
     if (!script) {
       script = document.createElement('script');
@@ -412,9 +497,18 @@ async function loadProductDetail() {
         <span class="fw-bold" style="color:var(--military-green,#715100);font-size:1.1em">
           <i class="bi bi-tags"></i> الفئات:
         </span>
-        ${product.categories.map(cat =>
-          `<span class="badge bg-success mx-1" style="background:var(--orange-accent,#ffbf00);color:var(--dark-charcoal,#2c2c2c);font-weight:500;font-size:0.91em;padding:.32em .62em;letter-spacing:.02em;"><i class="bi bi-tag"></i> ${cat.name}</span>`
-        ).join('')}
+        ${product.categories.map(cat => {
+          // Map category ID to known slug (same as index page)
+          let categorySlug;
+          switch(cat.id) {
+            case 1: categorySlug = 'alanayh-alshar-1'; break;
+            case 2: categorySlug = 'alanayh-alshrh-2'; break;
+            case 3: categorySlug = 'aghdhyh-shyh-3'; break;
+            case 4: categorySlug = 'altwal-4'; break;
+            default: categorySlug = `category-${cat.id}`;
+          }
+          return `<a href="/categories/${categorySlug}" class="badge bg-success mx-1 text-decoration-none" style="background:var(--orange-accent,#ffbf00);color:var(--dark-charcoal,#2c2c2c);font-weight:500;font-size:0.91em;padding:.32em .62em;letter-spacing:.02em;"><i class="bi bi-tag"></i> ${cat.name}</a>`;
+        }).join('')}
       `;
       detailsCol.appendChild(categoriesDiv);
     }
@@ -474,7 +568,7 @@ async function loadProductDetail() {
     goToCartButton.innerHTML = `<i class="bi bi-cart me-1"></i>سلتي`;
     goToCartButton.classList.add('btn', 'btn-outline-secondary', 'mt-3', 'ms-2', 'px-4', 'py-2');
     goToCartButton.addEventListener('click', () => {
-      window.location.href = 'cart.html';
+      window.location.href = '/cart';
     });
     detailsCol.appendChild(goToCartButton);
 
@@ -509,7 +603,7 @@ async function loadProductDetail() {
             }
             
             // Redirect to cart page
-            window.location.href = 'cart.html';
+            window.location.href = '/cart';
           }
         });
       }
@@ -665,12 +759,50 @@ async function loadProductDetail() {
 
     // --- RELATED PRODUCTS ---
     renderRelatedProducts(product);
-    loadAllCategoriesAndRenderShortcuts(product.categories || []);
+    loadAllCategoriesAndRenderShortcuts();
 
     loadReviews(productId);
+    
+    // Initialize auto-refresh for real-time updates
+    console.log('🔄 Product loaded successfully, enabling auto-refresh...');
+    enableAutoRefresh();
   } catch (error) {
     console.error('Error loading product details:', error);
-    document.getElementById('product-detail-container').innerHTML = `<p>خطأ: ${error.message}</p>`;
+    hideGlobalLoadingSpinner();
+    
+    // Enhanced error display
+    const errorContainer = document.getElementById('product-detail-container');
+    errorContainer.innerHTML = `
+      <div class="alert alert-danger text-center" role="alert">
+        <div class="mb-3">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem; color: #dc3545;"></i>
+        </div>
+        <h4 class="alert-heading">حدث خطأ أثناء تحميل المنتج</h4>
+        <p class="mb-3">${error.message || 'تعذر تحميل تفاصيل المنتج. يرجى المحاولة مرة أخرى.'}</p>
+        <hr>
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-primary" onclick="window.location.reload()">
+            <i class="bi bi-arrow-clockwise me-1"></i>إعادة المحاولة
+          </button>
+          <button class="btn btn-secondary" onclick="window.location.href='/products'">
+            <i class="bi bi-arrow-left me-1"></i>العودة للمنتجات
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Update page meta for error case
+    document.title = "Omervita - خطأ في تحميل المنتج";
+    
+    // Update breadcrumb for error case
+    const breadcrumbContainer = document.getElementById('product-breadcrumb');
+    if (breadcrumbContainer) {
+      breadcrumbContainer.innerHTML = `
+        <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
+        <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
+        <li class="breadcrumb-item active" aria-current="page">خطأ في التحميل</li>
+      `;
+    }
   } finally {
     hideGlobalLoadingSpinner();
   }
@@ -688,7 +820,8 @@ async function renderRelatedProducts(product) {
   // We'll use only the first category for backend query (as the API supports single category param)
   const mainCat = mainCatIds[0];
   try {
-    const resp = await fetch(`/api/products?category=${mainCat}&limit=6`);
+    // Add cache-busting timestamp to get fresh related products
+    const resp = await fetch(`/api/products?category=${mainCat}&limit=6&_t=${Date.now()}`);
     let products = await resp.json();
 
     // Filter out products that are NOT in any of the current product's categories 
@@ -711,16 +844,25 @@ async function renderRelatedProducts(product) {
     <div class="row g-3">
       ${products.map(p => `
         <div class="col-12 col-md-4">
-          <a href="product-detail.html?id=${p.id}" class="text-decoration-none">
+          <a href="/products/${p.slug || SlugUtil.generateProductSlug(p)}" class="text-decoration-none">
             <div class="card related-product-card h-100 shadow-sm">
               <img src="${(p.thumbnail || 'images/default-product.jpg')}" class="card-img-top related-product-img">
               <div class="card-body d-flex flex-column py-2 px-2">
                 <h5 class="card-title" style="color:var(--military-green,#715100);font-size:0.98em;font-weight:700">${p.name}</h5>
                 <span style="color: rgb(255, 115, 0);font-weight:600;">دج${p.price}</span>
                 <div class="mt-auto">
-                  ${(p.categories || []).map(cat =>
-                    `<span class="badge bg-light border text-dark me-1" style="font-size:0.90em;padding:.25em .48em;"><i class="bi bi-tag"></i> ${cat.name}</span>`
-                  ).join('')}
+                  ${(p.categories || []).map(cat => {
+                    // Map category ID to known slug (same as index page)
+                    let categorySlug;
+                    switch(cat.id) {
+                      case 1: categorySlug = 'alanayh-alshar-1'; break;
+                      case 2: categorySlug = 'alanayh-alshrh-2'; break;
+                      case 3: categorySlug = 'aghdhyh-shyh-3'; break;
+                      case 4: categorySlug = 'altwal-4'; break;
+                      default: categorySlug = `category-${cat.id}`;
+                    }
+                    return `<a href="/categories/${categorySlug}" class="badge bg-light border text-dark me-1 text-decoration-none" style="font-size:0.90em;padding:.25em .48em;"><i class="bi bi-tag"></i> ${cat.name}</a>`;
+                  }).join('')}
                 </div>
               </div>
             </div>
@@ -731,14 +873,23 @@ async function renderRelatedProducts(product) {
   </div>
 `;
 
-  } catch {
-    document.getElementById('related-products-row').innerHTML = '';
+  } catch (error) {
+    console.error('Error loading related products:', error);
+    document.getElementById('related-products-row').innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-light text-center" role="alert">
+          <i class="bi bi-info-circle me-2"></i>
+          <span>لا يمكن عرض المنتجات المرتبطة في الوقت الحالي</span>
+        </div>
+      </div>
+    `;
   }
 }
 //load reviews
 async function loadReviews(productId) {
   try {
-    const response = await fetch(`/api/products/${productId}/reviews`);
+    // Add cache-busting timestamp to ensure fresh data
+    const response = await fetch(`/api/products/${productId}/reviews?_t=${Date.now()}`);
     const reviews = await response.json();
     const reviewsContainer = document.getElementById('reviews-container');
     const toggleBtn = document.getElementById('reviews-toggle-btn');
@@ -798,6 +949,15 @@ async function loadReviews(productId) {
     updateToggleBtn();
   } catch (error) {
     console.error('Error loading reviews:', error);
+    const reviewsContainer = document.getElementById('reviews-container');
+    if (reviewsContainer) {
+      reviewsContainer.innerHTML = `
+        <div class="alert alert-light text-center" role="alert">
+          <i class="bi bi-chat-square-text me-2"></i>
+          <span>لا يمكن عرض التعليقات في الوقت الحالي</span>
+        </div>
+      `;
+    }
   }
 }
 
@@ -963,25 +1123,64 @@ document.getElementById('review-form').addEventListener('submit', async (e) => {
 //helper to load all categories:
 async function loadAllCategoriesAndRenderShortcuts(selectedCategories = []) {
   try {
-    const resp = await fetch('/api/categories');
-    const allCats = await resp.json();
     const row = document.getElementById('product-categories-row');
-    row.innerHTML = `
-      <div class="col-12 d-flex flex-wrap gap-2 justify-content-center mt-3">
-        ${allCats.map(cat => `
-          <a href="products.html?category=${cat.id}" class="btn btn-light border shadow-sm px-3 py-2 fw-semibold" style="border-radius:14px;color:var(--military-green,#715100);background:linear-gradient(90deg,#fff7e6 70%,#fff 100%);font-size:1em;">
+    
+    // Fetch ALL categories from the API with cache-busting
+    const response = await fetch(`/api/categories?_t=${Date.now()}`);
+    const allCategories = await response.json();
+    
+    // Show ALL categories as buttons, not just the ones the product belongs to
+    if (allCategories && allCategories.length > 0) {
+      const categoryButtons = allCategories.map(cat => {
+        // Map category ID to known slug (same as index page)
+        let categorySlug;
+        switch(cat.id) {
+          case 1: categorySlug = 'alanayh-alshar-1'; break;
+          case 2: categorySlug = 'alanayh-alshrh-2'; break;
+          case 3: categorySlug = 'aghdhyh-shyh-3'; break;
+          case 4: categorySlug = 'altwal-4'; break;
+          default: categorySlug = `category-${cat.id}`;
+        }
+        
+        return `
+          <a href="/categories/${categorySlug}" class="btn btn-light border shadow-sm px-3 py-2 fw-semibold text-decoration-none" style="border-radius:14px;color:var(--military-green,#715100);background:linear-gradient(90deg,#fff7e6 70%,#fff 100%);font-size:1em;">
             <i class="bi bi-tag-fill me-2" style="color:var(--orange-accent,#ffbf00);"></i>${cat.name}
           </a>
-        `).join('')}
+        `;
+      }).join('');
+      
+      row.innerHTML = `
+        <div class="col-12 d-flex flex-wrap gap-2 justify-content-center mt-3">
+          ${categoryButtons}
+          <button id="product-share-btn" class="btn btn-outline-success px-3 py-2 fw-semibold" style="border-radius:14px;font-size:1em;">
+            <i class="bi bi-share-fill"></i> مشاركة
+          </button>
+        </div>
+      `;
+    } else {
+      // If no categories found, only show share button
+      row.innerHTML = `
+        <div class="col-12 d-flex flex-wrap gap-2 justify-content-center mt-3">
+          <button id="product-share-btn" class="btn btn-outline-success px-3 py-2 fw-semibold" style="border-radius:14px;font-size:1em;">
+            <i class="bi bi-share-fill"></i> مشاركة
+          </button>
+        </div>
+      `;
+    }
+    
+    setupShareButton();
+    // No need for setupCategoryLinks() - using simple HTML anchors like index page
+  } catch (e) {
+    console.error('Error in loadAllCategoriesAndRenderShortcuts:', e);
+    // fallback: show only share button
+    document.getElementById('product-categories-row').innerHTML = `
+      <div class="col-12 d-flex flex-wrap gap-2 justify-content-center mt-3">
         <button id="product-share-btn" class="btn btn-outline-success px-3 py-2 fw-semibold" style="border-radius:14px;font-size:1em;">
           <i class="bi bi-share-fill"></i> مشاركة
         </button>
       </div>
     `;
     setupShareButton();
-  } catch (e) {
-    // fallback: show nothing or an error
-    document.getElementById('product-categories-row').innerHTML = '';
   }
 }
 
@@ -1059,29 +1258,319 @@ if (productId && !isNaN(parseInt(productId))) {
     });
 }
 
-// Function to update breadcrumb navigation
+// Update page SEO metadata
+function updatePageSEO(product) {
+  const title = `${product.name} - Omervita`;
+  document.title = title;
+  const cleanUrl = `https://omervita.com/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
+  const description = product.description ? `${product.description.substring(0, 155)}...` : `اشتري ${product.name} بأفضل سعر من Omervita. منتجات طبيعية عالية الجودة مع توصيل سريع.`;
+  SlugUtil.updatePageMeta(title, description, cleanUrl);
+  updateProductStructuredData(product, cleanUrl);
+  const currentPath = window.location.pathname;
+  if (currentPath.includes('product-detail.html')) {
+    window.history.replaceState({}, '', `/products/${product.slug || SlugUtil.generateProductSlug(product)}`);
+  }
+}
+
+// Update product structured data for better SEO
+function updateProductStructuredData(product, url) {
+  const structuredData = {
+    '@context': 'https://schema.org/',
+    '@type': 'Product',
+    'name': product.name,
+    'description': product.description || `منتج طبيعي عالي الجودة من Omervita`,
+    'image': product.images && product.images.length > 0 ? product.images.map(img => img.startsWith('http') ? img : `https://omervita.com/${img.replace(/^\/+/, '')}`) : [`https://omervita.com/${(product.imagePath || 'images/logo.png').replace(/^\/+/, '')}`],
+    'brand': { '@type': 'Brand', 'name': 'Omervita' },
+    'sku': product.sku || product.id,
+    'url': url,
+    'offers': {
+      '@type': 'Offer',
+      'price': product.price,
+      'priceCurrency': 'DZD',
+      'availability': product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      'url': url,
+      'seller': { '@type': 'Organization', 'name': 'Omervita' }
+    }
+  };
+  if (product.avgRating && product.reviewCount > 0) {
+    structuredData.aggregateRating = { '@type': 'AggregateRating', 'ratingValue': product.avgRating, 'reviewCount': product.reviewCount };
+  }
+  if (product.categories && product.categories.length > 0) {
+    structuredData.category = product.categories.map(cat => cat.name).join(', ');
+  }
+  let jsonLdScript = document.getElementById('product-jsonld');
+  if (!jsonLdScript) {
+    jsonLdScript = document.createElement('script');
+    jsonLdScript.id = 'product-jsonld';
+    jsonLdScript.type = 'application/ld+json';
+    document.head.appendChild(jsonLdScript);
+  }
+  jsonLdScript.textContent = JSON.stringify(structuredData, null, 2);
+}
+
+// Update breadcrumb navigation
 function updateBreadcrumb(product) {
-  const breadcrumb = document.getElementById('product-breadcrumb');
-  if (!breadcrumb) return;
+  const breadcrumbContainer = document.getElementById('product-breadcrumb');
+  if (!breadcrumbContainer) return;
+  const breadcrumbs = [
+    { name: 'الرئيسية', url: '/', icon: 'bi-house' },
+    { name: 'المنتجات', url: '/products', icon: 'bi-shop' }
+  ];
+  if (product.categories && product.categories.length > 0) {
+    const category = product.categories[0];
+    breadcrumbs.push({
+      name: category.name,
+      url: `/categories/${category.slug || SlugUtil.generateCategorySlug(category)}`,
+      icon: 'bi-tag'
+    });
+  }
+  breadcrumbs.push({ name: product.name, current: true });
+  const breadcrumbHtml = breadcrumbs.map((crumb, index) => {
+    if (crumb.current) {
+      return `<li class="breadcrumb-item active" aria-current="page">${crumb.name}</li>`;
+    } else {
+      return `<li class="breadcrumb-item"><a href="${crumb.url}"><i class="${crumb.icon} me-1"></i>${crumb.name}</a></li>`;
+    }
+  }).join('');
+  breadcrumbContainer.innerHTML = breadcrumbHtml;
   
-  // Set product name in breadcrumb
-  const productNameItem = breadcrumb.querySelector('.product-name');
-  if (productNameItem) {
-    productNameItem.textContent = product.name || "منتج";
+  // Update breadcrumb structured data
+  updateBreadcrumbStructuredData(product);
+}
+
+// Update breadcrumb structured data
+function updateBreadcrumbStructuredData(product) {
+  const breadcrumbItems = [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "الرئيسية",
+      "item": "https://omervita.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "المنتجات",
+      "item": "https://omervita.com/products"
+    }
+  ];
+  
+  let position = 3;
+  if (product.categories && product.categories.length > 0) {
+    const category = product.categories[0];
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      "position": position++,
+      "name": category.name,
+      "item": `https://omervita.com/categories/${category.slug || SlugUtil.generateCategorySlug(category)}`
+    });
   }
   
-  // Set category link in breadcrumb
-  const categoryItem = breadcrumb.querySelector('.category-link');
-  if (categoryItem && product.categories && product.categories.length > 0) {
-    const primaryCategory = product.categories[0]; // Use the first category
-    categoryItem.innerHTML = `<a href="products.html?category=${primaryCategory.id}">${primaryCategory.name}</a>`;
-    categoryItem.style.display = 'list-item';
-  } else if (categoryItem) {
-    categoryItem.style.display = 'none'; // Hide category if not available
+  breadcrumbItems.push({
+    "@type": "ListItem",
+    "position": position,
+    "name": product.name,
+    "item": window.location.href
+  });
+  
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumbItems
+  };
+  
+  let breadcrumbScript = document.getElementById('breadcrumb-schema');
+  if (!breadcrumbScript) {
+    breadcrumbScript = document.createElement('script');
+    breadcrumbScript.id = 'breadcrumb-schema';
+    breadcrumbScript.type = 'application/ld+json';
+    document.head.appendChild(breadcrumbScript);
+  }
+  breadcrumbScript.textContent = JSON.stringify(breadcrumbSchema, null, 2);
+}
+
+// Auto-refresh functionality for real-time updates
+
+// Function to enable smart auto-refresh - only refresh when returning to page
+function enableAutoRefresh(intervalMs = 30000) { // Not used for continuous refresh
+  console.log('🔄 Enabling smart auto-refresh for product detail');
+  
+  // Don't start continuous refresh, just mark as enabled
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
   }
   
-  // Set document title for better SEO
-  document.title = `${product.name} | Omervita`;
+  // Show refresh indicator briefly
+  showRefreshIndicator();
+  
+  // Mark that we've refreshed once for this page visit
+  hasRefreshedOnce = true;
+  lastRefreshTime = Date.now();
+  
+  console.log('🔄 Smart refresh enabled - will only refresh when returning to page');
+}
+
+// Add manual refresh button for testing auto-update
+function addManualRefreshButton() {
+  if (document.getElementById('manual-refresh-btn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'manual-refresh-btn';
+  btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
+  btn.className = 'btn btn-outline-primary btn-sm position-fixed';
+  btn.style.cssText = 'top: 80px; right: 20px; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+  btn.onclick = async function() {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...';
+    await forceFullProductRefresh();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
+  };
+  document.body.appendChild(btn);
+}
+
+// Force a full reload of product details, reviews, and related products
+async function forceFullProductRefresh() {
+  if (!productId) return;
+  
+  console.log('🔄 Force refreshing product data...');
+  showRefreshNotification('جاري تحديث بيانات المنتج...');
+  
+  try {
+    // Refresh reviews first (fastest)
+    await loadReviews(productId);
+    
+    // Refresh related products
+    if (window.currentProduct) {
+      await renderRelatedProducts(window.currentProduct);
+    }
+    
+    // Update timestamp
+    lastRefreshTime = Date.now();
+    
+    showRefreshNotification('تم تحديث بيانات المنتج!');
+    console.log('🔄 Product refresh completed');
+  } catch (error) {
+    console.error('❌ Force refresh failed:', error);
+    showRefreshNotification('فشل في تحديث البيانات');
+  }
+}
+
+// Handle page visibility changes - refresh only when returning to page
+document.addEventListener('visibilitychange', () => {
+  const wasPageVisible = isPageVisible;
+  isPageVisible = !document.hidden;
+  
+  if (isPageVisible && !wasPageVisible) {
+    // Page became visible after being hidden - check if we should refresh
+    const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+    const minRefreshInterval = 30000; // 30 seconds minimum between refreshes
+    
+    if (timeSinceLastRefresh > minRefreshInterval && typeof productId !== 'undefined' && productId) {
+      console.log('🔄 Page became visible, refreshing data...');
+      forceFullProductRefresh();
+      lastRefreshTime = Date.now();
+    } else {
+      console.log('🔄 Page became visible but refresh skipped (too recent)');
+    }
+  }
+});
+
+// Handle page focus/blur events for better detection
+window.addEventListener('focus', () => {
+  if (!isPageVisible) {
+    isPageVisible = true;
+    // Check if we should refresh when window gets focus
+    const timeSinceLastRefresh = Date.now() - lastRefreshTime;
+    const minRefreshInterval = 30000; // 30 seconds
+    
+    if (timeSinceLastRefresh > minRefreshInterval && typeof productId !== 'undefined' && productId) {
+      console.log('🔄 Window focused, refreshing data...');
+      forceFullProductRefresh();
+      lastRefreshTime = Date.now();
+    }
+  }
+});
+
+window.addEventListener('blur', () => {
+  // Don't immediately set to false, let visibilitychange handle it
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+  disableAutoRefresh();
+});
+
+// User-friendly refresh notification
+function showRefreshNotification(message = 'تم تحديث البيانات') {
+  // Create or update existing notification
+  let notification = document.getElementById('refresh-notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.id = 'refresh-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(25, 135, 84, 0.9);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    `;
+    document.body.appendChild(notification);
+  }
+  
+  notification.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${message}`;
+  
+  // Show notification
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 100);
+  
+  // Hide notification after 3 seconds
+  setTimeout(() => {
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 3000);
+}
+
+// Optional: Add refresh indicator when auto-refresh is active
+function showRefreshIndicator() {
+  let indicator = document.getElementById('refresh-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'refresh-indicator';
+    indicator.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(13, 202, 240, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 9998;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    `;
+    indicator.innerHTML = `<i class="bi bi-check-circle me-1"></i>التحديث الذكي مفعل`;
+    document.body.appendChild(indicator);
+  }
+  
+  // Auto-hide after 3 seconds (shorter since it's not continuous)
+  setTimeout(() => {
+    if (indicator.parentNode) {
+      indicator.parentNode.removeChild(indicator);
+    }
+  }, 3000);
 }
 
 

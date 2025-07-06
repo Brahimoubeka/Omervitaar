@@ -5,7 +5,7 @@
   "phone": "+905518560018",
   "email": "brahimzino9@gmail.com",
   "logo": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png",
-  "cover1": "/uploads/cover1.png",
-  "cover2": "",
-  "cover3": ""
+  "cover1": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp",
+  "cover2": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp",
+  "cover3": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp"
 }

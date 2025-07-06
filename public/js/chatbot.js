@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(option === 'track_order') {
       chatbotInput.style.display = 'none';
       sendMessageBtn.style.display = 'none';
-      chatbotMessages.innerHTML += '<div class="chatbot-link-box"><a href="/orders.html" class="chatbot-link" target="_blank">اذهب إلى صفحة تتبع الطلبات</a></div>';
+      chatbotMessages.innerHTML += '<div class="chatbot-link-box"><a href="/orders" class="chatbot-link" target="_blank">اذهب إلى صفحة تتبع الطلبات</a></div>';
     } else if(option === 'contact_person') {
       chatbotInput.style.display = 'none';
       sendMessageBtn.style.display = 'none';
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use the same structure as the main product card, but smaller for chatbot
     const card = document.createElement('div');
     card.innerHTML = `
-      <a href="product-detail.html?id=${product.id}" target="_blank" style="text-decoration:none;color:inherit;">
+      <a href="/products/${product.slug || SlugUtil.generateProductSlug(product)}" target="_blank" style="text-decoration:none;color:inherit;">
         <div class="product-card product-card-chatbot shadow-sm h-100" style="min-width:140px;max-width:140px;cursor:pointer;">
           <div class="product-img-box" style="min-height:80px;max-height:90px;">
             <img src="${product.imagePath || 'images/logo.png'}" alt="${product.name}" style="height:80px;object-fit:contain;width:100%;background:#f8f8f8;">

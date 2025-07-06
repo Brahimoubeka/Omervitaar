@@ -1,0 +1,260 @@
+/**
+ * Image Optimization and Lazy Loading CSS
+ * Provides smooth loading animations and responsive image styling
+ */
+
+/* Base lazy image styles */
+.lazy-image {
+  transition: opacity 0.3s ease-in-out, filter 0.3s ease-in-out;
+  background-color: #f8f9fa;
+  background-image: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+                    linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+                    linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+                    linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  min-height: 100px;
+}
+
+/* Loading state */
+.lazy-image.loading {
+  opacity: 0.7;
+  filter: blur(2px);
+  animation: imageLoading 1.5s infinite ease-in-out;
+}
+
+/* Loaded state */
+.lazy-image.loaded {
+  opacity: 1;
+  filter: none;
+  background: none;
+  animation: imageLoaded 0.5s ease-in-out;
+}
+
+/* Error state */
+.lazy-image.error {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  position: relative;
+}
+
+.lazy-image.error::after {
+  content: '⚠️ فشل في تحميل الصورة';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Loading animation */
+@keyframes imageLoading {
+  0% {
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
+  100% {
+    background-position: 20px 20px, 20px 30px, 30px 10px, 10px 20px;
+  }
+}
+
+/* Loaded animation */
+@keyframes imageLoaded {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive image improvements */
+.responsive-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Product image specific styles */
+.product-image {
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Logo image styles */
+.logo-image {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Cover image styles */
+.cover-image {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .cover-image {
+    height: 200px;
+  }
+}
+
+/* Image placeholder improvements */
+.image-placeholder {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 14px;
+  border-radius: 8px;
+  min-height: 150px;
+}
+
+/* Progressive image enhancement */
+.progressive-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.progressive-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+  animation: shimmer 2s infinite;
+  z-index: 1;
+}
+
+.progressive-image.loaded::before {
+  display: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* WebP support detection */
+.webp .lazy-image[data-webp] {
+  background-image: attr(data-webp url);
+}
+
+/* Intersection Observer fallback */
+.no-intersection-observer .lazy-image {
+  opacity: 1;
+  filter: none;
+}
+
+/* Print styles */
+@media print {
+  .lazy-image {
+    opacity: 1 !important;
+    filter: none !important;
+    background: none !important;
+  }
+  
+  .lazy-image.loading,
+  .lazy-image.error {
+    display: none;
+  }
+}
+
+/* Accessibility improvements */
+.lazy-image[aria-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .lazy-image {
+    transition: none;
+    animation: none;
+  }
+  
+  .lazy-image.loading {
+    animation: none;
+    opacity: 0.8;
+  }
+  
+  .lazy-image.loaded {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .lazy-image.error::after {
+    background: black;
+    color: white;
+    border: 2px solid white;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+.lazy-image:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Image optimization hints */
+.lazy-image {
+  /* Hint to browser about image decode */
+  image-rendering: auto;
+  
+  /* Optimize for speed */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: optimize-contrast;
+}
+
+/* Critical images (above fold) */
+.critical-image {
+  /* Don't lazy load critical images */
+  opacity: 1;
+  filter: none;
+}
+
+/* Blurred placeholder for smooth loading */
+.blur-placeholder {
+  filter: blur(10px);
+  transform: scale(1.1);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.blur-placeholder.loaded {
+  filter: none;
+  transform: scale(1);
+}
+
+/* Modern image formats support */
+.avif .lazy-image[data-avif] {
+  background-image: attr(data-avif url);
+}
+
+.webp .lazy-image[data-webp] {
+  background-image: attr(data-webp url);
+}

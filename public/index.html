@@ -9,13 +9,13 @@
   <meta name="description" content="Omervita - العناية الشخصية من الطبيعة 100٪. تسوق منتجات طبيعية، توصيل سريع، جودة عالية، وخدمة عملاء ممتازة. اكتشف مجموعتنا الآن!">
   <meta property="og:title" content="Omervita | العناية الشخصية من الطبيعة 100٪">
   <meta property="og:description" content="تسوق منتجات طبيعية، توصيل سريع، جودة عالية، وخدمة عملاء ممتازة. اكتشف مجموعتنا الآن!">
-  <meta property="og:image" content="https://omervita.com/images/logo.png">
+  <meta property="og:image" content="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png">
   <meta property="og:url" content="https://omervita.com/">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Omervita | العناية الشخصية من الطبيعة 100٪">
   <meta name="twitter:description" content="تسوق منتجات طبيعية، توصيل سريع، جودة عالية، وخدمة عملاء ممتازة. اكتشف مجموعتنا الآن!">
-  <meta name="twitter:image" content="https://omervita.com/images/logo.png">
+  <meta name="twitter:image" content="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png">
   <link rel="canonical" href="https://omervita.com/">
   <script id="org-jsonld" type="application/ld+json"></script>
   <!-- Organization Structured Data (JSON-LD) already present -->
@@ -39,16 +39,50 @@
   fetch('/api/branding')
     .then(res => res.json())
     .then(branding => {
-      // Update JSON-LD
+      // Enhanced Organization Schema with more details
       const orgJsonLd = {
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": "Omervita",
+        "alternateName": "أوميرفيتا",
         "url": "https://omervita.com/",
-        "logo": "https://omervita.com/images/logo.png",
+        "logo": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png",
+        "description": "العناية الشخصية من الطبيعة 100٪ - منتجات طبيعية عالية الجودة مع توصيل سريع وخدمة عملاء ممتازة",
+        "foundingDate": "2020",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": branding.phone || "+213-XXX-XXX-XXX",
+          "contactType": "customer service",
+          "availableLanguage": ["ar", "en"]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "الجزائر",
+          "addressCountry": "DZ"
+        },
         "sameAs": [branding.facebook, branding.instagram, branding.tiktok].filter(Boolean)
       };
-      document.getElementById('org-jsonld').textContent = JSON.stringify(orgJsonLd);
+      
+      // WebSite Schema for enhanced search features
+      const websiteJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Omervita",
+        "url": "https://omervita.com/",
+        "description": "العناية الشخصية من الطبيعة 100٪",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Omervita"
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://omervita.com/products?search={search_term_string}",
+          "query-input": "required name=search_term_string"
+        },
+        "inLanguage": "ar"
+      };
+      
+      document.getElementById('org-jsonld').textContent = JSON.stringify([orgJsonLd, websiteJsonLd], null, 2);
       // Update footer/social links already handled elsewhere
     });
   </script>
@@ -63,6 +97,19 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" as="style" onload="this.rel='stylesheet'">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet" />
+  
+  <!-- Image Optimization CSS -->
+  <link rel="stylesheet" href="/css/image-optimization.css?v=1736152800">
+  
+ 
+  <!-- PWA Manifest removed - offline functionality disabled -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Omervita">
+  <link rel="apple-touch-icon" href="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png">
+  <meta name="msapplication-TileImage" content="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png">
+  <meta name="msapplication-TileColor" content="#715100">
   
   <style>
     :root {
@@ -316,30 +363,179 @@
 }
 
 /* Carousel Slides */
+.cover-carousel {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
+.cover-carousel .carousel {
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+
+.cover-carousel .carousel-inner {
+  border-radius: 15px;
+  overflow: hidden;
+  /* Simple container - no fixed heights */
+}
+
+.cover-carousel .carousel-item {
+  /* Faster, simpler transition */
+  transition: transform 0.4s ease;
+  overflow: hidden;
+}
+
 .cover-img {
   height: 370px;
   object-fit: cover;
-  opacity: 0;
-  transform: translateY(30px);
-  animation: slideUp 1s ease-out forwards;
-  padding-bottom: 2px;
-  padding-top: 10px;
-
+  object-position: center;
+  border-radius: 15px;
+  width: 100%;
+  display: block;
+  max-width: 100%;
+  max-height: 370px;
+  /* Simple, no animations */
+  opacity: 1;
+  transform: none;
+  transition: none;
+  padding: 0;
+  margin: 0;
+  position: static;
 }
+
+/* Enhanced carousel controls */
+.cover-carousel .carousel-control-prev,
+.cover-carousel .carousel-control-next {
+  width: 8%;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.cover-carousel .carousel-control-prev:hover,
+.cover-carousel .carousel-control-next:hover {
+  opacity: 1;
+}
+
+.cover-carousel .carousel-control-prev-icon,
+.cover-carousel .carousel-control-next-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  padding: 0.5rem;
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* Beautiful carousel indicators */
+.cover-carousel .carousel-indicators {
+  bottom: 20px;
+  margin-bottom: 0;
+}
+
+.cover-carousel .carousel-indicators [data-bs-target] {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin: 0 6px;
+  background-color: rgba(255,255,255,0.5);
+  border: 2px solid rgba(255,255,255,0.8);
+  transition: all 0.3s ease;
+  transform: scale(0.8);
+}
+
+.cover-carousel .carousel-indicators [data-bs-target].active {
+  background-color: var(--orange-accent);
+  border-color: var(--orange-accent);
+  transform: scale(1);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.6);
+}
+
+.cover-carousel .carousel-indicators [data-bs-target]:hover {
+  background-color: rgba(255,255,255,0.8);
+  transform: scale(0.9);
+}
+
+/* Simple slide transitions - only horizontal movement */
+.cover-carousel .carousel-item.active,
+.cover-carousel .carousel-item-next,
+.cover-carousel .carousel-item-prev {
+  display: block;
+}
+
+.cover-carousel .carousel-item-next:not(.carousel-item-start),
+.cover-carousel .active.carousel-item-end {
+  transform: translateX(100%);
+}
+
+.cover-carousel .carousel-item-prev:not(.carousel-item-end),
+.cover-carousel .active.carousel-item-start {
+  transform: translateX(-100%);
+}
+
+/* Add subtle overlay for better text readability */
+.cover-carousel .carousel-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0,0,0,0.1) 50%,
+    rgba(0,0,0,0.3) 100%
+  );
+  z-index: 1;
+  border-radius: 15px;
+}
+
+/* Simple carousel container - no complex positioning */
+.cover-carousel .carousel-item {
+  overflow: hidden;
+  position: relative;
+}
+
 
 @media (max-width: 768px) {
   .cover-img {
     height: 180px;
+    max-height: 180px;
+  }
+  
+  .cover-carousel .carousel-control-prev-icon,
+  .cover-carousel .carousel-control-next-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .cover-carousel .carousel {
+    border-radius: 10px;
+  }
+  
+  .cover-carousel .carousel-inner {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .cover-img {
+    border-radius: 10px;
+  }
+  
+  .cover-carousel .carousel-item::before {
+    border-radius: 10px;
+  }
+  
+  .cover-carousel .carousel-indicators [data-bs-target] {
+    width: 10px;
+    height: 10px;
+    margin: 0 4px;
   }
 }
 
-/* Slide Up Animation */
-@keyframes slideUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
     /* Navbar Fixed */
     .navbar.fixed-top {
       backdrop-filter: blur(10px);
@@ -400,6 +596,25 @@
       text-shadow: 0 0 8px rgba(255, 107, 53, 0.3);
     }
 
+    /* Fix footer logo styling */
+    footer img[data-dynamic-logo] {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    footer .col-md-3 {
+      background: transparent !important;
+    }
+
+    footer .col-md-3 a {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+
     /* Social Media Icons */
     .social-facebook {
       color: #1877F2 !important;
@@ -429,6 +644,23 @@
       color: #333333 !important;
       transform: translateY(-3px) scale(1.1);
       filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    }
+
+    /* Global logo styling - ensure no white background anywhere */
+    img[data-dynamic-logo] {
+      background: transparent !important;
+      background-color: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+
+    /* Ensure parent containers don't add background */
+    a:has(img[data-dynamic-logo]) {
+      background: transparent !important;
+      background-color: transparent !important;
+      border: none !important;
+      padding: 0 !important;
     }
 
     /* Footer Link Styles */
@@ -470,10 +702,19 @@
   footer .row > .col-md-3 {
     text-align: center !important;
     margin-bottom: 2rem;
+    background: transparent !important;
   }
   
   footer .col-md-3 img {
     margin: 0 auto;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  footer .col-md-3 a {
+    background: transparent !important;
+    border: none !important;
   }
   
   footer .list-unstyled {
@@ -509,6 +750,12 @@
   footer .col-md-3 {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+    background: transparent !important;
+  }
+  
+  footer .col-md-3 img {
+    background: transparent !important;
+    border: none !important;
   }
   
   footer h5 {
@@ -645,15 +892,23 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   <!-- Bootstrap Navbar -->
  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
     <div class="container">
-      <img data-dynamic-logo src="../images/logo.png" alt="Omervita Logo" width="100px" height="100px" style="margin-bottom: 20px;" >
-      <a class="navbar-brand fw-bold" href="index.html">Omervita</a>
+      <img data-dynamic-logo 
+           src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png" 
+           alt="Omervita Logo - العناية الطبيعية" 
+           width="100" 
+           height="100" 
+           style="margin-bottom: 20px;" 
+           class="logo-image critical-image lazy-image"
+           loading="eager"
+           decoding="async">
+      <a class="navbar-brand fw-bold" href="/">Omervita</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="فتح/إغلاق القائمة">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
+          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-bag me-1"></i> المنتجات
@@ -662,11 +917,11 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
               <li><span class="dropdown-item text-muted">جاري التحميل...</span></li>
             </ul>
           </li>
-          <li class="nav-item"><a class="nav-link" href="contact.html"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
+          <li class="nav-item"><a class="nav-link" href="/contact"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
         </ul>
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
-          <li class="nav-item"><a class="nav-link" href="login.html"><i class="bi bi-person me-1"></i> تسجيل الدخول / إنشاء حساب</a></li>
-          <li class="nav-item"><a class="nav-link" href="cart.html"><i class="bi bi-cart me-1"></i> سلتي</a></li>
+          <li class="nav-item"><a class="nav-link" href="/login"><i class="bi bi-person me-1"></i> تسجيل الدخول / إنشاء حساب</a></li>
+          <li class="nav-item"><a class="nav-link" href="/cart"><i class="bi bi-cart me-1"></i> سلتي</a></li>
         </ul>
       </div>
     </div>
@@ -679,7 +934,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
       <p class="d-block d-md-none text-muted small mb-0" style="font-size: 0.85rem;"><i class="bi bi-arrow-left-right me-1"></i> اسحب للتصفح</p>
     </div>
     <div class="category-shortcuts-scroll" style="display: flex; flex-direction: row; overflow-x: auto; gap: 15px; padding-bottom: 12px; scrollbar-width: thin; scrollbar-color: var(--orange-accent) var(--light-gray); -webkit-overflow-scrolling: touch;">
-      <a href="products.html?category=2" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+      <a href="/categories/alanayh-alshrh-2" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
         <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
           <div class="cat-shortcut-icon bg-pink" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-droplet-half"></i>
@@ -687,7 +942,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
           <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">العناية بالبشرة</div>
         </div>
       </a>
-      <a href="products.html?category=1" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+      <a href="/categories/alanayh-alshar-1" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
         <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
           <div class="cat-shortcut-icon bg-orange" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-scissors"></i>
@@ -695,7 +950,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
           <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">العناية بالشعر</div>
         </div>
       </a>
-      <a href="products.html?category=3" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+      <a href="/categories/aghdhyh-shyh-3" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
         <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
           <div class="cat-shortcut-icon bg-green" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-capsule"></i>
@@ -703,7 +958,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
           <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">أغذية صحية</div>
         </div>
       </a>
-      <a href="products.html?category=4" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
+      <a href="/categories/altwal-4" class="cat-shortcut-link text-decoration-none" style="flex: 0 0 auto; width: 120px;">
         <div class="cat-shortcut-card shadow-sm" style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
           <div class="cat-shortcut-icon bg-orange" style="width: 50px; height: 50px; font-size: 1.4rem;">
             <i class="bi bi-egg-fried"></i>
@@ -717,16 +972,49 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 
   <!-- Cover Carousel -->
 <section class="cover-carousel mb-0">
-  <div id="coverCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="3500">
+  <div id="coverCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="4000">
+    <!-- Carousel indicators -->
+    <div class="carousel-indicators">
+      <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+      <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+      <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+    </div>
     <div class="carousel-inner">
       <div class="carousel-item active">
-        <img data-dynamic-cover="1" src="images/cover1.png" class="d-block w-100 cover-img" alt="Cover 1">
+        <img data-dynamic-cover="1" 
+             src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp" 
+             data-src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp"
+             class="d-block w-100 cover-img critical-image lazy-image" 
+             alt="غلاف المنتجات الطبيعية - Omervita"
+             loading="eager"
+             decoding="async"
+             width="1200" 
+             height="400"
+             onerror="this.src='https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png'">
       </div>
       <div class="carousel-item">
-        <img data-dynamic-cover="2" src="images/cover2.png" class="d-block w-100 cover-img" alt="Cover 2">
+        <img data-dynamic-cover="2" 
+             src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp"
+             data-src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp" 
+             class="d-block w-100 cover-img lazy-image" 
+             alt="مجموعة منتجات العناية الطبيعية - Omervita"
+             loading="lazy"
+             decoding="async"
+             width="1200" 
+             height="400"
+             onerror="this.src='https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png'">
       </div>
       <div class="carousel-item">
-        <img data-dynamic-cover="3" src="images/cover3.png" class="d-block w-100 cover-img" alt="Cover 3">
+        <img data-dynamic-cover="3" 
+             src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp"
+             data-src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp" 
+             class="d-block w-100 cover-img lazy-image" 
+             alt="منتجات الصحة والجمال الطبيعية - Omervita"
+             loading="lazy"
+             decoding="async"
+             width="1200" 
+             height="400"
+             onerror="this.src='https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png'">
       </div>
     </div>
     <button class="carousel-control-prev" type="button" data-bs-target="#coverCarousel" data-bs-slide="prev">
@@ -751,7 +1039,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
             ونوفر لك مغذيات صحية وتوابل طبيعية مختارة بعناية، نؤمن بأن نمط الحياة الصحي هو الطريق لحياة أفضل
             وهدفنا أن نجعل رحلتك نحو الأفضل أسهل وأكثر متعة
           </p>
-          <button class="btn btn-hero" onclick="window.location.href='products.html'">
+          <button class="btn btn-hero" onclick="window.location.href='products'">
             <i class="bi bi-bag-heart me-2"></i>
 استكشف الان
           </button>
@@ -868,11 +1156,11 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
         
         <div class="col-lg-4 col-md-5 text-center">
           <div class="user-cta-buttons">
-            <a href="login.html" class="btn btn-user-primary mb-3 w-100" style="background: var(--orange-accent); border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; color: var(--dark-charcoal); transition: all 0.3s ease; text-decoration: none; display: inline-block; box-shadow: 0 4px 15px rgba(255, 191, 0, 0.3);">
+            <a href="/login" class="btn btn-user-primary mb-3 w-100" style="background: var(--orange-accent); border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; color: var(--dark-charcoal); transition: all 0.3s ease; text-decoration: none; display: inline-block; box-shadow: 0 4px 15px rgba(255, 191, 0, 0.3);">
               <i class="bi bi-box-arrow-in-right me-2"></i>
               سجل الدخول
             </a>
-            <a href="register.html" class="btn btn-user-secondary w-100" style="background: transparent; border: 2px solid var(--orange-accent); padding: 15px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; color: var(--orange-accent); transition: all 0.3s ease; text-decoration: none; display: inline-block;">
+            <a href="/register" class="btn btn-user-secondary w-100" style="background: transparent; border: 2px solid var(--orange-accent); padding: 15px 30px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; color: var(--orange-accent); transition: all 0.3s ease; text-decoration: none; display: inline-block;">
               <i class="bi bi-person-plus me-2"></i>
               أنشئ حساب جديد
             </a>
@@ -925,7 +1213,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
           <p class="cta-text">
             ابدأ التسوق الآن لتكون على اطلاع بالعروض الخاصة والمنتجات الجديدة
           </p>
-          <button class="btn btn-cta" onclick="window.location.href='products.html'">
+          <button class="btn btn-cta" onclick="window.location.href='products'">
             <i class="bi bi-lightning me-2"></i>
             استكشف المنتجات
           </button>
@@ -939,64 +1227,69 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     <i class="bi bi-arrow-up-short"></i>
   </button>
 
-  <!-- Updated Footer with better mobile centering -->
-<footer class="pt-5 pb-4">
-  <div class="container">
-    <div class="row">
-      <!-- Logo and tagline section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <a href="index.html" class="d-block mb-3">
-          <!-- Replace all logo images with dynamic loader -->
-<img data-dynamic-logo src="images/logo.png" alt="Omervita Logo" class="img-fluid mx-auto mx-md-0 d-block" style="max-width: 120px" />
-        </a>
-        <p class="mx-auto mx-md-0" style="max-width: 250px;">رضا العملاء أولويتنا</p>
+  <!-- Footer -->
+  <footer class="pt-5 pb-4">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-3 mb-4">
+          <a href="/" class="d-block mb-3">
+            <img data-dynamic-logo src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png" alt="Omervita Logo" class="img-fluid" style="max-width: 120px;" />
+          </a>
+          <p> رضا العملاء أولويتنا</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-info-circle me-2"></i>Omervita عن </h5>
+          <p>العناية الشخصية من الطبيعة 100٪ .استمتعوا بمستوى جديد من الجمال والرفاهية مختارة بعناية بواسطة Omervita</p>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="/" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+            <li class="mb-2"><a href="/products" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
+            <li class="mb-2"><a href="/contact" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
+          </ul>
+        </div>
+        <div class="col-md-3 mb-4">
+          <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
+          <ul class="list-unstyled">
+            <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
+            <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
+            <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
+          </ul>
+        </div>
       </div>
-      
-      <!-- About section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-info-circle me-2"></i>عن Omervita</h5>
-        <p class="mx-auto mx-md-0" style="max-width: 250px;">العناية الشخصية من الطبيعة 100٪. استمتعوا بمستوى جديد من الجمال والرفاهية مختارة بعناية بواسطة Omervita</p>
-      </div>
-      
-      <!-- Quick links section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
-        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
-          <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
-          <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
-        </ul>
-      </div>
-      
-      <!-- Social media section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
-        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
-          <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
-          <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
-        </ul>
+      <hr style="border-color: #555; margin: 2rem 0;">
+      <div class="text-center py-2">
+        <small style="color: #b0b0b0; font-size: 0.9rem;">
+          <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
+          2025 Omervita. جميع الحقوق محفوظة. | تجربة تسوق آمنة
+        </small>
       </div>
     </div>
-    
-    <hr style="border-color: #555; margin: 2rem 0;">
-    
-    <div class="text-center py-2">
-      <small style="color: #b0b0b0; font-size: 0.9rem;">
-        <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
-        2025 Omervita. جميع الحقوق محفوظة. | تجربة تسوق آمنة
-      </small>
-    </div>
-  </div>
-</footer>
+  </footer>
 
   
 
   <!-- Bootstrap JS Bundle CDN -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/header.js"></script>
-  <script src="js/branding.js"></script>
+  <script src="/js/slug-util.js?v=1736152800"></script>
+  <script src="/js/header.js?v=1736152800"></script>
+  <script src="/js/branding.js?v=1736152800"></script>
   <script>
+    // Simple carousel setup
+    document.addEventListener('DOMContentLoaded', function() {
+      const carousel = document.getElementById('coverCarousel');
+      if (carousel) {
+        const carouselInstance = new bootstrap.Carousel(carousel, {
+          interval: 4000,
+          ride: 'carousel',
+          pause: 'hover',
+          wrap: true,
+          touch: false // Disable touch to prevent conflicts
+        });
+      }
+    });
+
     // Navbar scroll effect
     window.addEventListener('scroll', function() {
       const navbar = document.querySelector('.navbar');
@@ -1125,7 +1418,12 @@ updateBrandingLinks();
             const li = document.createElement('li');
             const a = document.createElement('a');
             a.className = 'dropdown-item';
-            a.href = `products.html?category=${cat.id}`;
+            a.href = `/categories/${cat.slug || SlugUtil.generateCategorySlug(cat)}`;
+            // Ensure absolute URL handling
+            a.addEventListener('click', (e) => {
+              e.preventDefault();
+              window.location.href = a.href;
+            });
             a.textContent = cat.name;
             li.appendChild(a);
             menu.appendChild(li);
@@ -1140,5 +1438,72 @@ updateBrandingLinks();
     loadCategoriesDropdown();
   </script>
   <main dir="rtl">
+  
+  <!-- Image Optimization JavaScript -->
+  <script src="/js/image-optimizer.js?v=1736152800"></script>
+  
+  <!-- Resource Optimization JavaScript -->
+  <script src="/js/resource-optimizer.js?v=1736152800"></script>
+  
+  <!-- PWA Setup -->
+  <script>
+    // Unregister Service Worker and Clear All Caches
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // Unregister any existing service workers
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          if (registrations.length > 0) {
+            console.log('🧹 Unregistering existing service workers...');
+            registrations.forEach(registration => {
+              console.log('Unregistering service worker:', registration);
+              registration.unregister();
+            });
+            console.log('✅ Service workers unregistered successfully');
+          }
+        });
+        
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(cacheNames => {
+            if (cacheNames.length > 0) {
+              console.log('🧹 Clearing all caches:', cacheNames);
+              cacheNames.forEach(cacheName => {
+                caches.delete(cacheName);
+              });
+              console.log('✅ All caches cleared successfully');
+            }
+          });
+        }
+      });
+    }
+    
+    console.log('🚀 Website now loads fresh data on every page visit');
+    console.log('🔄 No more offline caching - all data comes from backend');
+  </script>
+  
+  <script>
+    // Debug carousel images loading
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Debugging carousel images...');
+      
+      // Check each cover image availability
+      const coverImages = [
+        'https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp',
+        'https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp',
+        'https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp'
+      ];
+      
+      coverImages.forEach((url, index) => {
+        const img = new Image();
+        img.onload = function() {
+          console.log(`Cover ${index + 1} loaded successfully:`, url);
+        };
+        img.onerror = function() {
+          console.error(`Cover ${index + 1} failed to load:`, url);
+        };
+        img.src = url;
+      });
+    });
+  </script>
 </body>
 </html>

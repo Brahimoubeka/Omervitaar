@@ -98,7 +98,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         }
         showMessage(messageDiv, result.message + " ...سيتم تحويلك إلى صفحة تسجيل الدخول", "success");
         setTimeout(() => {
-            window.location.href = 'login.html';
+            window.location.href = '/login';
         }, 1500);
     } catch (error) {
         showMessage(messageDiv, "خطأ: " + error.message, "danger");

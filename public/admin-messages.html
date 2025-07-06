@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Omervita - Admin Mesajlar</title>
+  <title>Omervita - إدارة الرسائل</title>
+  <meta name="description" content="لوحة إدارة الرسائل في Omervita. قراءة والرد على رسائل العملاء واستفساراتهم.">
+  <meta name="robots" content="noindex, nofollow">
   <!-- Bootstrap CSS CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <!-- Bootstrap Icons -->
@@ -311,19 +313,19 @@
   <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
     <div class="container">
       <img src="../images/logo.png" alt="" width="100px" height="100px" style="margin-bottom: 20px;" />
-      <a class="navbar-brand fw-bold" href="admin-messages.html">Omervita Admin</a>
+      <a class="navbar-brand fw-bold" href="/admin-messages">Omervita Admin</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="فتح/إغلاق القائمة">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="index.html"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
-          <li class="nav-item"><a class="nav-link" href="admin-analytics.html"><i class="bi bi-clipboard-data-fill"></i> التحليل</a></li>
-          <li class="nav-item"><a class="nav-link active" href="admin-messages.html"><i class="bi bi-envelope me-1"></i> الرسائل</a></li>
-          <li class="nav-item"><a class="nav-link" href="admin-products.html"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
-          <li class="nav-item"><a class="nav-link" href="admin-orders.html"><i class="bi bi-truck me-1"></i> الطلبات</a></li>
-          <li class="nav-item"><a class="nav-link" href="logout.html"><i class="bi bi-box-arrow-right me-1"></i> تسجيل الخروج</a></li>
+          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin-analytics"><i class="bi bi-clipboard-data-fill"></i> التحليل</a></li>
+          <li class="nav-item"><a class="nav-link active" href="/admin-messages"><i class="bi bi-envelope me-1"></i> الرسائل</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin-products"><i class="bi bi-bag me-1"></i> المنتجات</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin-orders"><i class="bi bi-truck me-1"></i> الطلبات</a></li>
+          <li class="nav-item"><a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right me-1"></i> تسجيل الخروج</a></li>
         </ul>
       </div>
     </div>
@@ -394,7 +396,7 @@
     <div class="row">
       <!-- Logo and tagline section -->
       <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <a href="index.html" class="d-block mb-3">
+        <a href="/" class="d-block mb-3">
           <img src="images/logo.png" alt="Omervita Logo" class="img-fluid mx-auto mx-md-0 d-block" style="max-width: 120px;" />
         </a>
         <p class="mx-auto mx-md-0" style="max-width: 250px;">رضا العملاء أولويتنا</p>
@@ -410,9 +412,9 @@
       <div class="col-md-3 col-12 mb-4 text-center text-md-start">
         <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
         <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="index.html" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
-          <li class="mb-2"><a href="products.html" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
-          <li class="mb-2"><a href="contact.html" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
+          <li class="mb-2"><a href="/" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+          <li class="mb-2"><a href="/products" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
+          <li class="mb-2"><a href="/contact" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
         </ul>
       </div>
       
@@ -440,9 +442,9 @@
 
   <!-- Bootstrap JS Bundle CDN -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="js/header.js"></script>
-  <script src="js/admin-messages.js"></script>
-  <script src="js/branding.js"></script>
+  <script src="/js/header.js?v=1736152800"></script>
+  <script src="/js/admin-messages.js?v=1736152800"></script>
+  <script src="/js/branding.js?v=1736152800"></script>
   <script>
 async function updateBrandingLinks() {
   const res = await fetch('/api/branding');

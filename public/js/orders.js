@@ -15,7 +15,7 @@ async function loadOrders() {
     const token = localStorage.getItem('token');
     if (!token) {
         // Handle case where user is not logged in
-        document.getElementById('orders-container').innerHTML = '<p>لمشاهدة طلباتك، يرجى <a href="login.html">تسجيل الدخول</a>.</p>';
+        document.getElementById('orders-container').innerHTML = '<p>لمشاهدة طلباتك، يرجى <a href="/login">تسجيل الدخول</a>.</p>';
         return;
     }
 

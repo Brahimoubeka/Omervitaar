@@ -61,7 +61,7 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
     showMessage(result.message, 'success');
     document.getElementById('contact-form').reset();
     setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.href = '/';
         }, 3000);
   } catch (error) {
     showMessage(`خطأ: ${error.message}`, 'danger');

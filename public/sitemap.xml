@@ -4,7 +4,7 @@
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-<!-- Updated sitemap for Omervita.com - Last updated: 2025-07-01 -->
+<!-- Updated sitemap for Omervita.com with clean URLs - Last updated: 2025-07-01 -->
 
 <!-- Main Pages -->
 <url>
@@ -12,83 +12,106 @@
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
   <priority>1.00</priority>
 </url>
+
+<!-- E-commerce Core Pages (Clean URLs) -->
 <url>
-  <loc>https://omervita.com/index.html</loc>
+  <loc>https://omervita.com/products</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
   <priority>0.90</priority>
 </url>
+<url>
+  <loc>https://omervita.com/cart</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://omervita.com/checkout</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
 
-<!-- E-commerce Core Pages -->
+<!-- User Account Pages (Clean URLs) -->
+<url>
+  <loc>https://omervita.com/login</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.70</priority>
+</url>
+<url>
+  <loc>https://omervita.com/register</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.70</priority>
+</url>
+<url>
+  <loc>https://omervita.com/orders</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.75</priority>
+</url>
+
+<!-- Support & Information Pages (Clean URLs) -->
+<url>
+  <loc>https://omervita.com/contact</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+
+<!-- Legacy URLs for backward compatibility (lower priority) -->
+<url>
+  <loc>https://omervita.com/index.html</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.60</priority>
+</url>
 <url>
   <loc>https://omervita.com/products.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.90</priority>
+  <priority>0.60</priority>
 </url>
 <url>
   <loc>https://omervita.com/product-detail.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.85</priority>
+  <priority>0.55</priority>
 </url>
 <url>
   <loc>https://omervita.com/cart.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.50</priority>
 </url>
 <url>
   <loc>https://omervita.com/checkout.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.50</priority>
 </url>
-
-<!-- User Account Pages -->
 <url>
   <loc>https://omervita.com/login.html</loc>
-  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.70</priority>
-</url>
-<url>
-  <loc>https://omervita.com/register.html</loc>
-  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.70</priority>
-</url>
-<url>
-  <loc>https://omervita.com/reset-password.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
   <priority>0.50</priority>
 </url>
 <url>
+  <loc>https://omervita.com/register.html</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.50</priority>
+</url>
+<url>
+  <loc>https://omervita.com/reset-password.html</loc>
+  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
+  <priority>0.40</priority>
+</url>
+<url>
   <loc>https://omervita.com/orders.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.75</priority>
+  <priority>0.50</priority>
 </url>
-
-<!-- Support & Information Pages -->
 <url>
   <loc>https://omervita.com/contact.html</loc>
   <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.80</priority>
+  <priority>0.50</priority>
 </url>
 
-<!-- Product Category Pages -->
-<url>
-  <loc>https://omervita.com/products.html?category=1</loc>
-  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.75</priority>
-</url>
-<url>
-  <loc>https://omervita.com/products.html?category=2</loc>
-  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.75</priority>
-</url>
-<url>
-  <loc>https://omervita.com/products.html?category=3</loc>
-  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.75</priority>
-</url>
-<url>
-  <loc>https://omervita.com/products.html?category=4</loc>
-  <lastmod>2025-07-01T12:00:00+00:00</lastmod>
-  <priority>0.75</priority>
-</url>
+<!-- Note: Product-specific and category-specific URLs are generated dynamically -->
+<!-- Example category clean URLs: -->
+<!-- https://omervita.com/categories/beauty-products-1 -->
+<!-- https://omervita.com/categories/skin-care-2 -->
+<!-- Example product clean URLs: -->
+<!-- https://omervita.com/products/organic-face-cream-123 -->
+<!-- https://omervita.com/products/natural-shampoo-456 -->
 
 </urlset>

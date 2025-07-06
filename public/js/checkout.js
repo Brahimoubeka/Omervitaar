@@ -255,7 +255,7 @@ async function proceedWithAvailableItems(availableItems) {
 
     localStorage.removeItem('cart');
     showMessage('شكرًا لك! تم استلام طلبك بنجاح.', 'success');
-    setTimeout(() => window.location.href = 'orders.html', 2000);
+    setTimeout(() => window.location.href = '/orders', 2000);
     
   } catch (error) {
     console.error('Error processing checkout:', error);
@@ -265,7 +265,7 @@ async function proceedWithAvailableItems(availableItems) {
 
 // New function to cancel order and redirect to products page
 function cancelOrder() {
-  window.location.href = 'products.html';
+  window.location.href = '/products';
 }
 
 // Sets up the main form submission logic
@@ -386,7 +386,7 @@ function setupFormSubmitHandler() {
             }
             localStorage.removeItem('cart');
             showMessage('شكرًا لك! تم استلام طلبك بنجاح.', 'success');
-            setTimeout(() => window.location.href = 'orders.html', 2000); // Reload to clear the form and cart display
+            setTimeout(() => window.location.href = '/orders', 2000); // Reload to clear the form and cart display
         } catch (error) {
             console.error('Error processing checkout:', error);
             showMessage(`خطأ: ${error.message}`, 'danger');
@@ -408,7 +408,7 @@ async function showMessage(message, type = 'success') {
     // Make the login/create account part clickable
     message = message.replace(
       /(الرجاء تسجيل الدخول او انشاء حساب أولا|you must be logged in|يجب عليك تسجيل الدخول)/gi,
-      `الرجاء تسجيل الدخول او انشاء حساب أولا<br><a href='login.html' style='color:#0d6efd;text-decoration:underline;font-weight:600;'>تسجيل الدخول أو إنشاء حساب</a>`
+      `الرجاء تسجيل الدخول او انشاء حساب أولا<br><a href='/login' style='color:#0d6efd;text-decoration:underline;font-weight:600;'>تسجيل الدخول أو إنشاء حساب</a>`
     );
     // Add copy order info button FIRST
     message += `<br>أو قم بنسخ معلومات الطلبية <button id='copy-order-info-btn' class='btn btn-outline-secondary btn-sm mt-2' type='button'><i class='bi bi-clipboard'></i> نسخ تفاصيل الطلب</button> ثم قم بارسالها لنا عبر وتساب .`;

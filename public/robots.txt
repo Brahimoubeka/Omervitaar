@@ -1,9 +1,38 @@
-# robots.txt for SEO
+# robots.txt for SEO with clean URLs support
 # Allow all search engines to crawl everything
 User-agent: *
 Disallow:
+
+# Clean URLs are preferred
+Allow: /products
+Allow: /products/
+Allow: /categories/
+Allow: /cart
+Allow: /checkout
+Allow: /contact
+Allow: /login
+Allow: /register
+Allow: /orders
+
+# Legacy URLs (lower priority)
+Allow: /products.html
+Allow: /product-detail.html
+Allow: /cart.html
+Allow: /checkout.html
+Allow: /contact.html
+Allow: /login.html
+Allow: /register.html
+Allow: /orders.html
+
+# Disallow admin and sensitive files
+Disallow: /api/admin/
+Disallow: /*.sqlite
+Disallow: /*.json$
 
 # Do NOT block Meta Pixel, Google Console, or Gemini API endpoints
 # (No Disallow rules for these resources)
 
 Sitemap: https://omervita.com/sitemap.xml
+
+# Crawl delay for respectful crawling
+Crawl-delay: 1

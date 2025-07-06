@@ -11,7 +11,7 @@ function loadCart() {
       <div class="text-center py-5">
         <i class="bi bi-cart-x display-2 mb-3 text-warning"></i>
         <p class="fs-5 fw-semibold mb-2" style="color:var(--military-green,#715100);">سلتك فارغة!</p>
-        <p class="text-secondary">لمواصلة التسوق <a href="products.html" style="color:var(--orange-accent,#ffbf00);text-decoration:underline;">تصفح المنتجات</a>.</p>
+        <p class="text-secondary">لمواصلة التسوق <a href="products" style="color:var(--orange-accent,#ffbf00);text-decoration:underline;">تصفح المنتجات</a>.</p>
       </div>
     `;
     document.getElementById('cart-total').innerHTML = '';
@@ -127,7 +127,7 @@ function updateCartCounter() {
 }
 
 document.getElementById('checkout-button').addEventListener('click', function () {
-  window.location.href = "checkout.html";
+  window.location.href = "/checkout";
 });
 
 document.addEventListener('DOMContentLoaded', () => {

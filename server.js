@@ -40,6 +40,173 @@ app.use((req, res, next) => {
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// --- Performance and Caching Middleware ---
+app.use((req, res, next) => {
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // HTTPS enforcement in production
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+  
+  // Compression hint
+  res.setHeader('Vary', 'Accept-Encoding');
+  
+  // Performance hints
+  res.setHeader('X-Powered-By', 'Omervita-Performance');
+  
+  next();
+});
+
+// --- Static file serving without caching ---
+app.use('/css', express.static(path.join(__dirname, 'public/css'), {
+  maxAge: 0, // No caching
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
+app.use('/js', express.static(path.join(__dirname, 'public/js'), {
+  maxAge: 0, // No caching
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
+app.use('/images', express.static(path.join(__dirname, 'public/images'), {
+  maxAge: 0, // No caching
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    // Enable CORS for images
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
+
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
+  maxAge: 0, // No caching
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+}));
+
+// --- HTML files - no caching ---
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: 0, // No caching
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filepath) => {
+    if (filepath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
+
+// --- Clean URL routing middleware (MUST be before static files) ---
+app.use((req, res, next) => {
+  const url = req.url.split('?')[0];
+  
+  // Helper function to extract ID from slug
+  function extractIdFromSlug(slug) {
+    const match = slug.match(/-(\d+)$/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+  
+  // Handle product slug URLs: /products/product-name-123
+  if (url.match(/^\/products\/[a-z0-9-]+$/i)) {
+    const slug = url.replace('/products/', '');
+    const productId = extractIdFromSlug(slug);
+    if (productId) {
+      req.url = `/product-detail.html?id=${productId}`;
+    }
+  }
+  
+  // Handle category slug URLs: /categories/category-name-123
+  else if (url.match(/^\/categories\/[a-z0-9-]+$/i)) {
+    const slug = url.replace('/categories/', '');
+    const categoryId = extractIdFromSlug(slug);
+    if (categoryId) {
+      req.url = `/products.html?category=${categoryId}`;
+    } else {
+      console.log(`Warning: No valid category ID found in slug: ${slug}`);
+      // Redirect to products page if category ID not found
+      return res.redirect(301, '/products');
+    }
+  }
+  
+  // Handle malformed product category URLs (redirect to products)
+  else if (url.match(/^\/products\/categories\//)) {
+    console.log(`Malformed URL detected: ${url} - redirecting to /products`);
+    return res.redirect(301, '/products');
+  }
+  
+  // Handle other clean URLs
+  else if (url === '/products') {
+    req.url = '/products.html';
+  }
+  else if (url === '/contact') {
+    req.url = '/contact.html';
+  }
+  else if (url === '/cart') {
+    req.url = '/cart.html';
+  }
+  else if (url === '/checkout') {
+    req.url = '/checkout.html';
+  }
+  else if (url === '/login') {
+    req.url = '/login.html';
+  }
+  else if (url === '/register') {
+    req.url = '/register.html';
+  }
+  else if (url === '/orders') {
+    req.url = '/orders.html';
+  }
+  else if (url === '/admin-products') {
+    req.url = '/admin-products.html';
+  }
+  else if (url === '/admin-orders') {
+    req.url = '/admin-orders.html';
+  }
+  else if (url === '/admin-messages') {
+    req.url = '/admin-messages.html';
+  }
+  else if (url === '/admin-analytics') {
+    req.url = '/admin-analytics.html';
+  }
+  else if (url === '/logout') {
+    req.url = '/logout.html';
+  }
+  else if (url === '/reset-password') {
+    req.url = '/reset-password.html';
+  }
+  
+  next();
+});
+
 // Serve static files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -203,6 +370,19 @@ app.post('/api/admin/slide', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'خطأ أثناء تحديث صورة السلايد', details: e.message });
   }
+});
+
+// --- 404 Error handling for non-existent slugs ---
+app.use((req, res, next) => {
+  const url = req.url.split('?')[0];
+  
+  // Check if this is a slug-based URL that doesn't exist
+  if (url.match(/^\/products\/[a-z0-9-]+$/i) || url.match(/^\/categories\/[a-z0-9-]+$/i)) {
+    // Send 404 page
+    return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+  }
+  
+  next();
 });
 
 // Disable Express server signature for security and SEO

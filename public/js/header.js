@@ -73,7 +73,7 @@ s                    <i class="bi bi-person-circle me-1"></i> مرحبًا، ${u
 
         // MyCart link (always present)
         ul.innerHTML += buildNavLink({
-            href: "cart.html",
+            href: "/cart",
             icon: "bi-cart",
             text: "سلتي",
             counter: "(0)"
@@ -82,13 +82,13 @@ s                    <i class="bi bi-person-circle me-1"></i> مرحبًا، ${u
         // Orders link
         if (userData && userData.role === 'admin') {
             ul.innerHTML += buildNavLink({
-                href: "admin-orders.html",
+                href: "/admin-orders",
                 icon: "bi-truck",
                 text: "الطلبات"
             });
         } else {
             ul.innerHTML += buildNavLink({
-                href: "orders.html",
+                href: "/orders",
                 icon: "bi-clipboard-check",
                 text: "طلباتي"
             });
@@ -96,7 +96,7 @@ s                    <i class="bi bi-person-circle me-1"></i> مرحبًا، ${u
         // Admin Panel link (only for admins)
         if (userData && userData.role === 'admin') {
             ul.innerHTML += buildNavLink({
-                href: "admin-products.html",
+                href: "/admin-products",
                 icon: "bi-speedometer2",
                 text: "لوحة الإدارة"
             });
@@ -104,7 +104,7 @@ s                    <i class="bi bi-person-circle me-1"></i> مرحبًا، ${u
 
         // Logout link
         ul.innerHTML += buildNavLink({
-            href: "logout.html",
+            href: "/logout",
             icon: "bi-box-arrow-right",
             text: "تسجيل الخروج"
         });
@@ -113,12 +113,12 @@ s                    <i class="bi bi-person-circle me-1"></i> مرحبًا، ${u
     } else {
         // Not logged in: Login/Register and MyCart links
         ul.innerHTML += buildNavLink({
-            href: "login.html",
+            href: "/login",
             icon: "bi-person",
             text: "تسجيل الدخول/إنشاء حساب"
         });
         ul.innerHTML += buildNavLink({
-            href: "cart.html",
+            href: "/cart",
             icon: "bi-cart",
             text: "سلتي",
             counter: "(0)"

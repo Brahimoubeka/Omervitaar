@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const SlugUtil = require('../utils/slug-util');
 
 // Helper: Get categories for product
 async function getCategoriesForProduct(productId) {
@@ -101,6 +102,8 @@ async function enrichProducts(products) {
     // Ensure name/description are strings
     product.name = Array.isArray(product.name) ? (product.name[0] || '') : (product.name || '');
     product.description = Array.isArray(product.description) ? (product.description[0] || '') : (product.description || '');
+    // Add slug for clean URLs
+    product.slug = SlugUtil.generateProductSlug(product);
   });
 
   return products;
@@ -190,9 +193,22 @@ router.get('/products/latest', async (req, res) => {
   }
 });
 
-// GET /api/products/:id
-router.get('/products/:id', async (req, res) => {
-  const productId = req.params.id;
+// GET /api/products/:identifier (accepts both ID and slug)
+router.get('/products/:identifier', async (req, res) => {
+  const identifier = req.params.identifier;
+  let productId;
+  
+  // Check if identifier is a slug or ID
+  if (SlugUtil.isValidSlug(identifier)) {
+    productId = SlugUtil.extractIdFromSlug(identifier);
+  } else {
+    productId = parseInt(identifier, 10);
+  }
+  
+  if (!productId || isNaN(productId)) {
+    return res.status(400).json({ error: 'معرف المنتج غير صالح' });
+  }
+  
   try {
     // Fetch product row
     const { data: prodRows, error: prodError } = await supabase
@@ -233,6 +249,9 @@ router.get('/products/:id', async (req, res) => {
     // Ensure name/description are strings
     row.name = Array.isArray(row.name) ? (row.name[0] || '') : (row.name || '');
     row.description = Array.isArray(row.description) ? (row.description[0] || '') : (row.description || '');
+    
+    // Add slug to response
+    row.slug = SlugUtil.generateProductSlug(row);
 
     res.json(row);
   } catch (err) {
@@ -265,7 +284,14 @@ router.get('/categories', async (req, res) => {
       .select('id, name')
       .order('name', { ascending: true });
     if (error) throw error;
-    res.json(data); // Revert: return array only
+    
+    // Add slugs to categories
+    const categoriesWithSlugs = (data || []).map(category => ({
+      ...category,
+      slug: SlugUtil.generateCategorySlug(category)
+    }));
+    
+    res.json(categoriesWithSlugs);
   } catch (err) {
     res.status(500).json({ error: 'Kategoriler alınırken hata oluştu.' });
   }

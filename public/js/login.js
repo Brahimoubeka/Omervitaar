@@ -118,7 +118,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
         // Optionally, redirect to home page after a successful login
         setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.href = '/';
         }, 1000);
     } catch (error) {
         document.getElementById('login-message').innerHTML = `

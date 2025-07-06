@@ -4,9 +4,13 @@ let allCategories = [];
 // Helper to get all categories for filter dropdown
 async function loadCategories() {
   try {
+    // Add cache-busting timestamp
     const resp = await fetch('/api/categories');
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      throw new Error('تعذر تحميل الفئات');
+    }
     allCategories = await resp.json();
+    
     const filter = document.getElementById('category-filter');
     if (filter) {
       filter.innerHTML = `<option value="">كل الفئات</option>`; // Clear and add default
@@ -17,7 +21,13 @@ async function loadCategories() {
         filter.appendChild(opt);
       });
     }
-  } catch (e) {}
+  } catch (error) {
+    console.error('Error loading categories:', error);
+    const filter = document.getElementById('category-filter');
+    if (filter) {
+      filter.innerHTML = `<option value="">كل الفئات (خطأ في التحميل)</option>`;
+    }
+  }
 }
 
 
@@ -38,7 +48,7 @@ function renderProducts(products, append = false) {
       'price': product.price,
       'priceCurrency': 'DZD',
       'availability': product.stock === 0 ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-      'url': `https://omervita.com/product-detail.html?id=${product.id}`
+      'url': `https://omervita.com/products/${product.slug || SlugUtil.generateProductSlug(product)}`
     };
     return {
       '@context': 'https://schema.org/',
@@ -176,11 +186,11 @@ function renderProducts(products, append = false) {
     
     // Make title clickable to go to product details
     productCard.querySelector('.product-card-title').addEventListener('click', () => {
-      window.location.href = `product-detail.html?id=${product.id}`;
+      window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
     });
     
     productCard.querySelector('.product-card-button').addEventListener('click', () => {
-      window.location.href = `product-detail.html?id=${product.id}`;
+      window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
     });
     
     // Add event listener for the "Add to Cart" button if product is in stock
@@ -230,6 +240,12 @@ function renderProducts(products, append = false) {
 }
 
 
+// Helper function to add cache-busting to API calls
+function addCacheBusting(url) {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_t=${Date.now()}`;
+}
+
 // Loads products and fetches their images for carousel use
 async function loadProducts() {
   // Responsive skeleton count
@@ -260,6 +276,8 @@ async function loadProducts() {
     productsWithImages.sort((a, b) => b.id - a.id);
 
     allProducts = productsWithImages;
+    
+    // Always render all products initially, then checkCategoryURL will filter if needed
     renderProducts(allProducts);
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
@@ -455,28 +473,33 @@ function clearAllFilters() {
 
 // --- Event Listeners for all filters ---
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 Products page DOM loaded, initializing...');
+  
   await loadCategories();
   await loadProducts();
   
-  // Auto-select category if ?category=ID in URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const cat = urlParams.get('category');
-  if (cat) {
-    const filter = document.getElementById('category-filter');
-    if (filter) {
-      filter.value = cat;
-      filterAndRender(); // Triggers the filtering
-      window.scrollTo(0, 0); // scroll to top
-    }
-  }
+  // Initialize auto-refresh for real-time updates
+  console.log('🔄 Auto-refresh disabled - service worker removed');
+  // enableAutoRefresh(); // Removed - no longer needed without service worker caching
+  
+  // Add manual refresh button for testing
+  // addManualRefreshButton(); // Removed - no longer needed without service worker caching
+  
+  // Check for category URL (handles both slug and legacy URLs)
+  // This runs after both categories and products are loaded
+  // Use setTimeout to ensure DOM is fully updated
+  setTimeout(() => {
+    checkCategoryURL();
+  }, 200);
   
   // Set up filter event listeners
   document.getElementById('search-bar').addEventListener('input', () => {
     syncOriginalToSlidingPanel();
     filterAndRender();
   });
-  document.getElementById('category-filter').addEventListener('change', () => {
+  document.getElementById('category-filter').addEventListener('change', (e) => {
     syncOriginalToSlidingPanel();
+    updateCategoryURL(e.target.value); // Update URL when category changes
     filterAndRender();
   });
   document.getElementById('min-price').addEventListener('input', () => {
@@ -511,7 +534,90 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Sliding filter panel setup
   setupSlidingFilterPanel();
+  
+  // Add manual refresh button for testing
+  addManualRefreshButton();
 });
+
+// Check for category-based URL on page load
+function checkCategoryURL() {
+  const path = window.location.pathname;
+  const params = new URLSearchParams(window.location.search);
+  
+  // Handle category slug URLs: /categories/category-name-123
+  if (path.match(/^\/categories\/[a-z0-9-]+$/i)) {
+    const slug = path.replace('/categories/', '');
+    const categoryId = SlugUtil.extractIdFromSlug(slug);
+    
+    if (categoryId) {
+      // Set the category filter
+      const filter = document.getElementById('category-filter');
+      if (filter) {
+        filter.value = categoryId;
+        // Sync with sliding panel
+        const slidingFilter = document.getElementById('sliding-category-filter');
+        if (slidingFilter) {
+          slidingFilter.value = categoryId;
+        }
+        // Apply the filter immediately
+        filterAndRender();
+        window.scrollTo(0, 0);
+      }
+    }
+  }
+  // Handle legacy category URLs: /products.html?category=123
+  else if (params.get('category')) {
+    const categoryId = params.get('category');
+    const filter = document.getElementById('category-filter');
+    if (filter) {
+      filter.value = categoryId;
+      // Sync with sliding panel
+      const slidingFilter = document.getElementById('sliding-category-filter');
+      if (slidingFilter) {
+        slidingFilter.value = categoryId;
+      }
+      filterAndRender();
+      window.scrollTo(0, 0);
+    }
+  }
+}
+
+// Update page URL when category filter changes
+function updateCategoryURL(categoryId) {
+  if (categoryId) {
+    // Find the category to get its slug
+    const category = allCategories.find(cat => cat.id == categoryId);
+    if (category) {
+      const slug = category.slug || SlugUtil.generateCategorySlug(category);
+      const newUrl = `/categories/${slug}`;
+      window.history.pushState({}, '', newUrl);
+      
+      // Update page title and SEO
+      document.title = `${category.name} - المنتجات - Omervita`;
+      
+      // Update canonical URL
+      let canonical = document.querySelector('link[rel="canonical"]');
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
+      canonical.href = `https://omervita.com${newUrl}`;
+    }
+  } else {
+    // No category selected, go back to products page
+    window.history.pushState({}, '', '/products');
+    document.title = 'المنتجات - Omervita';
+    
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = 'https://omervita.com/products';
+  }
+}
 
 // --- Global Loading Spinner Notification ---
 function showGlobalLoadingSpinner(message = 'جاري التحميل...') {
@@ -879,7 +985,7 @@ function createSlidingFilterBadge(type, text, className) {
   badge.innerHTML = `${text} <i class="bi bi-x ms-1" style="cursor: pointer;"></i>`;
   
   badge.querySelector('i').addEventListener('click', () => {
-    clearSlidingFilter(type);
+    clearSlidingFilter(badge.dataset.filterType);
   });
   
   return badge;
@@ -970,6 +1076,29 @@ async function loadProducts() {
     renderProducts(allProducts);
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
+    
+    // Show user-friendly error message
+    const container = document.getElementById('products-container');
+    container.innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-danger text-center" role="alert">
+          <div class="mb-3">
+            <i class="bi bi-exclamation-triangle-fill" style="font-size: 2rem; color: #dc3545;"></i>
+          </div>
+          <h4 class="alert-heading">خطأ في تحميل المنتجات</h4>
+          <p class="mb-3">تعذر تحميل المنتجات. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.</p>
+          <hr>
+          <div class="d-flex justify-content-center gap-2">
+            <button class="btn btn-primary" onclick="loadProducts()">
+              <i class="bi bi-arrow-clockwise me-1"></i>إعادة المحاولة
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='/'">
+              <i class="bi bi-house me-1"></i>الصفحة الرئيسية
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
   } finally {
     hideGlobalLoadingSpinner();
   }
@@ -993,3 +1122,279 @@ async function loadProducts() {
   `;
   document.head.appendChild(style);
 })();
+
+// Auto-refresh functionality for real-time updates
+
+// Function to enable auto-refresh for real-time data
+function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for testing
+  console.log('🔄 Enabling auto-refresh with interval:', intervalMs, 'ms');
+  
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+  }
+  
+  // Show refresh indicator on first enable
+  showRefreshIndicator();
+  
+  autoRefreshInterval = setInterval(async () => {
+    console.log('🔄 Auto-refresh triggered at:', new Date().toLocaleTimeString());
+    try {
+      // Only refresh if page is visible to avoid unnecessary requests
+      if (!isPageVisible) {
+        console.log('🔄 Page not visible, skipping auto-refresh');
+        return;
+      }
+      
+      // Silently refresh products and categories without showing loading spinner
+      console.log('🔄 Auto-refreshing products and categories...');
+      
+      // Store current filter state
+      const currentSearch = document.getElementById('search-bar').value;
+      const currentCategory = document.getElementById('category-filter').value;
+      const currentMinPrice = document.getElementById('min-price').value;
+      const currentMaxPrice = document.getElementById('max-price').value;
+      const currentSort = document.getElementById('sort-by').value;
+      
+      console.log('🔄 Current filters:', { currentSearch, currentCategory, currentMinPrice, currentMaxPrice, currentSort });
+      
+      // Refresh categories first
+      console.log('🔄 Refreshing categories...');
+      await loadCategories();
+      
+      // Refresh products data
+      console.log('🔄 Refreshing products...');
+      const response = await fetch(`/api/products?_t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error('تعذر جلب المنتجات');
+      }
+      let products = await response.json();
+      
+      console.log('🔄 Fetched', products.length, 'products');
+
+      // For each product, fetch images array from /api/products/:id/images
+      const productsWithImages = await Promise.all(products.map(async (prod) => {
+        try {
+          const imgResp = await fetch(`/api/products/${prod.id}/images?_t=${Date.now()}`);
+          const imgs = await imgResp.json();
+          return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
+        } catch {
+          return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
+        }
+      }));
+
+      // Sort products to show newest first
+      productsWithImages.sort((a, b) => b.id - a.id);
+
+      allProducts = productsWithImages;
+      
+      console.log('🔄 Updated allProducts array with', allProducts.length, 'products');
+      
+      // Restore filter state
+      document.getElementById('search-bar').value = currentSearch;
+      document.getElementById('category-filter').value = currentCategory;
+      document.getElementById('min-price').value = currentMinPrice;
+      document.getElementById('max-price').value = currentMaxPrice;
+      document.getElementById('sort-by').value = currentSort;
+      
+      // Re-apply filters to show updated results
+      console.log('🔄 Re-applying filters and rendering...');
+      filterAndRender();
+      
+      // Force a complete re-render to ensure DOM updates
+      setTimeout(() => {
+        const container = document.getElementById('products-container');
+        if (container && allProducts.length > 0) {
+          console.log('🔄 Force re-rendering products container');
+          renderProducts(allProducts);
+        }
+      }, 500);
+      
+      // Show refresh notification
+      console.log('🔄 Showing refresh notification...');
+      showRefreshNotification('تم تحديث قائمة المنتجات والفئات');
+      
+    } catch (error) {
+      console.error('❌ Auto-refresh failed:', error);
+    }
+  }, intervalMs);
+}
+
+// Function to disable auto-refresh
+function disableAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+}
+
+// Handle page visibility changes to optimize auto-refresh
+document.addEventListener('visibilitychange', () => {
+  isPageVisible = !document.hidden;
+  
+  if (isPageVisible) {
+    // Page became visible, resume auto-refresh if it was enabled
+    if (autoRefreshInterval === null) {
+      enableAutoRefresh();
+    }
+  } else {
+    // Page became hidden, pause auto-refresh to save resources
+    // Keep the interval but just check visibility in the function
+  }
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+  disableAutoRefresh();
+});
+
+// User-friendly refresh notification
+function showRefreshNotification(message = 'تم تحديث قائمة المنتجات') {
+  // Create or update existing notification
+  let notification = document.getElementById('refresh-notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.id = 'refresh-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(25, 135, 84, 0.9);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    `;
+    document.body.appendChild(notification);
+  }
+  
+  notification.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${message}`;
+  
+  // Show notification
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 100);
+  
+  // Hide notification after 3 seconds
+  setTimeout(() => {
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 3000);
+}
+
+// Optional: Add refresh indicator when auto-refresh is active
+function showRefreshIndicator() {
+  let indicator = document.getElementById('refresh-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.id = 'refresh-indicator';
+    indicator.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(13, 202, 240, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 9998;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    `;
+    indicator.innerHTML = `<i class="bi bi-arrow-clockwise me-1"></i>التحديث التلقائي مفعل`;
+    document.body.appendChild(indicator);
+  }
+  
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    if (indicator.parentNode) {
+      indicator.parentNode.removeChild(indicator);
+    }
+  }, 5000);
+}
+
+// Add manual refresh button for testing
+function addManualRefreshButton() {
+  // Only add if not already present
+  if (document.getElementById('manual-refresh-btn')) return;
+  
+  const refreshBtn = document.createElement('button');
+  refreshBtn.id = 'manual-refresh-btn';
+  refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
+  refreshBtn.className = 'btn btn-outline-primary btn-sm position-fixed';
+  refreshBtn.style.cssText = `
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  `;
+  
+  refreshBtn.addEventListener('click', async () => {
+    console.log('🔄 Manual refresh triggered');
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...';
+    
+    try {
+      // Store current filter state
+      const currentSearch = document.getElementById('search-bar').value;
+      const currentCategory = document.getElementById('category-filter').value;
+      const currentMinPrice = document.getElementById('min-price').value;
+      const currentMaxPrice = document.getElementById('max-price').value;
+      const currentSort = document.getElementById('sort-by').value;
+      
+      // Refresh categories first
+      await loadCategories();
+      
+      // Refresh products data
+      const response = await fetch(`/api/products?_t=${Date.now()}`);
+      if (!response.ok) {
+        throw new Error('تعذر جلب المنتجات');
+      }
+      let products = await response.json();
+
+      // For each product, fetch images array from /api/products/:id/images
+      const productsWithImages = await Promise.all(products.map(async (prod) => {
+        try {
+          const imgResp = await fetch(`/api/products/${prod.id}/images?_t=${Date.now()}`);
+          const imgs = await imgResp.json();
+          return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
+        } catch {
+          return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
+        }
+      }));
+
+      // Sort products to show newest first
+      productsWithImages.sort((a, b) => b.id - a.id);
+
+      allProducts = productsWithImages;
+      
+      // Restore filter state
+      document.getElementById('search-bar').value = currentSearch;
+      document.getElementById('category-filter').value = currentCategory;
+      document.getElementById('min-price').value = currentMinPrice;
+      document.getElementById('max-price').value = currentMaxPrice;
+      document.getElementById('sort-by').value = currentSort;
+      
+      // Re-apply filters to show updated results
+      filterAndRender();
+      
+      // Show success notification
+      showRefreshNotification('تم تحديث البيانات بنجاح!');
+      
+    } catch (error) {
+      console.error('❌ Manual refresh failed:', error);
+      showRefreshNotification('فشل في تحديث البيانات');
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
+    }
+  });
+  
+  document.body.appendChild(refreshBtn);
+}
