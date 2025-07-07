@@ -5,9 +5,31 @@ const db = require('./db');
 require('dotenv').config();
 const fs = require('fs');
 const supabase = require('./supabase');
+const jwt = require('jsonwebtoken');
 
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
+
+// JWT verification middleware for admin access
+function verifyAdminAccess(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  
+  if (!token) {
+    return res.status(401).redirect('/login?error=unauthorized');
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).redirect('/login?error=forbidden');
+    }
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).redirect('/login?error=invalid_token');
+  }
+}
 
 // Set trust proxy so req.protocol and x-forwarded-proto work correctly on Render
 app.set('trust proxy', true);
@@ -37,9 +59,50 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- Redirect .html URLs to clean URLs for SEO ---
+app.use((req, res, next) => {
+  const url = req.url.split('?')[0];
+  
+  // Define mapping of .html URLs to clean URLs
+  const htmlToCleanUrls = {
+    '/products.html': '/products',
+    '/contact.html': '/contact',
+    '/cart.html': '/cart',
+    '/checkout.html': '/checkout',
+    '/login.html': '/login',
+    '/register.html': '/register',
+    '/orders.html': '/orders',
+    '/logout.html': '/logout',
+    '/reset-password.html': '/reset-password',
+    '/product-detail.html': '/product-detail.html', // Keep as is, this uses query params
+    '/admin-products.html': '/admin-products',
+    '/admin-orders.html': '/admin-orders',
+    '/admin-messages.html': '/admin-messages',
+    '/admin-analytics.html': '/admin-analytics'
+  };
+  
+  // Check if URL matches any .html pattern and redirect to clean version
+  if (htmlToCleanUrls[url]) {
+    // For product-detail.html, keep the query parameters
+    if (url === '/product-detail.html') {
+      return next(); // Don't redirect, this page uses query params
+    }
+    
+    // Preserve query parameters in redirect
+    const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+    return res.redirect(301, htmlToCleanUrls[url] + queryString);
+  }
+  
+  next();
+});
+
 // Middleware to parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Cookie parser middleware (for JWT from cookies)
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
 // --- Performance and Caching Middleware ---
 app.use((req, res, next) => {
@@ -111,19 +174,39 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
   }
 }));
 
-// --- HTML files - no caching ---
-app.use(express.static(path.join(__dirname, 'public'), {
+// --- Admin folder protection middleware (MUST be before main static files) ---
+app.use('/admin', verifyAdminAccess);
+app.use('/admin', express.static(path.join(__dirname, 'public/admin'), {
   maxAge: 0, // No caching
   etag: false,
   lastModified: false,
   setHeaders: (res, filepath) => {
-    if (filepath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
   }
 }));
+
+// --- HTML files - no caching (exclude admin folder) ---
+app.use((req, res, next) => {
+  // Skip admin folder requests - they're handled above
+  if (req.path.startsWith('/admin')) {
+    return next();
+  }
+  
+  express.static(path.join(__dirname, 'public'), {
+    maxAge: 0, // No caching
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, filepath) => {
+      if (filepath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  })(req, res, next);
+});
 
 // --- Clean URL routing middleware (MUST be before static files) ---
 app.use((req, res, next) => {
@@ -186,16 +269,32 @@ app.use((req, res, next) => {
     req.url = '/orders.html';
   }
   else if (url === '/admin-products') {
-    req.url = '/admin-products.html';
+    // Verify admin access before redirecting to admin page
+    return verifyAdminAccess(req, res, () => {
+      req.url = '/admin/products.html';
+      next();
+    });
   }
   else if (url === '/admin-orders') {
-    req.url = '/admin-orders.html';
+    // Verify admin access before redirecting to admin page
+    return verifyAdminAccess(req, res, () => {
+      req.url = '/admin/orders.html';
+      next();
+    });
   }
   else if (url === '/admin-messages') {
-    req.url = '/admin-messages.html';
+    // Verify admin access before redirecting to admin page
+    return verifyAdminAccess(req, res, () => {
+      req.url = '/admin/messages.html';
+      next();
+    });
   }
   else if (url === '/admin-analytics') {
-    req.url = '/admin-analytics.html';
+    // Verify admin access before redirecting to admin page
+    return verifyAdminAccess(req, res, () => {
+      req.url = '/admin/analytics.html';
+      next();
+    });
   }
   else if (url === '/logout') {
     req.url = '/logout.html';

@@ -126,6 +126,14 @@ router.post('/login', async (req, res) => {
         // Generate a JWT token that expires in 1 hour
         const token = jwt.sign({ userId: user.id, role: user.role }, secret, { expiresIn: '1h' });
 
+        // Set the token as a secure HTTP-only cookie for admin access
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', // Only set secure in production
+            sameSite: 'strict',
+            maxAge: 3600000 // 1 hour in milliseconds
+        });
+
         res.json({ message: 'مرحبا!', token });
     } catch (err) {
         console.error(err);
@@ -219,6 +227,18 @@ router.post('/reset-password', async (req, res) => {
         console.error('Error in reset password:', error);
         res.status(500).json({ error: 'حدث خطأ أثناء إعادة تعيين كلمة المرور.' });
     }
+});
+
+// Logout Route
+router.post('/logout', (req, res) => {
+    // Clear the JWT cookie
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    });
+    
+    res.json({ message: 'تم تسجيل الخروج بنجاح' });
 });
 
 module.exports = router;

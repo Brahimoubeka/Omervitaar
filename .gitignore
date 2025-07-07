@@ -3,3 +3,21 @@ node_modules/
 .DS_Store
 /dist
 /build
+
+# Development and testing files
+*.md
+!README.md
+test-*.js
+test-*.html
+desktop.ini
+.vs/
+.vscode/
+
+# Local database and config files (using Supabase instead)
+database.sqlite
+branding.json
+products.json
+
+# OS generated files
+Thumbs.db
+*.log

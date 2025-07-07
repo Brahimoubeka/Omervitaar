@@ -1,0 +1,32 @@
+{
+  "name": "Omervita - Premium Beauty & Wellness",
+  "short_name": "Omervita",
+  "description": "منصة Omervita للتجارة الإلكترونية - منتجات الجمال والعناية عالية الجودة",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#715100",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "beauty", "wellness"],
+  "lang": "ar",
+  "dir": "rtl"
+}

@@ -7,9 +7,11 @@
     <meta name="description" content="تسجيل الخروج من حسابك في Omervita. شكراً لاستخدام خدماتنا.">
     <meta name="robots" content="noindex, nofollow">
     <!-- Canonical tag for SEO -->
-    <link rel="canonical" href="https://omervita.com/logout.html">
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="canonical" href="https://omervita.com/logout">
+    <!-- Favicon and manifest -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Meta Pixel Code -->
 <script>
@@ -27,51 +29,157 @@ fbq('track', 'PageView');
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 /></noscript>
-<!-- End Meta Pixel Code -->
 </head>
 <body>
-    <!-- <footer>
-        <div class="footer-container">
-            <div class="footer-logo">
-                <a href="/">
-                    <img data-dynamic-logo src="images/logo.png" alt="Omervita Logo">
-                </a>
-            </div>
-            <div class="footer-section">
-                <h3>Omervita Hakkında</h3>
-                <p>منصتكم الموثوقة للتجارة الإلكترونية للحصول على منتجات عالية الجودة.</p>
-            </div>
-            <div class="footer-section">
-                <h3>روابط سريعة</h3>
-                <ul>
-                    <li><a href="/">الصفحة الرئيسية</a></li>
-                    <li><a href="/products">المنتجات</a></li>
-                    <li><a href="/contact">تواصل معنا</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h3>تابعونا</h3>
-                <ul>
-                    <li><a href="https://www.facebook.com/people/Omervita/61568626858755/">Facebook</a></li>
-                    <li><a href="https://www.instagram.com/omervita_?fbclid=IwY2xjawJDgotleHRuA2FlbQIxMAABHXXxT0TOa7ASrLds-sQjjyt7cuf31B1dpYnVDqXi3mMghOmsBlbTSt6L6Q_aem_K0MQuGUBsBS7c9Ra93mvIw">Instagram</a></li>
-                    <li><a href="https://www.tiktok.com/@omervita?is_from_webapp=1&sender_device=pc">Tiktok</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 Omervita. جميع الحقوق محفوظة.</p>
-        </div>
-    </footer> -->
 
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .logout-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .logout-icon {
+            font-size: 4rem;
+            color: #28a745;
+            margin-bottom: 1rem;
+        }
+        
+        .logout-title {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .logout-message {
+            color: #6c757d;
+            margin-bottom: 2rem;
+        }
+        
+        .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+        
+        .success-animation {
+            animation: bounceIn 0.6s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+    </style>
+    
+    <div class="logout-container">
+        <div id="loading-state">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">جاري تسجيل الخروج...</span>
+            </div>
+            <h3 class="logout-title">جاري تسجيل الخروج...</h3>
+            <p class="logout-message">يرجى الانتظار قليلاً</p>
+        </div>
+        
+        <div id="success-state" class="d-none">
+            <i class="bi bi-check-circle-fill logout-icon success-animation"></i>
+            <h3 class="logout-title">تم تسجيل الخروج بنجاح!</h3>
+            <p class="logout-message">شكراً لاستخدام خدماتنا. سيتم توجيهك إلى صفحة تسجيل الدخول</p>
+            <div class="alert alert-success border-0 shadow-sm">
+                <i class="bi bi-info-circle me-2"></i>
+                تم تسجيل الخروج من جميع الأجهزة بنجاح
+            </div>
+        </div>
+        
+        <img data-dynamic-logo class="mt-3" style="max-width: 120px;" alt="Logo" />
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/header.js"></script>
     <script src="/js/branding.js"></script>
     <script>
         // Clear the JWT token and any user-related info from localStorage
         localStorage.removeItem('token');
         
-        window.location.href = '/login';
+        // Call the logout API to clear the server-side cookie
+        fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Logout successful:', data.message);
+            
+            // Show success state
+            document.getElementById('loading-state').classList.add('d-none');
+            document.getElementById('success-state').classList.remove('d-none');
+            
+            // Wait 2 seconds before redirecting
+            setTimeout(() => {
+                document.querySelector('.logout-container').classList.add('fade-out');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 500);
+            }, 2000);
+        })
+        .catch(error => {
+            console.error('Logout error:', error);
+            
+            // Show success state even on error (user is still logged out locally)
+            document.getElementById('loading-state').classList.add('d-none');
+            document.getElementById('success-state').classList.remove('d-none');
+            
+            // Wait 2 seconds before redirecting
+            setTimeout(() => {
+                document.querySelector('.logout-container').classList.add('fade-out');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 500);
+            }, 2000);
+        });
     </script>
-    <p>جاري تسجيل الخروج...</p>
-    <img data-dynamic-logo class="logo" alt="Logo" />
 </body>
 </html>

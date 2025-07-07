@@ -1,9 +1,9 @@
 # robots.txt for SEO with clean URLs support
-# Allow all search engines to crawl everything
+# Allow all search engines to crawl everything public
 User-agent: *
 Disallow:
 
-# Clean URLs are preferred
+# Clean URLs are preferred (primary pages)
 Allow: /products
 Allow: /products/
 Allow: /categories/
@@ -13,21 +13,18 @@ Allow: /contact
 Allow: /login
 Allow: /register
 Allow: /orders
+Allow: /reset-password
 
-# Legacy URLs (lower priority)
-Allow: /products.html
+# Special pages
 Allow: /product-detail.html
-Allow: /cart.html
-Allow: /checkout.html
-Allow: /contact.html
-Allow: /login.html
-Allow: /register.html
-Allow: /orders.html
 
-# Disallow admin and sensitive files
+# Disallow admin areas and sensitive files
+Disallow: /admin/
+Disallow: /admin-*
 Disallow: /api/admin/
 Disallow: /*.sqlite
 Disallow: /*.json$
+Disallow: /uploads/
 
 # Do NOT block Meta Pixel, Google Console, or Gemini API endpoints
 # (No Disallow rules for these resources)

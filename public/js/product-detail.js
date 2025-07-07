@@ -1275,8 +1275,16 @@ function updatePageSEO(product) {
   document.title = title;
   const cleanUrl = `https://omervita.com/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
   const description = product.description ? `${product.description.substring(0, 155)}...` : `اشتري ${product.name} بأفضل سعر من Omervita. منتجات طبيعية عالية الجودة مع توصيل سريع.`;
+  
+  // Update basic meta tags
   SlugUtil.updatePageMeta(title, description, cleanUrl);
+  
+  // Update social media and structured data
+  updateSocialMediaTags(product, title, description, cleanUrl);
   updateProductStructuredData(product, cleanUrl);
+  updateBreadcrumbStructuredData(product, cleanUrl);
+  
+  // Update URL if coming from legacy page
   const currentPath = window.location.pathname;
   if (currentPath.includes('product-detail.html')) {
     window.history.replaceState({}, '', `/products/${product.slug || SlugUtil.generateProductSlug(product)}`);
@@ -1285,34 +1293,86 @@ function updatePageSEO(product) {
 
 // Update product structured data for better SEO
 function updateProductStructuredData(product, url) {
+  const productImage = getProductImageUrl(product);
+  
   const structuredData = {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     'name': product.name,
     'description': product.description || `منتج طبيعي عالي الجودة من Omervita`,
-    'image': product.images && product.images.length > 0 ? product.images.map(img => img.startsWith('http') ? img : `https://omervita.com/${img.replace(/^\/+/, '')}`) : [`https://omervita.com/${(product.imagePath || 'images/logo.png').replace(/^\/+/, '')}`],
-    'brand': { '@type': 'Brand', 'name': 'Omervita' },
-    'sku': product.sku || product.id,
+    'image': product.images && product.images.length > 0 ? 
+      product.images.map(img => img.startsWith('http') ? img : `https://omervita.com/${img.replace(/^\/+/, '')}`) : 
+      [productImage],
+    'brand': { 
+      '@type': 'Brand', 
+      'name': 'Omervita',
+      'url': 'https://omervita.com'
+    },
+    'manufacturer': {
+      '@type': 'Organization',
+      'name': 'Omervita',
+      'url': 'https://omervita.com'
+    },
+    'sku': product.sku || `OMERVITA-${product.id}`,
+    'mpn': product.mpn || product.sku || `OMERVITA-${product.id}`,
     'url': url,
     'offers': {
       '@type': 'Offer',
-      'price': product.price,
+      'price': product.price || '0',
       'priceCurrency': 'DZD',
       'availability': product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       'url': url,
-      'seller': { '@type': 'Organization', 'name': 'Omervita' }
+      'priceValidUntil': new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
+      'seller': { 
+        '@type': 'Organization', 
+        'name': 'Omervita',
+        'url': 'https://omervita.com'
+      },
+      'shippingDetails': {
+        '@type': 'OfferShippingDetails',
+        'shippingRate': {
+          '@type': 'MonetaryAmount',
+          'value': '0',
+          'currency': 'DZD'
+        },
+        'shippingDestination': {
+          '@type': 'DefinedRegion',
+          'addressCountry': 'DZ'
+        }
+      }
     }
   };
+  
+  // Add aggregate rating if available
   if (product.avgRating && product.reviewCount > 0) {
-    structuredData.aggregateRating = { '@type': 'AggregateRating', 'ratingValue': product.avgRating, 'reviewCount': product.reviewCount };
+    structuredData.aggregateRating = { 
+      '@type': 'AggregateRating', 
+      'ratingValue': product.avgRating, 
+      'reviewCount': product.reviewCount,
+      'bestRating': '5',
+      'worstRating': '1'
+    };
   }
+  
+  // Add category information
   if (product.categories && product.categories.length > 0) {
     structuredData.category = product.categories.map(cat => cat.name).join(', ');
   }
-  let jsonLdScript = document.getElementById('product-jsonld');
+  
+  // Add additional product properties
+  if (product.weight) {
+    structuredData.weight = {
+      '@type': 'QuantitativeValue',
+      'value': product.weight,
+      'unitText': 'g'
+    };
+  }
+  
+  // Update or create product structured data script
+  let jsonLdScript = document.getElementById('product-schema');
   if (!jsonLdScript) {
     jsonLdScript = document.createElement('script');
-    jsonLdScript.id = 'product-jsonld';
+    jsonLdScript.id = 'product-schema';
     jsonLdScript.type = 'application/ld+json';
     document.head.appendChild(jsonLdScript);
   }
@@ -1350,46 +1410,54 @@ function updateBreadcrumb(product) {
 }
 
 // Update breadcrumb structured data
-function updateBreadcrumbStructuredData(product) {
-  const breadcrumbItems = [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "الرئيسية",
-      "item": "https://omervita.com/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "المنتجات",
-      "item": "https://omervita.com/products"
-    }
-  ];
+function updateBreadcrumbStructuredData(product, url) {
+  const breadcrumbData = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': [
+      {
+        '@type': 'ListItem',
+        'position': 1,
+        'name': 'الصفحة الرئيسية',
+        'item': 'https://omervita.com/'
+      },
+      {
+        '@type': 'ListItem',
+        'position': 2,
+        'name': 'المنتجات',
+        'item': 'https://omervita.com/products'
+      }
+    ]
+  };
   
-  let position = 3;
+  // Add category if available
   if (product.categories && product.categories.length > 0) {
     const category = product.categories[0];
-    breadcrumbItems.push({
-      "@type": "ListItem",
-      "position": position++,
-      "name": category.name,
-      "item": `https://omervita.com/categories/${category.slug || SlugUtil.generateCategorySlug(category)}`
+    breadcrumbData.itemListElement.push({
+      '@type': 'ListItem',
+      'position': 3,
+      'name': category.name,
+      'item': `https://omervita.com/categories/${SlugUtil.generateCategorySlug(category)}`
+    });
+    
+    // Add product as final item
+    breadcrumbData.itemListElement.push({
+      '@type': 'ListItem',
+      'position': 4,
+      'name': product.name,
+      'item': url
+    });
+  } else {
+    // Add product as final item
+    breadcrumbData.itemListElement.push({
+      '@type': 'ListItem',
+      'position': 3,
+      'name': product.name,
+      'item': url
     });
   }
   
-  breadcrumbItems.push({
-    "@type": "ListItem",
-    "position": position,
-    "name": product.name,
-    "item": window.location.href
-  });
-  
-  const breadcrumbSchema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": breadcrumbItems
-  };
-  
+  // Update or create breadcrumb structured data
   let breadcrumbScript = document.getElementById('breadcrumb-schema');
   if (!breadcrumbScript) {
     breadcrumbScript = document.createElement('script');
@@ -1397,9 +1465,102 @@ function updateBreadcrumbStructuredData(product) {
     breadcrumbScript.type = 'application/ld+json';
     document.head.appendChild(breadcrumbScript);
   }
-  breadcrumbScript.textContent = JSON.stringify(breadcrumbSchema, null, 2);
+  breadcrumbScript.textContent = JSON.stringify(breadcrumbData, null, 2);
 }
 
-// Auto-refresh functionality removed - no longer needed without service worker caching
+// Update social media meta tags for rich previews
+function updateSocialMediaTags(product, title, description, url) {
+  // Get the best available image
+  const productImage = getProductImageUrl(product);
+  const siteName = 'Omervita';
+  const priceText = product.price ? `${product.price} دج` : 'السعر غير متوفر';
+  const availability = product.stock > 0 ? 'متوفر' : 'غير متوفر';
+  
+  // Enhanced title and description for social media
+  const socialTitle = `${product.name} - ${priceText}`;
+  const socialDescription = product.description ? 
+    `${product.description.substring(0, 200)}...` : 
+    `اشتري ${product.name} بأفضل سعر من Omervita. ${availability} - منتجات طبيعية عالية الجودة مع توصيل سريع.`;
+  
+  // Update Open Graph tags
+  const ogTags = [
+    { property: 'og:title', content: socialTitle },
+    { property: 'og:description', content: socialDescription },
+    { property: 'og:image', content: productImage },
+    { property: 'og:url', content: url },
+    { property: 'og:type', content: 'product' },
+    { property: 'og:site_name', content: siteName },
+    { property: 'product:price:amount', content: product.price || '0' },
+    { property: 'product:price:currency', content: 'DZD' },
+    { property: 'product:availability', content: availability }
+  ];
+  
+  // Add product category if available
+  if (product.categories && product.categories.length > 0) {
+    ogTags.push({ property: 'product:category', content: product.categories[0].name });
+  }
+  
+  // Add product brand
+  ogTags.push({ property: 'product:brand', content: 'Omervita' });
+  
+  // Update Twitter Card tags
+  const twitterTags = [
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: socialTitle },
+    { name: 'twitter:description', content: socialDescription },
+    { name: 'twitter:image', content: productImage },
+    { name: 'twitter:site', content: '@omervita' },
+    { name: 'twitter:creator', content: '@omervita' }
+  ];
+  
+  // Update or create Open Graph tags
+  ogTags.forEach(tag => {
+    let ogTag = document.querySelector(`meta[property="${tag.property}"]`);
+    if (!ogTag) {
+      ogTag = document.createElement('meta');
+      ogTag.property = tag.property;
+      document.head.appendChild(ogTag);
+    }
+    ogTag.content = tag.content;
+  });
+  
+  // Update or create Twitter Card tags
+  twitterTags.forEach(tag => {
+    let twitterTag = document.querySelector(`meta[name="${tag.name}"]`);
+    if (!twitterTag) {
+      twitterTag = document.createElement('meta');
+      twitterTag.name = tag.name;
+      document.head.appendChild(twitterTag);
+    }
+    twitterTag.content = tag.content;
+  });
+}
+
+// Helper function to get the best available product image URL
+function getProductImageUrl(product) {
+  const baseUrl = 'https://omervita.com';
+  
+  // Check if product has images array
+  if (product.images && product.images.length > 0) {
+    const firstImage = product.images[0];
+    // If image is already a full URL, return it
+    if (firstImage.startsWith('http')) {
+      return firstImage;
+    }
+    // Otherwise, construct the full URL
+    return `${baseUrl}/${firstImage.replace(/^\/+/, '')}`;
+  }
+  
+  // Check if product has imagePath
+  if (product.imagePath) {
+    if (product.imagePath.startsWith('http')) {
+      return product.imagePath;
+    }
+    return `${baseUrl}/${product.imagePath.replace(/^\/+/, '')}`;
+  }
+  
+  // Fall back to logo
+  return `${baseUrl}/images/logo.png`;
+}
 
 
