@@ -10,6 +10,7 @@ function renderStars(rating) {
 function getQueryParams() {
   // First check if we're using clean URLs
   const pageInfo = SlugUtil.getCurrentPageInfo();
+  
   if (pageInfo.type === 'product' && pageInfo.id) {
     return { id: pageInfo.id.toString() };
   }
@@ -17,10 +18,12 @@ function getQueryParams() {
   // Fall back to legacy query parameters
   const params = {};
   const queryString = window.location.search.slice(1);
+  
   queryString.split('&').forEach(param => {
     const [key, value] = param.split('=');
     if (key && value) params[key] = decodeURIComponent(value);
   });
+  
   return params;
 }
 
@@ -196,6 +199,7 @@ function renderProductDetailSkeleton() {
 async function loadProductDetail() {
   renderProductDetailSkeleton();
   showGlobalLoadingSpinner('جاري تحميل تفاصيل المنتج...');
+  
   const params = getQueryParams();
   productId = params.id;
 
@@ -239,8 +243,20 @@ async function loadProductDetail() {
   try {
     // Add cache-busting timestamp to ensure fresh product data
     const response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
-    if (!response.ok) throw new Error('المنتج غير موجود.');
+    
+    if (!response.ok) {
+      throw new Error('المنتج غير موجود.');
+    }
+    
     const product = await response.json();
+    
+    // Hide debug after successful load
+    setTimeout(() => {
+      const debugDiv = document.getElementById('debug-info');
+      if (debugDiv && debugDiv.parentNode) {
+        debugDiv.style.display = 'none';
+      }
+    }, 3000);
 
     // Store product data globally for button functionality
     window.currentProduct = product;
@@ -764,7 +780,7 @@ async function loadProductDetail() {
     loadReviews(productId);
     
     // Auto-refresh disabled - service worker removed
-    console.log('🔄 Auto-refresh disabled - service worker and caching removed');
+    // Note: Service worker functionality has been removed for better performance
     // enableAutoRefresh(); // Removed - no longer needed
   } catch (error) {
     console.error('Error loading product details:', error);
@@ -1253,9 +1269,21 @@ function openImageModal(startIndex = 0) {
 }
 
 
-// At top of your file:
+// At top of your file - Extract product ID from URL (supports both clean URLs and legacy .html)
+function getProductIdFromUrl() {
+  // Check for clean URL pattern: /products/123
+  const pathMatch = window.location.pathname.match(/\/products\/(\d+)/);
+  if (pathMatch) {
+    return pathMatch[1];
+  }
+  
+  // Fallback to query parameter: ?id=123
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('id');
+}
+
 const urlParams = new URLSearchParams(window.location.search);
-let productId = urlParams.get('id');
+let productId = getProductIdFromUrl();
 
 // After you load or display the product:
 if (productId && !isNaN(parseInt(productId))) {
@@ -1287,6 +1315,7 @@ function updatePageSEO(product) {
   // Update URL if coming from legacy page
   const currentPath = window.location.pathname;
   if (currentPath.includes('product-detail.html')) {
+    // Update to clean URL now that server-side routing is working
     window.history.replaceState({}, '', `/products/${product.slug || SlugUtil.generateProductSlug(product)}`);
   }
 }
@@ -1475,24 +1504,32 @@ function updateSocialMediaTags(product, title, description, url) {
   const siteName = 'Omervita';
   const priceText = product.price ? `${product.price} دج` : 'السعر غير متوفر';
   const availability = product.stock > 0 ? 'متوفر' : 'غير متوفر';
+  const stockIndicator = product.stock > 0 ? '✅ متوفر' : '❌ غير متوفر';
   
   // Enhanced title and description for social media
-  const socialTitle = `${product.name} - ${priceText}`;
+  const socialTitle = `${product.name} - ${priceText} | Omervita`;
   const socialDescription = product.description ? 
-    `${product.description.substring(0, 200)}...` : 
-    `اشتري ${product.name} بأفضل سعر من Omervita. ${availability} - منتجات طبيعية عالية الجودة مع توصيل سريع.`;
+    `${product.description.substring(0, 180)}... | ${stockIndicator} - منتجات طبيعية عالية الجودة من Omervita 🌿` : 
+    `اشتري ${product.name} بأفضل سعر من Omervita. ${stockIndicator} - منتجات طبيعية عالية الجودة مع توصيل سريع 🚚`;
   
   // Update Open Graph tags
   const ogTags = [
     { property: 'og:title', content: socialTitle },
     { property: 'og:description', content: socialDescription },
     { property: 'og:image', content: productImage },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { property: 'og:image:alt', content: `صورة المنتج: ${product.name}` },
     { property: 'og:url', content: url },
     { property: 'og:type', content: 'product' },
     { property: 'og:site_name', content: siteName },
+    { property: 'og:locale', content: 'ar_DZ' },
     { property: 'product:price:amount', content: product.price || '0' },
     { property: 'product:price:currency', content: 'DZD' },
-    { property: 'product:availability', content: availability }
+    { property: 'product:availability', content: availability },
+    { property: 'product:condition', content: 'new' },
+    { property: 'product:retailer_item_id', content: product.id },
+    { property: 'product:item_group_id', content: product.categories?.[0]?.id || 'general' }
   ];
   
   // Add product category if available
@@ -1509,8 +1546,13 @@ function updateSocialMediaTags(product, title, description, url) {
     { name: 'twitter:title', content: socialTitle },
     { name: 'twitter:description', content: socialDescription },
     { name: 'twitter:image', content: productImage },
+    { name: 'twitter:image:alt', content: `صورة المنتج: ${product.name}` },
     { name: 'twitter:site', content: '@omervita' },
-    { name: 'twitter:creator', content: '@omervita' }
+    { name: 'twitter:creator', content: '@omervita' },
+    { name: 'twitter:label1', content: 'السعر' },
+    { name: 'twitter:data1', content: priceText },
+    { name: 'twitter:label2', content: 'التوفر' },
+    { name: 'twitter:data2', content: availability }
   ];
   
   // Update or create Open Graph tags
@@ -1534,6 +1576,21 @@ function updateSocialMediaTags(product, title, description, url) {
     }
     twitterTag.content = tag.content;
   });
+  
+  // Update canonical URL
+  let canonicalTag = document.querySelector('link[rel="canonical"]');
+  if (!canonicalTag) {
+    canonicalTag = document.createElement('link');
+    canonicalTag.rel = 'canonical';
+    document.head.appendChild(canonicalTag);
+  }
+  canonicalTag.href = url;
+  
+  // Optional: Trigger Facebook's Open Graph debugger to refresh cache
+  // This helps ensure fresh data when sharing (useful for testing)
+  if (window.FB && typeof window.FB.XFBML !== 'undefined') {
+    window.FB.XFBML.parse();
+  }
 }
 
 // Helper function to get the best available product image URL

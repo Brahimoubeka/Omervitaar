@@ -52,8 +52,16 @@ class SlugUtil {
   }
   
   // Extract ID from a slug (assumes format: "slug-text-123")
+  // Extract ID from a slug (handles both "slug-text-123" and "123" formats)
   static extractIdFromSlug(slug) {
     if (!slug) return null;
+    
+    // First check if it's just a numeric ID
+    if (/^\d+$/.test(slug)) {
+      return parseInt(slug, 10);
+    }
+    
+    // Then check for slug format with ID at the end
     const match = slug.match(/-(\d+)$/);
     return match ? parseInt(match[1], 10) : null;
   }

@@ -51,9 +51,16 @@ class SlugUtil {
     return `${baseSlug}-${id}`;
   }
   
-  // Extract ID from a slug (assumes format: "slug-text-123")
+  // Extract ID from a slug (handles both "slug-text-123" and "123" formats)
   static extractIdFromSlug(slug) {
     if (!slug) return null;
+    
+    // First check if it's just a numeric ID
+    if (/^\d+$/.test(slug)) {
+      return parseInt(slug, 10);
+    }
+    
+    // Then check for slug format with ID at the end
     const match = slug.match(/-(\d+)$/);
     return match ? parseInt(match[1], 10) : null;
   }
@@ -90,15 +97,15 @@ class SlugUtil {
     const path = window.location.pathname;
     const params = new URLSearchParams(window.location.search);
     
-    // Check if we're on a product page
-    if (path.match(/^\/products\/[a-z0-9-]+$/i)) {
+    // Check if we're on a product page (handles both /products/123 and /products/slug-123)
+    if (path.match(/^\/products\/[\w\d-]+$/i)) {
       const slug = path.replace('/products/', '');
       const productId = this.extractIdFromSlug(slug);
       return { type: 'product', id: productId, slug: slug };
     }
     
-    // Check if we're on a category page
-    if (path.match(/^\/categories\/[a-z0-9-]+$/i)) {
+    // Check if we're on a category page (handles both /categories/123 and /categories/slug-123)
+    if (path.match(/^\/categories\/[\w\d-]+$/i)) {
       const slug = path.replace('/categories/', '');
       const categoryId = this.extractIdFromSlug(slug);
       return { type: 'category', id: categoryId, slug: slug };

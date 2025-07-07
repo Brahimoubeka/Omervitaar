@@ -605,6 +605,35 @@ hr{
     max-width: 300px;
     margin: 0 auto;
   }
+  
+  /* Fix mobile layout issues for RTL */
+  body {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+  
+  .container:not(footer .container) {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  main.container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  
+  /* Keep footer full width */
+  footer {
+    margin-left: -15px !important;
+    margin-right: -15px !important;
+  }
+  
+  footer .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 }
 
 /* Extra small devices (phones, less than 576px) */
@@ -626,45 +655,29 @@ hr{
   footer p, footer a {
     font-size: 0.9rem;
   }
-}
-
-/* Add margin between Add to Cart and My Cart buttons */
-.add-to-cart-btn {
-  margin-left: 12px;
-  margin-right: 12px;
-}
-
-/* Breadcrumb styling */
-.breadcrumb {
-  background-color: rgba(248, 249, 250, 0.7);
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  margin-bottom: 1.5rem;
-}
-
-.breadcrumb-item a {
-  color: var(--military-green);
-  text-decoration: none;
-  transition: color 0.2s, text-decoration 0.2s;
-  font-weight: 500;
-}
-
-.breadcrumb-item a:hover {
-  color: var(--orange-accent);
-  text-decoration: underline;
-}
-
-.breadcrumb-item.active {
-  color: var(--dark-charcoal);
-  font-weight: 600;
-}
-
-.breadcrumb-item + .breadcrumb-item::before {
-  content: "\f285";
-  font-family: "Bootstrap-icons";
-  color: #999;
-  padding: 0 0.5rem;
+  
+  /* Additional mobile fixes */
+  .navbar-toggler {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+  }
+  
+  .navbar-collapse {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Ensure proper spacing on very small screens */
+  body {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  
+  main.container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    max-width: 100% !important;
+  }
 }
   </style>
 

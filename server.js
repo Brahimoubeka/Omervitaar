@@ -10,6 +10,252 @@ const jwt = require('jsonwebtoken');
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
 
+// CRITICAL: Product detail route MUST be first before any other middleware
+// This ensures social media crawlers get the correct meta tags
+app.get('/product-detail.html', async (req, res) => {
+  const productId = req.query.id;
+  
+  if (!productId) {
+    return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+  }
+  
+  // Check if this is a request from a social media crawler
+  const userAgent = req.headers['user-agent'] || '';
+  const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|skypeuripreview|slackbot|discordbot|googlebot|bingbot|bot|crawler|spider|scraper/i.test(userAgent);
+  
+  if (isCrawler) {
+    try {
+      const html = await renderProductDetailHTML(parseInt(productId, 10));
+      return res.send(html);
+    } catch (error) {
+      console.error('Error serving SSR product detail page:', error);
+      return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+    }
+  } else {
+    // Regular users get the normal SPA experience
+    return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+  }
+});
+
+// Clean URL route for products (/products/:id) - Social media friendly
+app.get('/products/:id', async (req, res) => {
+  const productId = req.params.id;
+  
+  // Helper function to extract ID from slug (handles both "slug-text-123" and "123" formats)
+  function extractIdFromSlug(slug) {
+    if (!slug) return null;
+    
+    // First check if it's just a numeric ID
+    if (/^\d+$/.test(slug)) {
+      return parseInt(slug, 10);
+    }
+    
+    // Then check for slug format with ID at the end
+    const match = slug.match(/-(\d+)$/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+  
+  // Extract product ID from either numeric format or slug format
+  const extractedProductId = extractIdFromSlug(productId);
+  
+  if (!extractedProductId) {
+    return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+  }
+  
+  // Check if this is a request from a social media crawler
+  const userAgent = req.headers['user-agent'] || '';
+  const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|skypeuripreview|slackbot|discordbot|googlebot|bingbot|bot|crawler|spider|scraper/i.test(userAgent);
+  
+  if (isCrawler) {
+    try {
+      const html = await renderProductDetailHTML(extractedProductId);
+      return res.send(html);
+    } catch (error) {
+      console.error('Error serving SSR product detail page for clean URL:', error);
+      return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+    }
+  } else {
+    // For regular users, serve the SPA version with the correct product ID in the URL
+    req.url = `/product-detail.html?id=${extractedProductId}`;
+    return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+  }
+});
+
+// Helper functions for product meta tags (must be defined before routes)
+function escapeHtmlAttribute(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function generateProductMetaTags(productId) {
+  try {
+    const supabase = require('./supabase');
+    const SlugUtil = require('./utils/slug-util');
+    
+    // Fetch product data
+    const { data: prodRows, error: prodError } = await supabase
+      .from('Products')
+      .select('*')
+      .eq('id', productId);
+    
+    if (prodError || !prodRows || prodRows.length === 0) {
+      return null;
+    }
+    
+    const product = prodRows[0];
+    
+    // Fetch product images
+    const { data: imgRows } = await supabase
+      .from('ProductImages')
+      .select('imagePath, id')
+      .eq('product_id', productId)
+      .order('id', { ascending: true });
+    
+    // Fetch product categories
+    const { data: catRows } = await supabase
+      .from('ProductCategories')
+      .select('category_id, Categories(id, name)')
+      .eq('product_id', productId);
+    
+    // Process data
+    const images = (imgRows || []).map(i => i.imagePath);
+    const categories = (catRows || []).filter(r => r.Categories).map(r => r.Categories);
+    
+    const productImage = images.length > 0 ? images[0] : product.imagePath || 'images/logo.png';
+    const fullImageUrl = productImage.startsWith('http') ? productImage : `https://omervita.com/${productImage.replace(/^\/+/, '')}`;
+    
+    // Ensure name/description are strings
+    product.name = Array.isArray(product.name) ? (product.name[0] || '') : (product.name || '');
+    product.description = Array.isArray(product.description) ? (product.description[0] || '') : (product.description || '');
+    
+    const title = `${product.name} - ${product.price ? product.price + ' دج' : 'السعر غير متوفر'} | Omervita`;
+    const description = product.description ? 
+      `${product.description.substring(0, 155)}...` : 
+      `اشتري ${product.name} بأفضل سعر من Omervita. منتجات طبيعية عالية الجودة مع توصيل سريع.`;
+    const url = `https://omervita.com/products/${SlugUtil.generateProductSlug(product)}`;
+    const availability = product.stock > 0 ? 'متوفر' : 'غير متوفر';
+    
+    return {
+      title,
+      description,
+      url,
+      image: fullImageUrl,
+      price: product.price || '0',
+      availability,
+      product,
+      categories
+    };
+    
+  } catch (error) {
+    console.error('Error generating product meta tags:', error);
+    return null;
+  }
+}
+
+// Helper function to render product detail HTML with meta tags
+async function renderProductDetailHTML(productId) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Read the original HTML file
+    const htmlPath = path.join(__dirname, 'public', 'product-detail.html');
+    let html = fs.readFileSync(htmlPath, 'utf-8');
+    
+    // Get product meta data
+    const metaData = await generateProductMetaTags(productId);
+    
+    if (!metaData) {
+      return html; // Return original HTML if no product found
+    }
+    
+    // Replace the default meta tags with product-specific ones using exact string matching
+    const originalDescriptionTag = '<meta name="description" content="اكتشف تفاصيل المنتج من Omervita. معلومات شاملة عن المكونات والفوائد والاستخدام لمنتجات العناية الطبيعية.">';
+    
+    // Replace title
+    const originalTitle = '<title>Omervita - تفاصيل المنتج</title>';
+    const newTitle = `<title>${escapeHtmlAttribute(metaData.title)}</title>`;
+    if (html.includes(originalTitle)) {
+      html = html.replace(originalTitle, newTitle);
+    }
+    
+    // Replace description
+    const newDescription = `<meta name="description" content="${escapeHtmlAttribute(metaData.description)}">`;
+    if (html.includes(originalDescriptionTag)) {
+      html = html.replace(originalDescriptionTag, newDescription);
+    }
+    
+    // Replace Open Graph title
+    const originalOgTitle = '<meta property="og:title" content="Omervita - منتجات طبيعية عالية الجودة">';
+    const newOgTitle = `<meta property="og:title" content="${escapeHtmlAttribute(metaData.title)}">`;
+    if (html.includes(originalOgTitle)) {
+      html = html.replace(originalOgTitle, newOgTitle);
+    }
+    
+    // Replace Open Graph description
+    const originalOgDescription = '<meta property="og:description" content="اكتشف منتجات Omervita الطبيعية عالية الجودة للعناية بالبشرة والشعر والجسم.">';
+    const newOgDescription = `<meta property="og:description" content="${escapeHtmlAttribute(metaData.description)}">`;
+    if (html.includes(originalOgDescription)) {
+      html = html.replace(originalOgDescription, newOgDescription);
+    }
+    
+    // Replace Open Graph image
+    const originalOgImage = '<meta property="og:image" content="https://omervita.com/images/logo.png">';
+    const newOgImage = `<meta property="og:image" content="${escapeHtmlAttribute(metaData.image)}">`;
+    if (html.includes(originalOgImage)) {
+      html = html.replace(originalOgImage, newOgImage);
+    }
+    
+    // Replace Open Graph URL
+    const originalOgUrl = '<meta property="og:url" content="https://omervita.com/">';
+    const newOgUrl = `<meta property="og:url" content="${escapeHtmlAttribute(metaData.url)}">`;
+    if (html.includes(originalOgUrl)) {
+      html = html.replace(originalOgUrl, newOgUrl);
+    }
+    
+    // Replace Twitter title
+    const originalTwitterTitle = '<meta name="twitter:title" content="Omervita - منتجات طبيعية عالية الجودة">';
+    const newTwitterTitle = `<meta name="twitter:title" content="${escapeHtmlAttribute(metaData.title)}">`;
+    if (html.includes(originalTwitterTitle)) {
+      html = html.replace(originalTwitterTitle, newTwitterTitle);
+    }
+    
+    // Replace Twitter description
+    const originalTwitterDescription = '<meta name="twitter:description" content="اكتشف منتجات Omervita الطبيعية عالية الجودة للعناية بالبشرة والشعر والجسم.">';
+    const newTwitterDescription = `<meta name="twitter:description" content="${escapeHtmlAttribute(metaData.description)}">`;
+    if (html.includes(originalTwitterDescription)) {
+      html = html.replace(originalTwitterDescription, newTwitterDescription);
+    }
+    
+    // Replace Twitter image
+    const originalTwitterImage = '<meta name="twitter:image" content="https://omervita.com/images/logo.png">';
+    const newTwitterImage = `<meta name="twitter:image" content="${escapeHtmlAttribute(metaData.image)}">`;
+    if (html.includes(originalTwitterImage)) {
+      html = html.replace(originalTwitterImage, newTwitterImage);
+    }
+    
+    return html;
+    
+  } catch (error) {
+    console.error('renderProductDetailHTML error:', error);
+    // Return original HTML file if error occurs
+    const fs = require('fs');
+    const path = require('path');
+    const htmlPath = path.join(__dirname, 'public', 'product-detail.html');
+    return fs.readFileSync(htmlPath, 'utf-8');
+  }
+}
+
+// CRITICAL: Product detail route MUST be first before any other middleware
+// This ensures social media crawlers get the correct meta tags
+
 // JWT verification middleware for admin access
 function verifyAdminAccess(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -187,48 +433,37 @@ app.use('/admin', express.static(path.join(__dirname, 'public/admin'), {
   }
 }));
 
-// --- HTML files - no caching (exclude admin folder) ---
-app.use((req, res, next) => {
-  // Skip admin folder requests - they're handled above
-  if (req.path.startsWith('/admin')) {
-    return next();
-  }
-  
-  express.static(path.join(__dirname, 'public'), {
-    maxAge: 0, // No caching
-    etag: false,
-    lastModified: false,
-    setHeaders: (res, filepath) => {
-      if (filepath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-      }
-    }
-  })(req, res, next);
-});
+// --- HTML files - no caching (exclude admin folder and product-detail.html) ---
+// This middleware is disabled to prevent conflicts with the product-detail.html route
+// Static HTML files are served by the main static middleware below
 
 // --- Clean URL routing middleware (MUST be before static files) ---
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   const url = req.url.split('?')[0];
   
-  // Helper function to extract ID from slug
+  // Helper function to extract ID from slug (handles both "slug-text-123" and "123" formats)
   function extractIdFromSlug(slug) {
+    if (!slug) return null;
+    
+    // First check if it's just a numeric ID
+    if (/^\d+$/.test(slug)) {
+      return parseInt(slug, 10);
+    }
+    
+    // Then check for slug format with ID at the end
     const match = slug.match(/-(\d+)$/);
     return match ? parseInt(match[1], 10) : null;
   }
   
-  // Handle product slug URLs: /products/product-name-123
-  if (url.match(/^\/products\/[a-z0-9-]+$/i)) {
-    const slug = url.replace('/products/', '');
-    const productId = extractIdFromSlug(slug);
-    if (productId) {
-      req.url = `/product-detail.html?id=${productId}`;
-    }
+  // Handle product slug URLs: /products/product-name-123 or /products/123
+  // NOTE: This is now handled by the explicit /products/:id route above, so we skip it here
+  if (url.match(/^\/products\/[^\/\?]+$/i)) {
+    // Skip - handled by explicit route
+    return next();
   }
   
-  // Handle category slug URLs: /categories/category-name-123
-  else if (url.match(/^\/categories\/[a-z0-9-]+$/i)) {
+  // Handle category slug URLs: /categories/category-name-123 or /categories/123
+  else if (url.match(/^\/categories\/[\w\d-]+$/i)) {
     const slug = url.replace('/categories/', '');
     const categoryId = extractIdFromSlug(slug);
     if (categoryId) {
@@ -306,8 +541,29 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from the "public" folder
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the "public" folder (exclude product-detail.html)
+app.use((req, res, next) => {
+  // Skip product-detail.html - it has its own route handler  
+  if (req.path === '/product-detail.html') {
+    return next();
+  }
+  
+  // Use a more specific static middleware that doesn't interfere with routes
+  const staticMiddleware = express.static(path.join(__dirname, 'public'), {
+    maxAge: 0, // No caching
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, filepath) => {
+      if (filepath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    }
+  });
+  
+  staticMiddleware(req, res, next);
+});
 
 const authRoutes = require('./routes/auth');
 app.use('/api', authRoutes);
@@ -490,3 +746,5 @@ app.disable('x-powered-by');
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+
