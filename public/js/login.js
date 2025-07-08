@@ -133,3 +133,16 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         submitBtn.innerHTML = originalBtnHtml;
     }
 });
+
+// Check for expired session parameter and show message
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('expired') === 'true') {
+        document.getElementById('login-message').innerHTML = `
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle me-1"></i>انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+            </div>
+        `;
+    }
+});

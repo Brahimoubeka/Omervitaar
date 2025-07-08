@@ -24,6 +24,25 @@ function showNotification(message, type = 'success', timeout = 3000) {
   }, timeout);
 }
 
+// --- Helper for handling 401 authentication errors ---
+function handleAuthError(response) {
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    // Show Bootstrap alert instead of basic alert
+    if (typeof showBootstrapAlert === 'function') {
+      showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
+      setTimeout(() => {
+        window.location.href = '/login?expired=true';
+      }, 3500);
+    } else {
+      alert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول.');
+      window.location.href = '/login?expired=true';
+    }
+    return true;
+  }
+  return false;
+}
+
 function isValidImageFile(file) {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   return file && allowedTypes.includes(file.type);
@@ -41,6 +60,7 @@ async function loadCategories() {
     const response = await fetch('/api/admin/categories', {
       headers: { Authorization: `Bearer ${token}` }
     });
+    if (handleAuthError(response)) return;
     allCategories = await response.json();
     renderCategoryCheckboxes();
   } catch (error) {
@@ -68,6 +88,7 @@ async function loadProducts() {
     const response = await fetch('/api/admin/products', {
       headers: { Authorization: `Bearer ${token}` }
     });
+    if (handleAuthError(response)) return;
     const products = await response.json();
     productsMap = {}; // Reset
     const container = document.getElementById('products-container');

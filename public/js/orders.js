@@ -24,6 +24,21 @@ async function loadOrders() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            // Show Bootstrap alert instead of basic alert
+            if (typeof showBootstrapAlert === 'function') {
+                showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
+                setTimeout(() => {
+                    window.location.href = '/login?expired=true';
+                }, 3500);
+            } else {
+                alert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول.');
+                window.location.href = '/login?expired=true';
+            }
+            return;
+        }
+
         if (!response.ok) {
             throw new Error('تعذر تحميل الطلبات.');
         }

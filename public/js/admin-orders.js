@@ -2,6 +2,25 @@
 // It loads all orders, groups them, and allows for status updates and archiving.
 // It includes pagination to show orders in increments.
 
+// --- Helper for handling 401 authentication errors ---
+function handleAuthError(response) {
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    // Show Bootstrap alert instead of basic alert
+    if (typeof showBootstrapAlert === 'function') {
+      showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
+      setTimeout(() => {
+        window.location.href = '/login?expired=true';
+      }, 3500);
+    } else {
+      alert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول.');
+      window.location.href = '/login?expired=true';
+    }
+    return true;
+  }
+  return false;
+}
+
 let allOrdersGrouped = {}; // Store grouped orders globally for recalculation
 let orderKeys = []; // Store the keys (group IDs) of the orders to manage pagination
 let displayedCount = 0; // Keep track of how many orders are currently shown
@@ -133,6 +152,10 @@ async function loadAdminOrders() {
         const response = await fetch('/api/admin/orders', {
             headers: { Authorization: `Bearer ${token}` }
         });
+        
+        // Handle 401 Unauthorized error
+        if (handleAuthError(response)) return;
+        
         const orders = await response.json();
         container.innerHTML = '';
 
@@ -212,6 +235,10 @@ async function refreshGroupData(group) {
         const response = await fetch('/api/admin/orders', {
             headers: { Authorization: `Bearer ${token}` }
         });
+        
+        // Handle 401 Unauthorized error
+        if (handleAuthError(response)) return;
+        
         const orders = await response.json();
         
         const groupOrders = orders.filter(order => order.order_group === group);
@@ -540,6 +567,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
             });
+            
+            // Handle 401 Unauthorized error
+            if (handleAuthError(response)) return;
+            
             if (!response.ok) {
               const result = await response.json();
               throw new Error(result.error || 'خطأ اثناء الأرشفة!');

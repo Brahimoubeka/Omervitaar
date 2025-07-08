@@ -2,6 +2,25 @@
 // It loads all messages, allows for viewing and archiving.
 // It includes pagination to show messages in increments.
 
+// --- Helper for handling 401 authentication errors ---
+function handleAuthError(response) {
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    // Show Bootstrap alert instead of basic alert
+    if (typeof showBootstrapAlert === 'function') {
+      showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
+      setTimeout(() => {
+        window.location.href = '/login?expired=true';
+      }, 3500);
+    } else {
+      alert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول.');
+      window.location.href = '/login?expired=true';
+    }
+    return true;
+  }
+  return false;
+}
+
 let allMessages = []; // Store all fetched messages globally
 let displayedCount = 0; // Keep track of how many messages are currently shown
 const messagesIncrement = 5; // How many messages to show at a time
@@ -134,6 +153,10 @@ async function loadMessages() {
         const response = await fetch('/api/admin/messages', {
             headers: { Authorization: `Bearer ${token}` }
         });
+        
+        // Check for authentication error
+        if (handleAuthError(response)) return;
+        
         const messages = await response.json();
         container.innerHTML = '';
 
