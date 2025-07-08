@@ -114,10 +114,15 @@ function checkTokenExpiry() {
     const token = localStorage.getItem('token');
     if (token && isTokenExpired(token)) {
         localStorage.removeItem('token');
-        showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
-        setTimeout(() => {
-            window.location.href = '/login?expired=true';
-        }, 3500);
+        // Update header to show guest state instead of redirecting
+        updateHeader();
+        // Only show the Bootstrap alert if not on checkout page
+        if (!window.location.pathname.includes('checkout')) {
+            showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
+            setTimeout(() => {
+                window.location.href = '/login?expired=true';
+            }, 3500);
+        }
     }
 }
 

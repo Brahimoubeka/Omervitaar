@@ -26,7 +26,7 @@ async function loadOrders() {
 
         if (response.status === 401) {
             localStorage.removeItem('token');
-            // Show Bootstrap alert instead of basic alert
+            // For orders page, redirect to login since orders require authentication
             if (typeof showBootstrapAlert === 'function') {
                 showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
                 setTimeout(() => {

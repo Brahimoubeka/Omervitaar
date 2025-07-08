@@ -354,15 +354,12 @@ function setupFormSubmitHandler() {
 
             if (response.status === 401) {
                 localStorage.removeItem('token');
-                // Show Bootstrap alert instead of basic alert
-                if (typeof showBootstrapAlert === 'function') {
-                    showBootstrapAlert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول...', 'warning', 3000);
-                    setTimeout(() => {
-                        window.location.href = '/login?expired=true';
-                    }, 3500);
-                } else {
-                    alert('انتهت صلاحية جلسة العمل. سيتم تحويلك إلى صفحة تسجيل الدخول.');
-                    window.location.href = '/login?expired=true';
+                // Instead of redirecting to login, treat as guest user
+                // Show the original guest message with WhatsApp option
+                showMessage('الرجاء تسجيل الدخول او انشاء حساب أولا', 'warning');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHTML;
                 }
                 return;
             }
