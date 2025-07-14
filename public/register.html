@@ -300,51 +300,25 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     <div class="register-card">
       <h1><i class="bi bi-person-plus me-2"></i>تسجيل</h1>
       <form id="register-form" novalidate autocomplete="off">
-        <div class="form-row mb-3">
-          <div class="form-col me-3">
-            <label for="name" class="form-label">الاسم:</label>
-            <input type="text" id="name" name="name" required minlength="3" pattern="^[a-zA-ZğüşıöçĞÜŞİÖÇ ]{3,}$" class="form-control" placeholder="اسمك" />
-            <div class="invalid-feedback">يجب أن يتكون من 3 أحرف على الأقل، ويجب استخدام أحرف فقط.</div>
-          </div>
-          <div class="form-col">
-            <label for="email" class="form-label">البريد الإلكتروني:</label>
-            <input type="email" id="email" name="email" required class="form-control" placeholder="عنوان بريدك الإلكتروني" />
-            <div class="invalid-feedback">يرجى إدخال بريد إلكتروني صالح.</div>
-          </div>
+        <div class="mb-3">
+          <label for="name" class="form-label">الاسم:</label>
+          <input type="text" id="name" name="name" required minlength="3" pattern="^[a-zA-ZğüşıöçĞÜŞİÖÇ ]{3,}$" class="form-control" placeholder="اسمك" />
+          <div class="invalid-feedback">يجب أن يتكون من 3 أحرف على الأقل، ويجب استخدام أحرف فقط.</div>
         </div>
-        <div class="form-row mb-3">
-          <div class="form-col me-3">
-            <label for="gender" class="form-label">الجنس:</label>
-            <select id="gender" name="gender" required class="form-control">
-              <option value="">اختر</option>
-              <option value="Erkek">ذكر</option>
-              <option value="Kadın">أنثى</option>
-              <option value="Diğer">أفضل عدم القول</option>
-            </select>
-            <div class="invalid-feedback">يرجى اختيار الجنس.</div>
-          </div>
-          <div class="form-col">
-            <label for="birth_date" class="form-label">تاريخ الميلاد:</label>
-            <input type="date" id="birth_date" name="birth_date" required class="form-control" />
-            <div class="invalid-feedback">يرجى اختيار تاريخ صالح.</div>
-          </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">البريد الإلكتروني:</label>
+          <input type="email" id="email" name="email" required class="form-control" placeholder="عنوان بريدك الإلكتروني" />
+          <div class="invalid-feedback">يرجى إدخال بريد إلكتروني صالح.</div>
         </div>
-        <div class="form-row mb-3">
-          <div class="form-col me-3">
-            <label for="phone" class="form-label">رقم الهاتف:</label>
-            <input type="tel" id="phone" name="phone" required pattern="^0[0-9]{9}$" maxlength="10" minlength="10" class="form-control" placeholder="0XXXXXXXXXX" />
-            <div class="form-text">يرجى إدخال 10 أرقام، بدءًا من 0.</div>
+        <div class="mb-3">
+          <label for="password" class="form-label">كلمة المرور:</label>
+          <input type="password" id="password" name="password" required minlength="8"
+            pattern="^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\-\/\\]).{8,}$"
+            class="form-control" placeholder="كلمة مرورك" />
+          <div class="form-text">
+            يجب أن تتكون من 8 أحرف لاتينية على الأقل، واحتواء على حرف كبير واحد، ورقم واحد، ورمز واحد.
           </div>
-          <div class="form-col">
-            <label for="password" class="form-label">كلمة المرور:</label>
-            <input type="password" id="password" name="password" required minlength="8"
-              pattern="^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\-\/\\]).{8,}$"
-              class="form-control" placeholder="كلمة مرورك" />
-            <div class="form-text">
-              يجب أن تتكون من 8 أحرف فرنسية على الأقل، واحتواء على حرف كبير واحد، ورقم واحد، ورمز واحد.
-            </div>
-            <div class="invalid-feedback">يجب أن تتوافق كلمة المرور مع القواعد.</div>
-          </div>
+          <div class="invalid-feedback">يجب أن تتوافق كلمة المرور مع القواعد.</div>
         </div>
         <button type="submit" class="btn btn-primary w-100 mt-2"><i class="bi bi-person-plus me-1"></i>تسجيل</button>
       </form>
@@ -426,15 +400,6 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
           form.name.classList.remove('is-invalid');
         }
 
-        // Phone (0 ile başlar ve 11 rakam)
-        const phone = form.phone.value.trim();
-        if (!/^0[0-9]{10}$/.test(phone)) {
-          form.phone.classList.add('is-invalid');
-          valid = false;
-        } else {
-          form.phone.classList.remove('is-invalid');
-        }
-
         // Password
         const password = form.password.value;
         if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\-\/\\]).{8,}$/.test(password)) {
@@ -444,28 +409,8 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
           form.password.classList.remove('is-invalid');
         }
 
-        // Birth Date (must be 18+)
-const birthDateInput = form.birth_date;
-const birthDateStr = birthDateInput.value.trim();
-const birthDate = new Date(birthDateStr);
-const today = new Date();
-
-let age = NaN;
-if (!isNaN(birthDate.getTime())) {
-  const ageDiff = today - birthDate;
-  const ageDate = new Date(ageDiff);
-  age = Math.abs(ageDate.getUTCFullYear() - 1970);
-}
-
-if (isNaN(age) || age < 18) {
-  birthDateInput.classList.add('is-invalid');
-  valid = false;
-} else {
-  birthDateInput.classList.remove('is-invalid');
-}
-
         // Email default browser
-        // Gender, Birthdate: default browser
+        // No additional validation needed for simplified form
 
         if (!valid) {
           e.preventDefault();

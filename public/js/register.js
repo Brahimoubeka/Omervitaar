@@ -11,9 +11,6 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
-    const gender = document.getElementById('gender').value;
-    const birth_date = document.getElementById('birth_date').value;
-    const phone = document.getElementById('phone').value.trim();
     const password = document.getElementById('password').value;
     const messageDiv = document.getElementById('register-message');
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -38,45 +35,6 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         return;
     }
 
-    // gender
-    if (!gender) {
-        showMessage(messageDiv, "يرجى اختيار الجنس.", "danger");
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnHtml;
-        return;
-    }
-
-    // birth date
-    if (!birth_date) {
-        showMessage(messageDiv, "يرجى إدخال تاريخ الميلاد.", "danger");
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnHtml;
-        return;
-    }
-    // Age check: must be at least 18 years old
-    const birth = new Date(birth_date);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-        age--;
-    }
-    if (age < 18) {
-        showMessage(messageDiv, "يجب أن يكون عمرك 18 سنة أو أكثر للتسجيل.", "danger");
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnHtml;
-        return;
-    }
-
-    // phone number 10 digits, start with 0 
-    const phonePattern = /^0[0-9]{9}$/;
-    if (!phonePattern.test(phone)) {
-        showMessage(messageDiv, "يجب أن يكون رقم الهاتف 10 رقمًا ويبدأ بـ 0.", "danger");
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnHtml;
-        return;
-    }
-
     // password : min 8, at least 1 big letter, 1 number, 1 symbol
     const passwordPattern = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     if (!passwordPattern.test(password)) {
@@ -90,7 +48,14 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         const response = await fetch('/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, gender, birth_date, phone, password })
+            body: JSON.stringify({ 
+                name, 
+                email, 
+                password,
+                gender: null,
+                birth_date: null,
+                phone: null
+            })
         });
         const result = await response.json();
         if (!response.ok) {

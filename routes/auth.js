@@ -28,10 +28,10 @@ const failedLoginAttempts = new Map();
 
 // User Registration Route
 router.post('/register', async (req, res) => {
-    const { name, email, gender, birth_date, phone, password } = req.body;
+    const { name, email, password, gender, birth_date, phone } = req.body;
 
-    if (!name || !email || !gender || !birth_date || !phone || !password) {
-        return res.status(400).json({ error: 'رجاء املا جميع الخانات' });
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'رجاء املا جميع الخانات المطلوبة' });
     }
 
     try {
@@ -52,7 +52,14 @@ router.post('/register', async (req, res) => {
         // Insert the new user into the database
         const { data, error } = await supabase
             .from('Users')
-            .insert([{ name, email, gender, birth_date, phone, password_hash: hashedPassword }])
+            .insert([{ 
+                name, 
+                email, 
+                password_hash: hashedPassword,
+                gender: gender || null,
+                birth_date: birth_date || null,
+                phone: phone || null
+            }])
             .select('id');
         if (error) throw error;
         res.json({ message: 'تم انشاء الحساب بنجاح..', userId: data[0].id });
