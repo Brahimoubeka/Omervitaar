@@ -6,6 +6,22 @@
   <title>Omervita - تفاصيل المنتج</title>
   <meta name="description" content="اكتشف تفاصيل المنتج من Omervita. معلومات شاملة عن المكونات والفوائد والاستخدام لمنتجات العناية الطبيعية.">
   
+  <!-- Performance: Resource hints for faster loading -->
+  <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+  <link rel="dns-prefetch" href="//fonts.gstatic.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Performance: Preload critical API endpoints -->
+  <link rel="prefetch" href="/api/categories">
+  <link rel="prefetch" href="/api/branding">
+  
+  <!-- Performance: Cache control meta tags -->
+  <meta http-equiv="Cache-Control" content="public, max-age=300">
+  <meta http-equiv="Pragma" content="cache">
+  
   <!-- Open Graph Tags (will be dynamically updated) -->
   <meta property="og:title" content="Omervita - منتجات طبيعية عالية الجودة">
   <meta property="og:description" content="اكتشف منتجات Omervita الطبيعية عالية الجودة للعناية بالبشرة والشعر والجسم.">
@@ -72,17 +88,35 @@
   
     <!-- Canonical tag for SEO (will be dynamically updated) -->
   <link rel="canonical" href="https://omervita.com/">
-  <!-- Bootstrap CSS CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  
+  <!-- Performance: Non-blocking Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" /></noscript>
+  
+  <!-- Bootstrap Icons loaded normally (smaller, more critical) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <!-- Google Fonts: Inter -->
+  <!-- Google Fonts: Inter with font-display swap for performance -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-   <!-- Add Cairo Arabic font from Google Fonts -->
+   <!-- Add Cairo Arabic font from Google Fonts with font-display swap for performance -->
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
   
   <!-- Favicon and PWA -->
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="manifest" href="/manifest.json">
+  
+  <!-- Critical CSS: Skeleton loading styles for immediate render -->
+  <style>
+    /* Critical skeleton styles - inline for performance */
+    .skeleton-detail-img { width: 100%; height: 400px; background: #e0e0e0; border-radius: 18px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-title { height: 36px; width: 70%; background: #e0e0e0; border-radius: 10px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-price { height: 24px; width: 30%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-rating { height: 22px; width: 40%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-badges { height: 18px; width: 50%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-desc { height: 90px; width: 100%; background: #e0e0e0; border-radius: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    .skeleton-detail-btn { height: 48px; background: #e0e0e0; border-radius: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
+    @keyframes skeletonPulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    @media (max-width: 991px) { .skeleton-detail-img { height: 230px; } }
+  </style>
   
   <style>
     :root {
@@ -127,6 +161,28 @@
     .breadcrumb-item.active {
       color: #6c757d;
       font-weight: 500;
+    }
+    
+    /* Performance: Image optimizations */
+    .related-product-img {
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .product-zoom {
+      transition: transform 0.2s ease;
+    }
+    
+    .product-zoom:hover {
+      transform: scale(1.02);
+    }
+    
+    /* Performance: Reduce layout shifts */
+    .carousel-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
     .navbar-nav .nav-link {
@@ -748,10 +804,8 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
       <div id="product-image-carousel-col" class="col-md-6 mb-4"></div>
       <div id="product-info-col" class="col-md-6"></div>
       <hr>
-      <div class="row mt-3" id="product-categories-row"></div>
 
-      
-       <!-- Call to Action Buttons -->
+         <!-- Call to Action Buttons -->
       <div class="row mt-4 mb-4">
         <div class="col-12">
           <div class="d-flex gap-3 justify-content-center flex-wrap">
@@ -765,6 +819,12 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
         </div>
       </div>
 
+
+
+      <div class="row mt-3" id="product-categories-row"></div>
+
+      
+    
 
       <div id="related-products-row" class="my-5"></div>
       <hr>
@@ -926,10 +986,12 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 </footer>
   <!-- Bootstrap JS Bundle CDN (Popper + Bootstrap JS) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/js/slug-util.js?v=1736152800"></script>
-  <script src="/js/header.js?v=1736152800"></script>
-  <script src="/js/product-detail.js?v=1736152800"></script>
-  <script src="/js/branding.js?v=1736152800"></script>
+  
+  <!-- Performance: Defer non-critical scripts -->
+  <script src="/js/slug-util.js?v=1736152800" defer></script>
+  <script src="/js/header.js?v=1736152800" defer></script>
+  <script src="/js/product-detail.js?v=1736152800" defer></script>
+  <script src="/js/branding.js?v=1736152800" defer></script>
   <script>
     // Modern interactive star rating for the review modal
     document.addEventListener('DOMContentLoaded', function () {
@@ -976,8 +1038,37 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   </script>
 <script>
 async function updateBrandingLinks() {
-  const res = await fetch('/api/branding');
-  const branding = await res.json();
+  // Use cached branding data for better performance
+  const cacheKey = 'branding_data';
+  const cached = localStorage.getItem(`cache_${cacheKey}`);
+  let branding;
+  
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      const age = Date.now() - data.timestamp;
+      if (age < 15 * 60 * 1000) { // 15 minutes
+        branding = data.value;
+      }
+    } catch {}
+  }
+  
+  if (!branding) {
+    const res = await fetch('/api/branding', {
+      headers: {
+        'Cache-Control': 'public, max-age=900'
+      }
+    });
+    branding = await res.json();
+    
+    // Cache the branding data
+    try {
+      localStorage.setItem(`cache_${cacheKey}`, JSON.stringify({
+        value: branding,
+        timestamp: Date.now()
+      }));
+    } catch {}
+  }
 
   // Update social links (use your real selectors/IDs as needed)
   document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
@@ -989,11 +1080,41 @@ async function updateBrandingLinks() {
 updateBrandingLinks();
 </script>
   <script>
-    // Dynamically load categories into navbar dropdown
+    // Dynamically load categories into navbar dropdown with caching
     async function loadCategoriesDropdown() {
       try {
-        const res = await fetch('/api/categories');
-        const categories = await res.json();
+        // Check cache first
+        const cacheKey = 'categories_dropdown';
+        const cached = localStorage.getItem(`cache_${cacheKey}`);
+        let categories;
+        
+        if (cached) {
+          try {
+            const data = JSON.parse(cached);
+            const age = Date.now() - data.timestamp;
+            if (age < 15 * 60 * 1000) { // 15 minutes
+              categories = data.value;
+            }
+          } catch {}
+        }
+        
+        if (!categories) {
+          const res = await fetch('/api/categories', {
+            headers: {
+              'Cache-Control': 'public, max-age=900'
+            }
+          });
+          categories = await res.json();
+          
+          // Cache the categories
+          try {
+            localStorage.setItem(`cache_${cacheKey}`, JSON.stringify({
+              value: categories,
+              timestamp: Date.now()
+            }));
+          } catch {}
+        }
+        
         const menu = document.getElementById('categoriesDropdownMenu');
         menu.innerHTML = '';
         if (Array.isArray(categories) && categories.length > 0) {

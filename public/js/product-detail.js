@@ -1,11 +1,9 @@
 // Helper function to render star ratings as 5 classic yellow stars
-function renderStars(rating) {
-  let starsHtml = '';
-  for (let i = 1; i <= 5; i++) {
-    starsHtml += `<span class="star" style="font-size:1.3em; color: ${i <= rating ? '#ffc107' : '#e4e5e9'};">&#9733;</span>`;
-  }
-  return starsHtml;
-}
+const renderStars = (rating) => {
+  return Array.from({length: 5}, (_, i) => 
+    `<span class="star" style="font-size:1.3em; color: ${i < rating ? '#ffc107' : '#e4e5e9'};">&#9733;</span>`
+  ).join('');
+};
 
 function getQueryParams() {
   // First check if we're using clean URLs
@@ -109,25 +107,23 @@ function renderProductDescription(description, container) {
   container.appendChild(descriptionContainer);
 }
 
-// Helper function to extract YouTube video IDs from a text
-function extractYouTubeLinks(text) {
+// Helper function to extract YouTube video IDs from a text  
+const extractYouTubeLinks = (text) => {
   const ytRegex = /(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+))/g;
   const links = [];
   let match;
   while ((match = ytRegex.exec(text)) !== null) {
-    let url = match[1];
+    const url = match[1];
     let videoId = '';
     if (url.includes('youtu.be/')) {
       videoId = url.split('youtu.be/')[1].split(/[?&]/)[0];
     } else if (url.includes('v=')) {
       videoId = url.split('v=')[1].split(/[&?]/)[0];
     }
-    if (videoId) {
-      links.push(videoId);
-    }
+    if (videoId) links.push(videoId);
   }
   return links;
-}
+};
 
 // --- Global Loading Spinner Notification ---
 function showGlobalLoadingSpinner(message = 'جاري التحميل...') {
@@ -177,22 +173,11 @@ function renderProductDetailSkeleton() {
 }
 
 // --- Skeleton CSS for Product Detail ---
+// Note: Skeleton CSS styles are now inline in HTML for better performance
+// This function is kept for backwards compatibility but does nothing
 (function addProductDetailSkeletonStyles() {
-  if (document.getElementById('skeleton-detail-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'skeleton-detail-styles';
-  style.textContent = `
-    .skeleton-detail-img { width: 100%; height: 400px; background: #e0e0e0; border-radius: 18px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    .skeleton-detail-title { height: 36px; width: 70%; background: #e0e0e0; border-radius: 10px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    .skeleton-detail-price { height: 24px; width: 30%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    .skeleton-detail-rating { height: 22px; width: 40%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    .skeleton-detail-badges { height: 18px; width: 50%; background: #e0e0e0; border-radius: 8px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    .skeleton-detail-desc { height: 90px; width: 100%; background: #e0e0e0; border-radius: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    .skeleton-detail-btn { height: 48px; background: #e0e0e0; border-radius: 12px; animation: skeletonPulse 1.2s infinite ease-in-out; }
-    @keyframes skeletonPulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-    @media (max-width: 991px) { .skeleton-detail-img { height: 230px; } }
-  `;
-  document.head.appendChild(style);
+  // CSS moved to inline styles in HTML head for performance
+  return;
 })();
 
 // MAIN FUNCTION: loadProductDetail
@@ -241,14 +226,30 @@ async function loadProductDetail() {
   }
 
   try {
-    // Add cache-busting timestamp to ensure fresh product data
-    const response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
+    // Optimized cache strategy: check cache first, then fetch if needed
+    const cacheKey = `product_${productId}`;
+    const cacheExpiry = 5 * 60 * 1000; // 5 minutes cache
+    const cachedData = CacheManager.get(cacheKey, cacheExpiry);
     
-    if (!response.ok) {
-      throw new Error('المنتج غير موجود.');
+    let product;
+    if (cachedData) {
+      product = cachedData;
+      console.log('Loading product from cache for better performance');
+    } else {
+      const response = await fetch(`/api/products/${productId}`, {
+        headers: {
+          'Cache-Control': 'public, max-age=300', // 5 minutes browser cache
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('المنتج غير موجود.');
+      }
+      
+      product = await response.json();
+      // Cache the product data
+      CacheManager.set(cacheKey, product);
     }
-    
-    const product = await response.json();
     
     // Hide debug after successful load
     setTimeout(() => {
@@ -267,8 +268,21 @@ async function loadProductDetail() {
 
     let images = [];
     try {
-      const imagesResp = await fetch(`/api/products/${product.id}/images`);
-      images = await imagesResp.json();
+      // Check cache for images first
+      const imagesCacheKey = `product_images_${product.id}`;
+      const cachedImages = CacheManager.get(imagesCacheKey, cacheExpiry);
+      
+      if (cachedImages) {
+        images = cachedImages;
+      } else {
+        const imagesResp = await fetch(`/api/products/${product.id}/images`, {
+          headers: {
+            'Cache-Control': 'public, max-age=600', // 10 minutes for images
+          }
+        });
+        images = await imagesResp.json();
+        CacheManager.set(imagesCacheKey, images);
+      }
     } catch { images = []; }
     if (!images || images.length === 0) images = [product.imagePath || 'images/default-product.jpg'];
 
@@ -283,7 +297,7 @@ async function loadProductDetail() {
       })),
       ...youTubeVideoIds.map((vid, idx) => ({
         type: 'youtube',
-        content: `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vid}" frameborder="0" allowfullscreen style="border-radius:14px;max-width:100%;height:100%;background:#000"></iframe>`
+        content: `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vid}" frameborder="0" allowfullscreen style="border-radius:14px;max-width:100%;height:100%;background:#000" loading="lazy"></iframe>`
       }))
     ];
 
@@ -328,7 +342,7 @@ async function loadProductDetail() {
                   ${images.map((src, idx) => `
                     <div class="carousel-item${idx === 0 ? ' active' : ''}">
                       <div class="d-flex justify-content-center align-items-center" style="height: 70vh;">
-                        <img src="${src}" class="img-fluid" alt="Product Image ${idx+1}" loading="lazy" 
+                        <img src="${src}" class="img-fluid" alt="صورة المنتج ${idx+1}" loading="lazy" 
                              style="max-height: 100%; max-width: 100%; object-fit: contain;">
                       </div>
                     </div>
@@ -630,9 +644,20 @@ async function loadProductDetail() {
     if (contactAboutProductBtn) {
       contactAboutProductBtn.addEventListener('click', async () => {
         try {
-          // Get WhatsApp number from branding API
-          const brandingResponse = await fetch('/api/branding');
-          const branding = await brandingResponse.json();
+          // Use cached branding data for better performance
+          const brandingCacheKey = 'branding_data';
+          let branding = CacheManager.get(brandingCacheKey, 15 * 60 * 1000); // 15 minutes
+          
+          if (!branding) {
+            const brandingResponse = await fetch('/api/branding', {
+              headers: {
+                'Cache-Control': 'public, max-age=900', // 15 minutes
+              }
+            });
+            branding = await brandingResponse.json();
+            CacheManager.set(brandingCacheKey, branding);
+          }
+          
           let whatsappNumber = branding.phone || '+905518560018'; // Fallback number
           
           // Clean and validate phone number
@@ -844,9 +869,22 @@ async function renderRelatedProducts(product) {
   // We'll use only the first category for backend query (as the API supports single category param)
   const mainCat = mainCatIds[0];
   try {
-    // No more cache-busting needed since service worker is removed
-    const resp = await fetch(`/api/products?category=${mainCat}&limit=6`);
-    let products = await resp.json();
+    // Cache strategy for related products
+    const relatedCacheKey = `related_products_${mainCat}`;
+    const cachedRelated = CacheManager.get(relatedCacheKey, 10 * 60 * 1000); // 10 minutes
+    
+    let products;
+    if (cachedRelated) {
+      products = cachedRelated;
+    } else {
+      const resp = await fetch(`/api/products?category=${mainCat}&limit=6`, {
+        headers: {
+          'Cache-Control': 'public, max-age=600', // 10 minutes
+        }
+      });
+      products = await resp.json();
+      CacheManager.set(relatedCacheKey, products);
+    }
 
     // Filter out products that are NOT in any of the current product's categories 
     products = products.filter(p =>
@@ -870,7 +908,7 @@ async function renderRelatedProducts(product) {
         <div class="col-12 col-md-4">
           <a href="/products/${p.slug || SlugUtil.generateProductSlug(p)}" class="text-decoration-none">
             <div class="card related-product-card h-100 shadow-sm">
-              <img src="${(p.thumbnail || 'images/default-product.jpg')}" class="card-img-top related-product-img">
+              <img src="${(p.thumbnail || 'images/default-product.jpg')}" class="card-img-top related-product-img" alt="${p.name}" loading="lazy">
               <div class="card-body d-flex flex-column py-2 px-2">
                 <h5 class="card-title" style="color:var(--military-green,#715100);font-size:0.98em;font-weight:700">${p.name}</h5>
                 <span style="color: rgb(255, 115, 0);font-weight:600;">دج${p.price}</span>
@@ -915,9 +953,22 @@ async function renderRelatedProducts(product) {
 //load reviews
 async function loadReviews(productId) {
   try {
-    // Add cache-busting timestamp to ensure fresh data
-    const response = await fetch(`/api/products/${productId}/reviews?_t=${Date.now()}`);
-    const reviews = await response.json();
+    // Cache reviews for better performance
+    const reviewsCacheKey = `reviews_${productId}`;
+    const cachedReviews = CacheManager.get(reviewsCacheKey, 3 * 60 * 1000); // 3 minutes
+    
+    let reviews;
+    if (cachedReviews) {
+      reviews = cachedReviews;
+    } else {
+      const response = await fetch(`/api/products/${productId}/reviews`, {
+        headers: {
+          'Cache-Control': 'public, max-age=180', // 3 minutes
+        }
+      });
+      reviews = await response.json();
+      CacheManager.set(reviewsCacheKey, reviews);
+    }
     const reviewsContainer = document.getElementById('reviews-container');
     const toggleBtn = document.getElementById('reviews-toggle-btn');
     reviewsContainer.innerHTML = '';
@@ -1060,6 +1111,7 @@ function showCartMessage(message, type = 'success', product = null) {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadProductDetail();
+  
   const stars = document.querySelectorAll('.star-rating label');
   const radios = document.querySelectorAll('.star-rating input[type="radio"]');
   function updateSelectedStars(selectedValue) {
@@ -1152,9 +1204,22 @@ async function loadAllCategoriesAndRenderShortcuts(selectedCategories = []) {
   try {
     const row = document.getElementById('product-categories-row');
     
-    // Fetch ALL categories from the API with cache-busting
-    const response = await fetch(`/api/categories?_t=${Date.now()}`);
-    const allCategories = await response.json();
+    // Cache categories for better performance
+    const categoriesCacheKey = 'all_categories';
+    const cachedCategories = CacheManager.get(categoriesCacheKey, 15 * 60 * 1000); // 15 minutes
+    
+    let allCategories;
+    if (cachedCategories) {
+      allCategories = cachedCategories;
+    } else {
+      const response = await fetch(`/api/categories`, {
+        headers: {
+          'Cache-Control': 'public, max-age=900', // 15 minutes
+        }
+      });
+      allCategories = await response.json();
+      CacheManager.set(categoriesCacheKey, allCategories);
+    }
     
     // Show ALL categories as buttons, not just the ones the product belongs to
     if (allCategories && allCategories.length > 0) {
@@ -1232,14 +1297,55 @@ function setupShareButton() {
 }
 
 function fallbackShare(link) {
-  // Show an input that user can select/copy manually
-  let temp = document.createElement('input');
+  // Modern fallback without deprecated document.execCommand
+  const temp = document.createElement('input');
   temp.value = link;
+  temp.style.cssText = 'position:absolute;left:-9999px;opacity:0;pointer-events:none';
   document.body.appendChild(temp);
   temp.select();
-  document.execCommand('copy');
-  document.body.removeChild(temp);
-  showShareToast('تم نسخ رابط المنتج!');
+  temp.setSelectionRange(0, temp.value.length); // Better mobile support
+  
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      showShareToast('تم نسخ رابط المنتج!');
+    } else {
+      showManualCopyDialog(link);
+    }
+  } catch (err) {
+    showManualCopyDialog(link);
+  } finally {
+    document.body.removeChild(temp);
+  }
+}
+
+// Modern fallback dialog for manual copying
+function showManualCopyDialog(text) {
+  const modal = document.createElement('div');
+  modal.className = 'modal fade show';
+  modal.style.cssText = 'display: block; background: rgba(0,0,0,0.5);';
+  modal.innerHTML = `
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">انسخ الرابط</h5>
+        </div>
+        <div class="modal-body text-center">
+          <p>انسخ الرابط أدناه:</p>
+          <input type="text" class="form-control" value="${text}" readonly onclick="this.select()">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="this.closest('.modal').remove()">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // Auto-select text and remove after 10 seconds
+  const input = modal.querySelector('input');
+  input.select();
+  setTimeout(() => modal.remove(), 10000);
 }
 
 function showShareToast(message) {
@@ -1619,5 +1725,250 @@ function getProductImageUrl(product) {
   // Fall back to logo
   return `${baseUrl}/images/logo.png`;
 }
+
+// Performance Optimization: Lazy Loading Images
+// This reduces initial page load by deferring non-critical image loading
+function initLazyLoading() {
+  // Modern browsers with Intersection Observer support
+  if ('IntersectionObserver' in window) {
+    const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const lazyImage = entry.target;
+          
+          // For regular images
+          if (lazyImage.dataset.src) {
+            lazyImage.src = lazyImage.dataset.src;
+            lazyImage.removeAttribute('data-src');
+          }
+          
+          // For carousel images
+          if (lazyImage.classList.contains('carousel-lazy-img') || 
+              lazyImage.classList.contains('modal-lazy-img')) {
+            if (lazyImage.dataset.src) {
+              lazyImage.src = lazyImage.dataset.src;
+              lazyImage.removeAttribute('data-src');
+            }
+          }
+          
+          // Add fade-in effect
+          lazyImage.style.opacity = '0';
+          lazyImage.style.transition = 'opacity 0.3s';
+          lazyImage.onload = () => {
+            lazyImage.style.opacity = '1';
+          };
+          
+          lazyImage.classList.remove('lazy-load-img', 'carousel-lazy-img', 'modal-lazy-img');
+          lazyImageObserver.unobserve(lazyImage);
+        }
+      });
+    }, {
+      // Load images 100px before they enter viewport
+      rootMargin: '100px'
+    });
+
+    // Observe all lazy images
+    const lazyImages = document.querySelectorAll('.lazy-load-img, .carousel-lazy-img, .modal-lazy-img');
+    lazyImages.forEach(img => lazyImageObserver.observe(img));
+    
+    // Handle carousel slide changes for lazy loading
+    const carousel = document.getElementById('productCarousel');
+    if (carousel) {
+      carousel.addEventListener('slide.bs.carousel', function() {
+        // Load next slide image when transitioning
+        const activeSlide = this.querySelector('.carousel-item.active');
+        const nextSlide = activeSlide.nextElementSibling || this.querySelector('.carousel-item:first-child');
+        const nextImg = nextSlide.querySelector('img[data-src]');
+        if (nextImg) {
+          nextImg.src = nextImg.dataset.src;
+          nextImg.removeAttribute('data-src');
+        }
+      });
+    }
+    
+    // Handle modal carousel for lazy loading
+    const modalCarousel = document.getElementById('modalCarousel');
+    if (modalCarousel) {
+      modalCarousel.addEventListener('slide.bs.carousel', function() {
+        const activeSlide = this.querySelector('.carousel-item.active');
+        const nextSlide = activeSlide.nextElementSibling || this.querySelector('.carousel-item:first-child');
+        const nextImg = nextSlide.querySelector('img[data-src]');
+        if (nextImg) {
+          nextImg.src = nextImg.dataset.src;
+          nextImg.removeAttribute('data-src');
+        }
+      });
+    }
+  } else {
+    // Fallback for older browsers - load all images immediately
+    const lazyImages = document.querySelectorAll('.lazy-load-img, .carousel-lazy-img, .modal-lazy-img');
+    lazyImages.forEach(img => {
+      if (img.dataset.src) {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+      }
+    });
+  }
+}
+
+// Performance Optimization: Optimize YouTube embeds
+// Only load YouTube videos when they become visible
+function optimizeYouTubeEmbeds() {
+  const youtubeIframes = document.querySelectorAll('iframe[data-src*="youtube.com"]');
+  
+  if ('IntersectionObserver' in window) {
+    const videoObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const iframe = entry.target;
+          iframe.src = iframe.dataset.src;
+          iframe.removeAttribute('data-src');
+          observer.unobserve(iframe);
+        }
+      });
+    }, {
+      rootMargin: '50px'
+    });
+    
+    youtubeIframes.forEach(iframe => videoObserver.observe(iframe));
+  } else {
+    // Fallback - load immediately
+    youtubeIframes.forEach(iframe => {
+      if (iframe.dataset.src) {
+        iframe.src = iframe.dataset.src;
+        iframe.removeAttribute('data-src');
+      }
+    });
+  }
+}
+
+// Performance Optimization: Image preloading for better UX
+function preloadCriticalImages() {
+  // Only preload the first image and next image for better performance
+  const firstCarouselImg = document.querySelector('.carousel-item.active img[data-src]');
+  if (firstCarouselImg) {
+    firstCarouselImg.src = firstCarouselImg.dataset.src;
+    firstCarouselImg.removeAttribute('data-src');
+  }
+  
+  // Preload next slide image
+  const secondSlide = document.querySelector('.carousel-item:nth-child(2) img[data-src]');
+  if (secondSlide) {
+    const preloadImg = new Image();
+    preloadImg.onload = () => {
+      secondSlide.src = secondSlide.dataset.src;
+      secondSlide.removeAttribute('data-src');
+    };
+    preloadImg.src = secondSlide.dataset.src;
+  }
+}
+
+// Performance Optimization: Modern Cache Management System
+const CacheManager = {
+  get(key, maxAge) {
+    try {
+      const cached = localStorage.getItem(`cache_${key}`);
+      if (!cached) return null;
+      
+      const data = JSON.parse(cached);
+      const isExpired = Date.now() - data.timestamp > maxAge;
+      
+      if (isExpired) {
+        localStorage.removeItem(`cache_${key}`);
+        return null;
+      }
+      return data.value;
+    } catch (error) {
+      console.warn('Cache read error:', error);
+      return null;
+    }
+  },
+
+  set(key, value) {
+    try {
+      const data = { value, timestamp: Date.now() };
+      localStorage.setItem(`cache_${key}`, JSON.stringify(data));
+    } catch (error) {
+      console.warn('Cache write error:', error);
+      this.cleanup();
+    }
+  },
+
+  cleanup() {
+    try {
+      const cacheKeys = Object.keys(localStorage)
+        .filter(key => key.startsWith('cache_'));
+      
+      if (cacheKeys.length > 20) {
+        cacheKeys.forEach(key => {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            const age = Date.now() - data.timestamp;
+            if (age > 30 * 60 * 1000) { // 30 minutes
+              localStorage.removeItem(key);
+            }
+          } catch {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Cache cleanup error:', error);
+    }
+  }
+};
+
+// Performance Optimization: Modern Resource Management
+const ResourceManager = {
+  async preloadEndpoints() {
+    const endpoints = ['/api/categories', '/api/branding'];
+    
+    // Use Promise.all for parallel preloading but don't block execution
+    Promise.all(
+      endpoints.map(endpoint => 
+        fetch(endpoint, { headers: { 'Cache-Control': 'public, max-age=900' } })
+          .catch(() => {}) // Ignore preload failures
+      )
+    );
+  },
+
+  initCleanupListeners() {
+    // Clean cache before page unload
+    window.addEventListener('beforeunload', CacheManager.cleanup);
+    
+    // Periodic cleanup every 10 minutes
+    setInterval(CacheManager.cleanup, 10 * 60 * 1000);
+  }
+};
+
+// Initialize all modern performance optimizations
+const initAllOptimizations = () => {
+  // Start modern resource management
+  ResourceManager.preloadEndpoints();
+  ResourceManager.initCleanupListeners();
+  
+  // Clean old cache immediately
+  setTimeout(CacheManager.cleanup, 1000);
+  
+  // Initialize performance features
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        initLazyLoading();
+        optimizeYouTubeEmbeds();
+        preloadCriticalImages();
+      }, 100);
+    });
+  } else {
+    setTimeout(() => {
+      initLazyLoading();
+      optimizeYouTubeEmbeds();
+      preloadCriticalImages();
+    }, 100);
+  }
+};
+
+// Start all optimizations
+initAllOptimizations();
 
 
