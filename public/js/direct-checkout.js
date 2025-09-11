@@ -144,32 +144,45 @@ function initDirectCheckout(product) {
       const addressInput = document.getElementById('address');
       const citySelect = document.getElementById('city');
 
-      // Name validation
-      const nameValidation = InputSecurity.validateName(nameInput.value);
-      if (!nameValidation.isValid) {
-        showCartMessage('الرجاء إدخال اسم صحيح (3-50 حرف، حروف عربية وإنجليزية فقط)', 'error');
-        nameInput.focus();
-        return;
-      }
-      nameInput.value = nameValidation.sanitized;
+      // Name validation (Arabic + Latin letters allowed)
+const nameRegex = /^[\u0600-\u06FFa-zA-Z\s]{3,50}$/;
+const trimmedName = nameInput.value.trim();
+const nameValidation = {
+  isValid: nameRegex.test(trimmedName),
+  sanitized: trimmedName
+};
+if (!nameValidation.isValid) {
+  showCartMessage('الرجاء إدخال اسم صحيح (3-50 حرف، حروف عربية أو إنجليزية فقط)', 'error');
+  nameInput.focus();
+  return;
+}
 
-      // Phone validation
-      const phoneValidation = InputSecurity.validatePhone(phoneInput.value);
-      if (!phoneValidation.isValid) {
-        showCartMessage('يرجى إدخال رقم هاتف صالح مكون من 9 أو 10 أرقام.', 'error');
-        phoneInput.focus();
-        return;
-      }
-      phoneInput.value = phoneValidation.sanitized;
+// Phone validation (9 or 10 digits)
+const phoneRegex = /^[0-9]{9,10}$/;
+const trimmedPhone = phoneInput.value.trim();
+const phoneValidation = {
+  isValid: phoneRegex.test(trimmedPhone),
+  sanitized: trimmedPhone
+};
+if (!phoneValidation.isValid) {
+  showCartMessage('يرجى إدخال رقم هاتف صالح مكون من 9 أو 10 أرقام.', 'error');
+  phoneInput.focus();
+  return;
+}
 
-      // Address validation
-      const addressValidation = InputSecurity.validateAddress(addressInput.value);
-      if (!addressValidation.isValid) {
-        showCartMessage('الرجاء إدخال عنوان صحيح (3-200 حرف)', 'error');
-        addressInput.focus();
-        return;
-      }
-      addressInput.value = addressValidation.sanitized;
+// Address validation (Arabic + Latin letters, numbers, spaces, 3–200 chars)
+const addressRegex = /^[\u0600-\u06FFa-zA-Z0-9\s.,-]{3,200}$/;
+const trimmedAddress = addressInput.value.trim();
+const addressValidation = {
+  isValid: addressRegex.test(trimmedAddress),
+  sanitized: trimmedAddress
+};
+if (!addressValidation.isValid) {
+  showCartMessage('الرجاء إدخال عنوان صحيح (3-200 حرف)', 'error');
+  addressInput.focus();
+  return;
+}
+ 
 
       // City validation
       const cityValidation = InputSecurity.validateCity(citySelect.value, cities);
