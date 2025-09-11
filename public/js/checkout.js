@@ -292,10 +292,10 @@ function setupFormSubmitHandler() {
             showMessage('الاسم واللقب مطلوبان.', 'danger');
             return;
         }
-        // Phone number: exactly 10 digits
-        const phonePattern = /^\d{10}$/;
+        // Phone number: 9 or 10 digits
+        const phonePattern = /^\d{9,10}$/;
         if (!phonePattern.test(shippingName)) {
-            showMessage('يرجى إدخال رقم هاتف صالح مكون من 10 أرقام.', 'danger');
+            showMessage('يرجى إدخال رقم هاتف صالح مكون من 9 أو 10 أرقام.', 'danger');
             document.getElementById('shippingName').focus();
             return;
         }
@@ -343,7 +343,30 @@ function setupFormSubmitHandler() {
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>جاري تأكيد الطلب...';
             }
             showMessage('', 'info'); // Clear message area
-            const response = await fetch('/api/orders', {
+            // Get email if user is logged in
+            let userEmail = '';
+            if (token) {
+                try {
+                    const res = await fetch('/api/user/profile', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const userData = await res.json();
+                        userEmail = userData.email;
+                    }
+                } catch (err) {
+                    console.error('Error fetching user email:', err);
+                }
+            }
+
+            // Add email to order data if available
+            if (userEmail) {
+                orderData.email = userEmail;
+            }
+
+            // If user is logged in, use /api/orders, otherwise use /api/guest-orders
+            const endpoint = token ? '/api/orders' : '/api/guest-orders';
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -352,16 +375,9 @@ function setupFormSubmitHandler() {
                 body: JSON.stringify(orderData)
             });
 
-            if (response.status === 401) {
-                localStorage.removeItem('token');
-                // Instead of redirecting to login, treat as guest user
-                // Show the original guest message with WhatsApp option
-                showMessage('الرجاء تسجيل الدخول او انشاء حساب أولا', 'warning');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalBtnHTML;
-                }
-                return;
+            if (!response.ok && response.status === 401) {
+                // Don't remove token here, just continue as guest
+                console.log('Processing as guest order...');
             }
 
             const result = await response.json();

@@ -18,9 +18,9 @@ document.getElementById('contact-form').addEventListener('submit', async (e) => 
     submitBtn.innerHTML = originalBtnHtml;
     return;
   }
-  // Validation: Phone (starts with 0 and has 10 digits)
-  if (!/^0[0-9]{9}$/.test(phone_number)) {
-    showMessage('يرجى إدخال رقم هاتف صالح يبدأ بـ 0 ومكون من 10 أرقام.', 'danger');
+  // Validation: Phone (9 or 10 digits)
+  if (!/^\d{9,10}$/.test(phone_number)) {
+    showMessage('يرجى إدخال رقم هاتف صالح مكون من 9 أو 10 أرقام.', 'danger');
     submitBtn.disabled = false;
     submitBtn.innerHTML = originalBtnHtml;
     return;

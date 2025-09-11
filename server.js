@@ -4,8 +4,12 @@ const app = express();
 const db = require('./db');
 require('dotenv').config();
 const fs = require('fs');
+require('dotenv').config();
 const supabase = require('./supabase');
 const jwt = require('jsonwebtoken');
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
@@ -573,6 +577,9 @@ app.use('/api', productRoutes);
 
 const ordersRoutes = require('./routes/orders');
 app.use('/api', ordersRoutes);
+
+const guestOrderRoutes = require('./routes/guest-orders');
+app.use('/api', guestOrderRoutes);
 
 const adminRoutes = require('./routes/admin');
 app.use('/api', adminRoutes);

@@ -563,10 +563,34 @@ async function loadProductDetail() {
     // Description with expandable functionality
     renderProductDescription(product.description || '', detailsCol);
 
+    // Quick order buttons row
+    const buttonsRow = document.createElement('div');
+    buttonsRow.className = 'd-flex flex-column flex-sm-row gap-2 mt-3';
+
+    // Quick Order Button
+    const quickOrderButton = document.createElement('button');
+    if (product.stock === 0) {
+      quickOrderButton.innerHTML = `<i class="bi bi-x-octagon-fill me-1"></i>انتهى المخزون`;
+      quickOrderButton.classList.add('btn', 'btn-danger', 'px-4', 'py-2', 'quick-order-btn', 'flex-grow-1', 'invisible');
+      quickOrderButton.disabled = true;
+      quickOrderButton.style.backgroundColor = 'red';
+      quickOrderButton.style.color = 'white';
+      quickOrderButton.style.cursor = 'not-allowed';
+    } else {
+      quickOrderButton.innerHTML = `<i class="bi bi-lightning-charge-fill me-1"></i>طلب مباشر`;
+      quickOrderButton.classList.add('btn', 'btn-primary', 'px-4', 'py-2', 'quick-order-btn', 'flex-grow-1');
+      quickOrderButton.addEventListener('click', () => {
+        window.currentProduct = product;
+        window.initDirectCheckout(product);
+        const modal = new bootstrap.Modal(document.getElementById('directCheckoutModal'));
+        modal.show();
+      });
+    }
+
     // Add to Cart Button 
     const addToCartButton = document.createElement('button');
     addToCartButton.innerHTML = `<i class="bi bi-cart-plus me-1"></i>أضف إلى السلة`;
-    addToCartButton.classList.add('btn', 'btn-primary', 'mt-3', 'px-4', 'py-2', 'add-to-cart-btn');
+    addToCartButton.classList.add('btn', 'btn-outline-primary', 'px-4', 'py-2', 'add-to-cart-btn', 'flex-grow-1');
     if (product.stock === 0) {
       addToCartButton.disabled = true;
       addToCartButton.style.opacity = '.6';
@@ -591,16 +615,17 @@ async function loadProductDetail() {
       // Show enhanced cart popup with product info
       showCartMessage('<i class="bi bi-check-circle-fill"></i> تم إضافة المنتج إلى السلة!', 'success', product);
     });
-    detailsCol.appendChild(addToCartButton);
 
-    // Go to Cart Button
-    const goToCartButton = document.createElement('button');
-    goToCartButton.innerHTML = `<i class="bi bi-cart me-1"></i>سلتي`;
-    goToCartButton.classList.add('btn', 'btn-outline-secondary', 'mt-3', 'ms-2', 'px-4', 'py-2');
-    goToCartButton.addEventListener('click', () => {
-      window.location.href = '/cart';
-    });
-    detailsCol.appendChild(goToCartButton);
+    // WhatsApp Button
+    const whatsappButton = document.createElement('button');
+    whatsappButton.id = 'contact-about-product-btn';
+    whatsappButton.classList.add('btn', 'btn-success', 'flex-grow-1');
+    whatsappButton.innerHTML = `<i class="bi bi-whatsapp me-1"></i>تواصل عبر واتساب`;
+
+    buttonsRow.appendChild(quickOrderButton);
+    buttonsRow.appendChild(addToCartButton);
+    buttonsRow.appendChild(whatsappButton);
+    detailsCol.appendChild(buttonsRow);
 
     // Call-to-action buttons functionality
   
@@ -639,161 +664,151 @@ async function loadProductDetail() {
       }
     }
     
-    // Contact About Product Button - copies product URL and opens WhatsApp
+    // Contact About Product Button - WhatsApp integration
     const contactAboutProductBtn = document.getElementById('contact-about-product-btn');
     if (contactAboutProductBtn) {
       contactAboutProductBtn.addEventListener('click', async () => {
         try {
-          // Use cached branding data for better performance
+          // Show loading state
+          contactAboutProductBtn.disabled = true;
+          contactAboutProductBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>جاري الفتح...`;
+
+          // Get WhatsApp number from branding data
           const brandingCacheKey = 'branding_data';
-          let branding = CacheManager.get(brandingCacheKey, 15 * 60 * 1000); // 15 minutes
+          let branding = CacheManager.get(brandingCacheKey, 15 * 60 * 1000);
           
           if (!branding) {
             const brandingResponse = await fetch('/api/branding', {
-              headers: {
-                'Cache-Control': 'public, max-age=900', // 15 minutes
-              }
+              headers: { 'Cache-Control': 'public, max-age=900' }
             });
             branding = await brandingResponse.json();
             CacheManager.set(brandingCacheKey, branding);
           }
+
+          // Format phone number for WhatsApp
+          const phoneNumber = branding.phone?.replace(/\D/g, '') || '905518560018';
+          let formattedNumber = phoneNumber;
           
-          let whatsappNumber = branding.phone || '+905518560018'; // Fallback number
+          // Add country code if missing
+          if (!formattedNumber.startsWith('90') && !formattedNumber.startsWith('966') && !formattedNumber.startsWith('213')) {
+            formattedNumber = '90' + formattedNumber;
+          }
+
+          // Get product info from window.currentProduct
+          const product = window.currentProduct;
+          const productUrl = window.location.href;
+
+          // Prepare message
+          let whatsappMessage = `السلام عليكم! أود الاستفسار عن المنتج:\n`;
+          whatsappMessage += `${product.name}\n\n`;
+          whatsappMessage += `- السعر: ${product.price} دج\n`;
           
-          // Clean and validate phone number
-          let cleanPhoneNumber = whatsappNumber.replace(/[^0-9]/g, '');
-          
-          // Ensure phone number starts with country code
-          if (!cleanPhoneNumber.startsWith('90') && !cleanPhoneNumber.startsWith('966') && !cleanPhoneNumber.startsWith('213')) {
-            // If no country code detected, assume Turkish number
-            if (cleanPhoneNumber.length === 10) {
-              cleanPhoneNumber = '90' + cleanPhoneNumber;
-            }
+          if (product.description) {
+            // Add truncated description if available
+            const shortDesc = product.description.length > 100 ? 
+              product.description.substring(0, 100) + '...' : 
+              product.description;
+            whatsappMessage += `- ${shortDesc}\n\n`;
           }
           
-          console.log('Using WhatsApp number:', cleanPhoneNumber); // Debug log
-          
-          // Get current product URL
-          const productUrl = window.location.href;
-          
-          // Create WhatsApp message
-          const message = encodeURIComponent(`عندي استفسار بشأن المنتج: ${productUrl}`);
-          
-          // Copy URL to clipboard (optional, for user convenience)
+          whatsappMessage += `رابط المنتج:\n${productUrl}`;
+
+          // Copy product URL
           try {
             await navigator.clipboard.writeText(productUrl);
+            // Show mini toast 
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.style.zIndex = '5000';
+            toast.innerHTML = `
+              <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                  <div class="toast-body">
+                    <i class="bi bi-check2-circle me-2"></i>تم نسخ رابط المنتج
+                  </div>
+                  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+              </div>
+            `;
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast.querySelector('.toast'));
+            bsToast.show();
+            setTimeout(() => toast.remove(), 3000);
           } catch (err) {
-            // Clipboard API might not work in some browsers
-            console.log('Could not copy to clipboard:', err);
+            console.warn('Could not copy to clipboard:', err);
           }
+
+          // Detect device
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
           
-          // Create WhatsApp URL with comprehensive mobile detection
-          let whatsappUrl;
-          
-          // Enhanced mobile detection using multiple methods
-          const userAgent = navigator.userAgent.toLowerCase();
-          const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
-                           window.innerWidth <= 768 || 
-                           'ontouchstart' in window ||
-                           navigator.maxTouchPoints > 0;
-          
-          const isAndroid = /android/i.test(userAgent);
-          const isIOS = /iphone|ipad|ipod/i.test(userAgent);
-          
-          console.log('Device detection:', { isMobile, isAndroid, isIOS, userAgent }); // Debug log
-          
-          // Create appropriate WhatsApp URL based on device
+          // URLs for different platforms
+          const waWebUrl = `https://web.whatsapp.com/send?phone=${formattedNumber}&text=${encodeURIComponent(whatsappMessage)}`;
+          const waAppUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+          const waDeepLink = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(whatsappMessage)}`;
+
+          // Open WhatsApp with fallback strategy
           if (isMobile) {
-            whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${message}`;
-          } else {
-            whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${message}`;
-          }
-          
-          // Try to open WhatsApp with multiple fallback strategies
-          try {
-            if (isMobile) {
-              // Strategy 1: Direct click simulation (most reliable on mobile)
-              const tempLink = document.createElement('a');
-              tempLink.href = whatsappUrl;
-              tempLink.style.display = 'none';
-              tempLink.target = '_blank';
-              tempLink.rel = 'noopener noreferrer';
-              document.body.appendChild(tempLink);
-              
-              // Use both click and programmatic opening
-              tempLink.click();
-              
-              // Clean up
-              setTimeout(() => {
-                if (document.body.contains(tempLink)) {
-                  document.body.removeChild(tempLink);
-                }
-              }, 100);
-              
-              // Strategy 2: Direct window.open as backup (with delay)
-              setTimeout(() => {
-                try {
-                  if (isIOS) {
-                    // For iOS, try the app scheme first, then web
-                    window.location.href = `whatsapp://send?phone=${cleanPhoneNumber}&text=${message}`;
-                    setTimeout(() => {
-                      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-                    }, 1500);
-                  } else {
-                    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-                  }
-                } catch (e) {
-                  console.log('Fallback strategy failed:', e);
-                  // Final fallback for mobile
-                  window.location.href = whatsappUrl;
-                }
-              }, 500);
-              
+            if (isIOS) {
+              // iOS: Try deep link first, then web
+              try {
+                window.location.href = waDeepLink;
+                setTimeout(() => window.location.href = waAppUrl, 2000);
+              } catch {
+                window.location.href = waAppUrl;
+              }
             } else {
-              // For desktop, standard window.open
-              window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+              // Android: Use app URL
+              window.location.href = waAppUrl;
             }
-          } catch (error) {
-            console.log('Primary WhatsApp open failed, trying ultimate fallback:', error);
-            // Ultimate fallback: multiple attempts
-            try {
-              window.open(`https://web.whatsapp.com/send?phone=${cleanPhoneNumber}&text=${message}`, '_blank');
-            } catch (finalError) {
-              // Last resort: navigate to WhatsApp web
-              window.location.href = `https://web.whatsapp.com/send?phone=${cleanPhoneNumber}&text=${message}`;
-            }
+          } else {
+            // Desktop: Open WhatsApp Web
+            window.open(waWebUrl, '_blank');
           }
-          
+
         } catch (error) {
           console.error('Error opening WhatsApp:', error);
           
-          // Show user-friendly error message with multiple options
-          const productUrl = window.location.href;
-          const message = encodeURIComponent(`عندي استفسار بشأن المنتج: ${productUrl}`);
-          
-          // Create fallback options
-          const webWhatsappUrl = `https://web.whatsapp.com/send?phone=${cleanPhoneNumber}&text=${message}`;
-          const waUrl = `https://wa.me/${cleanPhoneNumber}?text=${message}`;
-          
-          // Show user options
-          const userChoice = confirm(
-            'لم نتمكن من فتح واتساب تلقائياً. هل تريد المحاولة مرة أخرى؟\n\n' +
-            'اضغط "موافق" للمحاولة مرة أخرى\n' +
-            'اضغط "إلغاء" لنسخ رابط المنتج يدوياً'
-          );
-          
-          if (userChoice) {
-            // Try alternative WhatsApp URL
-            window.open(waUrl, '_blank');
-          } else {
-            // Copy URL and show instructions
-            try {
-              await navigator.clipboard.writeText(productUrl);
-              alert(`تم نسخ رابط المنتج!\n\nيمكنك الآن:\n1. فتح واتساب\n2. إرسال رسالة للرقم: ${whatsappNumber}\n3. لصق الرابط في الرسالة`);
-            } catch (err) {
-              alert(`رقم واتساب للتواصل: ${whatsappNumber}\n\nيمكنك نسخ هذا الرابط ولصقه في واتساب:\n${productUrl}`);
-            }
-          }
+          // Show error modal
+          const errorModal = document.createElement('div');
+          errorModal.className = 'modal fade';
+          errorModal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    تعذر فتح واتساب
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <p>لم نتمكن من فتح واتساب تلقائياً. يمكنك:</p>
+                  <ol>
+                    <li>فتح واتساب يدوياً</li>
+                    <li>إضافة الرقم: ${phoneNumber}</li>
+                    <li>نسخ رابط المنتج (تم نسخه تلقائياً)</li>
+                  </ol>
+                  <p class="text-muted small">يمكنك أيضاً المحاولة مرة أخرى أو استخدام واتساب ويب.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                  <a href="${waWebUrl}" target="_blank" class="btn btn-success">
+                    <i class="bi bi-whatsapp me-1"></i>
+                    فتح واتساب ويب
+                  </a>
+                </div>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(errorModal);
+          const bsModal = new bootstrap.Modal(errorModal);
+          bsModal.show();
+          errorModal.addEventListener('hidden.bs.modal', () => errorModal.remove());
+        } finally {
+          // Reset button state
+          contactAboutProductBtn.disabled = false;
+          contactAboutProductBtn.innerHTML = `<i class="bi bi-whatsapp me-2"></i>تواصل معنا بشأن المنتج`;
         }
       });
     }

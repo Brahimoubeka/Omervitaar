@@ -1,8 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const { validationResult } = require('express-validator');
 const supabase = require('../supabase');
 const jwt = require('jsonwebtoken');
 const { sendOrderEmail } = require('../utils/email');
+const OrderService = require('../services/order-service');
+const { 
+    orderLimiter, 
+    sanitizeInputs, 
+    validateCSRFToken,
+    sizeLimit
+} = require('../middleware/security');
+const validateOrderInputs = require('../middleware/validate-order-inputs');
 
 const secret = process.env.JWT_SECRET;
 
@@ -102,89 +111,195 @@ router.get('/admin/orders', verifyToken, async (req, res) => {
 });
 
 // POST /api/orders - Create a new order
-router.post('/orders', verifyToken, async (req, res) => {
-    const {
-        shippingName, shippingAddress, city, province, street,
-        department, postalCode, firstName, lastName, items,
-        cartTotal, deliveryCost, finalTotal
-    } = req.body;
-    const userId = req.user.userId;
-    const orderDate = new Date().toISOString();
+// POST /api/orders - Create a new authenticated user order
+router.post('/orders', [
+    verifyToken,
+    orderLimiter,
+    sizeLimit,
+    sanitizeInputs,
+    ...validateOrderInputs
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            success: false, 
+            errors: errors.array() 
+        });
+    }
 
-    // Fetch user email from DB
-    let userEmail = null;
+    const {
+        shippingName, shippingAddress, city, firstName, lastName, 
+        items, cartTotal, deliveryCost, finalTotal
+    } = req.body;
+
+    if (!shippingName || !items || !items.length || !city || !firstName || !lastName || 
+        cartTotal === undefined || deliveryCost === undefined || finalTotal === undefined) {
+        return res.status(400).json({ 
+            error: 'الرجاء ملء جميع الحقول الإلزامية: الاسم، اللقب، رقم الهاتف، المنطقة.' 
+        });
+    }
+
     try {
-        const { data: userRows, error: userError } = await supabase
+        // Get user email from token
+        const userId = req.user.userId;
+        const { data: userData, error: userError } = await supabase
             .from('Users')
             .select('email')
-            .eq('id', userId);
+            .eq('id', userId)
+            .single();
+            
         if (userError) throw userError;
-        if (userRows && userRows[0]) {
-            userEmail = userRows[0].email;
-        }
-    } catch (emailErr) {
-        console.error('Kullanıcı e-posta alınamadı:', emailErr);
-    }
+        
+        // Validate stock before processing
+        await OrderService.validateStock(items);
+        
+        // Validate delivery cost
+        await OrderService.validateDeliveryCost(city, deliveryCost);
 
-    // Only require: shippingName (phone), city, province, firstName, lastName
-    if (!shippingName || !items || !items.length || !city || !province || !firstName || !lastName || cartTotal === undefined || deliveryCost === undefined || finalTotal === undefined) {
-        return res.status(400).json({ error: 'الرجاء ملء جميع الحقول الإلزامية: الاسم، اللقب، رقم الهاتف، الولاية، المنطقة.' });
-    }
+        // Generate unique order reference
+        const orderRef = Date.now().toString();
 
-    // Generate a unique order group identifier
-    const orderGroup = Date.now().toString();
+        // Create order with user ID
+        const result = await OrderService.createUserOrder({
+            userId,
+            shippingName,
+            shippingAddress,
+            city,
+            firstName,
+            lastName,
+            items,
+            cartTotal,
+            deliveryCost,
+            finalTotal,
+            orderRef
+        });
 
-    try {
-        for (const item of items) {
-            // Fetch current stock
-            const { data: product, error: stockError } = await supabase
-                .from('Products')
-                .select('stock')
-                .eq('id', item.id)
-                .single();
-            if (stockError) throw stockError;
-            if (!product || product.stock < item.quantity) {
-                return res.status(400).json({ error: `Yeterli stok yok: ${item.name}` });
-            }
-            const newStock = product.stock - item.quantity;
-            await supabase.from('Products').update({ stock: newStock }).eq('id', item.id);
-            // Insert the order record
-            const { error: orderError } = await supabase
-                .from('Orders')
-                .insert([{
-                    user_id: userId,
-                    product_id: item.id,
-                    quantity: item.quantity,
-                    shipping_name: shippingName,
-                    shipping_address: shippingAddress,
-                    order_date: orderDate,
-                    status: 'sipariş alındı',
-                    order_group: orderGroup,
-                    city,
-                    province,
-                    street,
-                    department,
-                    postal_code: postalCode,
-                    first_name: firstName,
-                    last_name: lastName,
-                    products_price: cartTotal,
-                    delivery_price: deliveryCost,
-                    total_price: finalTotal
-                }]);
-            if (orderError) throw orderError;
-        }
         // Send order confirmation email
         try {
-            const email = userEmail;
-            if (!email) throw new Error('No recipient email found');
             let orderDetails = `<div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 24px; border-radius: 12px; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #715100; font-weight: bold;">تفاصيل الطلب من Omervita</h2>
-                <p style="color: #333; font-size: 1.1em;"><b>نشكرك على ثقتك بمنتجاتنا <span style='color:#ffbf00;'>يمكن متابعة طلبيتك عبر حسابك</span></b></p>
+                <p style="color: #333; font-size: 1.1em;"><b>نشكرك على ثقتك بمنتجاتنا</b></p>
                 <hr style='border:1px solid #ffbf00;'>
                 <p><b style='color:#715100;'>رقم الهاتف:</b> ${shippingName}</p>
-                <p><b style='color:#715100;'>العنوان:</b> ${shippingAddress || ''}, ${city}, ${province}, ${street || ''}, ${department || ''}, ${postalCode || ''}</p>
+                <p><b style='color:#715100;'>العنوان:</b> ${shippingAddress || ''}, ${city}</p>
                 <p><b style='color:#715100;'>الاسم الكامل:</b> ${firstName} ${lastName}</p>
-                <p><b style='color:#715100;'>تاريخ الطلب:</b> ${orderDate}</p>
+                <p><b style='color:#715100;'>تاريخ الطلب:</b> ${new Date().toLocaleDateString('ar-DZ')}</p>
+                <p><b style='color:#715100;'>رقم الطلب:</b> #${orderRef}</p>
+                <ul style='color:#2c2c2c;'>`;
+            for (const item of items) {
+                orderDetails += `<li><b>${item.name}</b> x <b>${item.quantity}</b></li>`;
+            }
+            orderDetails += `</ul>
+                <p><b style='color:#715100;'>مجموع المنتج:</b> <span style='color:#ffbf00;'>${cartTotal} دج</span></p>
+                <p><b style='color:#715100;'>التوصيل:</b> <span style='color:#ffbf00;'>${deliveryCost} دج</span></p>
+                <p><b style='color:#715100;'>مجموع الطلبية:</b> <span style='color:#ffbf00;'>${finalTotal} دج</span></p>
+                <hr style='border:1px solid #ffbf00;'>
+                <p style='color:#888; font-size:0.95em;'>يمكنك متابعة طلبك من خلال صفحة <a href="${process.env.SITE_URL}/orders" style="color:#ffbf00;">الطلبات</a></p>
+                <p style='color:#888; font-size:0.95em;'>فريق Omervita يتمنى لك يوماً سعيداً!</p>
+            </div>`;
+
+            // Send to customer
+            if (userData.email) {
+                await sendOrderEmail(
+                    userData.email,
+                    'تم استلام طلبك بنجاح - Omervita',
+                    orderDetails
+                );
+            }
+
+            // Send to admin
+            const adminEmail = process.env.ADMIN_EMAIL;
+            if (adminEmail) {
+                await sendOrderEmail(
+                    adminEmail,
+                    'طلبية جديدة - Omervita',
+                    orderDetails
+                );
+            }
+        } catch (emailErr) {
+            console.error('Email Error:', emailErr);
+            // Don't return error - email is not critical
+        }
+
+        res.json({
+            success: true,
+            message: 'تم استلام طلبك بنجاح',
+            orderId: result.order_id,
+            orderRef: result.order_ref
+        });
+
+    } catch (err) {
+        console.error('خطأ في معالجة الطلب:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message || 'حدث خطأ أثناء معالجة طلبك'
+        });
+    }
+});
+
+// POST /api/guest-orders - Create a new guest order
+router.post('/guest-orders', [
+    orderLimiter,
+    sizeLimit,
+    sanitizeInputs,
+    ...validateOrderInputs
+], async (req, res) => {
+    // Validate inputs
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+            success: false, 
+            errors: errors.array() 
+        });
+    }
+
+    const {
+        shippingName, shippingAddress, city, firstName, lastName, 
+        items, cartTotal, deliveryCost, finalTotal
+    } = req.body;
+
+    // Only require: shippingName (phone), city, firstName, lastName
+    if (!shippingName || !items || !items.length || !city || !firstName || !lastName || 
+        cartTotal === undefined || deliveryCost === undefined || finalTotal === undefined) {
+        return res.status(400).json({ 
+            error: 'الرجاء ملء جميع الحقول الإلزامية: الاسم، اللقب، رقم الهاتف، المنطقة.' 
+        });
+    }
+
+    try {
+        // Validate stock before processing
+        await OrderService.validateStock(items);
+        
+        // Validate delivery cost
+        await OrderService.validateDeliveryCost(city, deliveryCost);
+
+        // Generate unique order reference
+        const orderRef = Date.now().toString();
+
+        // Create order using stored procedure
+        const result = await OrderService.createGuestOrder({
+            shippingName,
+            shippingAddress,
+            city,
+            firstName,
+            lastName,
+            items,
+            cartTotal,
+            deliveryCost,
+            finalTotal,
+            orderRef
+        });
+
+        // Send order confirmation email
+        try {
+            let orderDetails = `<div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 24px; border-radius: 12px; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #715100; font-weight: bold;">تفاصيل الطلب من Omervita</h2>
+                <p style="color: #333; font-size: 1.1em;"><b>نشكرك على ثقتك بمنتجاتنا</b></p>
+                <hr style='border:1px solid #ffbf00;'>
+                <p><b style='color:#715100;'>رقم الهاتف:</b> ${shippingName}</p>
+                <p><b style='color:#715100;'>العنوان:</b> ${shippingAddress || ''}, ${city}</p>
+                <p><b style='color:#715100;'>الاسم الكامل:</b> ${firstName} ${lastName}</p>
+                <p><b style='color:#715100;'>تاريخ الطلب:</b> ${new Date().toLocaleDateString('ar-DZ')}</p>
                 <ul style='color:#2c2c2c;'>`;
             for (const item of items) {
                 orderDetails += `<li><b>${item.name}</b> x <b>${item.quantity}</b></li>`;
@@ -196,12 +311,17 @@ router.post('/orders', verifyToken, async (req, res) => {
                 <hr style='border:1px solid #ffbf00;'>
                 <p style='color:#888; font-size:0.95em;'>فريق Omervita يتمنى لك يوماً سعيداً!</p>
             </div>`;
-            await sendOrderEmail(
-                email,
-                'تم استلام طلبك بنجاح - Omervita',
-                orderDetails
-            );
-            // Send to admin as well
+
+            // Send to customer if email provided
+            if (req.body.email) {
+                await sendOrderEmail(
+                    req.body.email,
+                    'تم استلام طلبك بنجاح - Omervita',
+                    orderDetails
+                );
+            }
+
+            // Send to admin
             const adminEmail = process.env.ADMIN_EMAIL;
             if (adminEmail) {
                 await sendOrderEmail(
@@ -211,12 +331,30 @@ router.post('/orders', verifyToken, async (req, res) => {
                 );
             }
         } catch (emailErr) {
-            console.error('Sipariş e-postası gönderilemedi:', emailErr);
+            console.error('Email Error Details:', {
+                error: emailErr,
+                stack: emailErr.stack,
+                message: emailErr.message,
+                adminEmail: process.env.ADMIN_EMAIL,
+                hasEmailUser: !!process.env.EMAIL_USER,
+                hasEmailPass: !!process.env.EMAIL_PASS
+            });
+            // Don't return error - email is not critical
         }
-        res.json({ message: 'Sipariş başarıyla alındı.' });
+
+        res.json({
+            success: true,
+            message: 'تم استلام طلبك بنجاح',
+            orderId: result.order_id,
+            orderRef: result.order_ref
+        });
+
     } catch (err) {
-        console.error('Sipariş işlenirken hata:', err);
-        res.status(500).json({ error: 'Sipariş işlenirken hata oluştu.' });
+        console.error('خطأ في معالجة الطلب:', err);
+        res.status(500).json({ 
+            success: false,
+            error: err.message || 'حدث خطأ أثناء معالجة طلبك'
+        });
     }
 });
 
