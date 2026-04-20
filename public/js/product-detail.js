@@ -582,8 +582,12 @@ async function loadProductDetail() {
       quickOrderButton.addEventListener('click', () => {
         window.currentProduct = product;
         window.initDirectCheckout(product);
-        const modal = new bootstrap.Modal(document.getElementById('directCheckoutModal'));
-        modal.show();
+        // Get or create the modal instance (reuse if exists)
+        let modalInstance = bootstrap.Modal.getInstance(document.getElementById('directCheckoutModal'));
+        if (!modalInstance) {
+          modalInstance = new bootstrap.Modal(document.getElementById('directCheckoutModal'));
+        }
+        modalInstance.show();
       });
     }
 

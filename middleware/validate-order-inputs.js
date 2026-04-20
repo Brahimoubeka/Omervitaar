@@ -20,8 +20,8 @@ const validateOrderInputs = [
     body('lastName')
         .trim()
         .notEmpty().withMessage('اللقب مطلوب')
-        .isLength({ min: 2, max: 50 }).withMessage('اللقب غير صالح')
-        .matches(/^[a-zA-Zأ-ي\s]+$/).withMessage('اللقب يحتوي على أحرف غير صالحة'),
+        .isLength({ min: 1, max: 50 }).withMessage('اللقب غير صالح')
+        .matches(/^[a-zA-Zأ-ي\s\-]+$/).withMessage('اللقب يحتوي على أحرف غير صالحة'),
 
     body('items')
         .isArray({ min: 1 }).withMessage('يجب إضافة منتج واحد على الأقل')

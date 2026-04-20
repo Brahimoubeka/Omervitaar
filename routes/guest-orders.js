@@ -15,6 +15,18 @@ router.post('/guest-orders', async (req, res) => {
 
     // Only require: shippingName (phone), city, province, firstName, lastName
     if (!shippingName || !items || !items.length || !city || !province || !firstName || !lastName || cartTotal === undefined || deliveryCost === undefined || finalTotal === undefined) {
+        console.log('Validation failed!');
+        console.log('Missing:', {
+            shippingName: !shippingName,
+            items: !items || !items.length,
+            city: !city,
+            province: !province,
+            firstName: !firstName,
+            lastName: !lastName,
+            cartTotal: cartTotal === undefined,
+            deliveryCost: deliveryCost === undefined,
+            finalTotal: finalTotal === undefined
+        });
         return res.status(400).json({ error: 'الرجاء ملء جميع الحقول الإلزامية: الاسم، اللقب، رقم الهاتف، الولاية، المنطقة.' });
     }
 

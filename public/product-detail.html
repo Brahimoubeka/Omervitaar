@@ -1014,7 +1014,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     </div>
   </main>
 
-  <button type="button" class="sticky-order-now-btn" data-bs-toggle="modal" data-bs-target="#directCheckoutModal" aria-label="أطلب الآن">
+<button type="button" id="sticky-order-now-btn" class="sticky-order-now-btn" data-bs-toggle="modal" data-bs-target="#directCheckoutModal" aria-label="أطلب الآن">
     <i class="bi bi-bucket"></i>
     أطلب الآن
   </button>
@@ -1317,6 +1317,20 @@ updateBrandingLinks();
       }
     }
     loadCategoriesDropdown();
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const orderButton = document.getElementById('sticky-order-now-btn');
+      const checkoutModalEl = document.getElementById('directCheckoutModal');
+      if (!orderButton || !checkoutModalEl) return;
+
+      checkoutModalEl.addEventListener('show.bs.modal', function () {
+        orderButton.style.display = 'none';
+      });
+
+      checkoutModalEl.addEventListener('hidden.bs.modal', function () {
+        orderButton.style.display = 'inline-flex';
+      });
+    });
   </script>
 
 </body>
