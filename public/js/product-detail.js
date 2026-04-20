@@ -1990,4 +1990,31 @@ const initAllOptimizations = () => {
 // Start all optimizations
 initAllOptimizations();
 
+// Initialize direct checkout modal when shown (for sticky button)
+const directCheckoutModal = document.getElementById('directCheckoutModal');
+const stickyOrderBtn = document.querySelector('.sticky-order-now-btn');
+
+directCheckoutModal.addEventListener('show.bs.modal', function() {
+  // Hide sticky button when modal opens
+  if (stickyOrderBtn) {
+    stickyOrderBtn.style.display = 'none';
+  }
+  
+  // Check if modal has already been initialized with product data
+  const productNameElement = document.getElementById('directCheckoutProductName');
+  const hasProductData = productNameElement && productNameElement.textContent.trim();
+  
+  if (!hasProductData && window.currentProduct) {
+    // Modal hasn't been initialized yet, initialize it with current product
+    window.initDirectCheckout(window.currentProduct);
+  }
+});
+
+directCheckoutModal.addEventListener('hide.bs.modal', function() {
+  // Show sticky button when modal closes
+  if (stickyOrderBtn) {
+    stickyOrderBtn.style.display = 'flex';
+  }
+});
+
 
