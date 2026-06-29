@@ -197,18 +197,18 @@ router.get('/products/latest', async (req, res) => {
 router.get('/products/:identifier', async (req, res) => {
   const identifier = req.params.identifier;
   let productId;
-  
+
   // Check if identifier is a slug or ID
   if (SlugUtil.isValidSlug(identifier)) {
     productId = SlugUtil.extractIdFromSlug(identifier);
   } else {
     productId = parseInt(identifier, 10);
   }
-  
+
   if (!productId || isNaN(productId)) {
     return res.status(400).json({ error: 'معرف المنتج غير صالح' });
   }
-  
+
   try {
     // Fetch product row
     const { data: prodRows, error: prodError } = await supabase
@@ -249,7 +249,7 @@ router.get('/products/:identifier', async (req, res) => {
     // Ensure name/description are strings
     row.name = Array.isArray(row.name) ? (row.name[0] || '') : (row.name || '');
     row.description = Array.isArray(row.description) ? (row.description[0] || '') : (row.description || '');
-    
+
     // Add slug to response
     row.slug = SlugUtil.generateProductSlug(row);
 
@@ -284,13 +284,13 @@ router.get('/categories', async (req, res) => {
       .select('id, name')
       .order('name', { ascending: true });
     if (error) throw error;
-    
+
     // Add slugs to categories
     const categoriesWithSlugs = (data || []).map(category => ({
       ...category,
       slug: SlugUtil.generateCategorySlug(category)
     }));
-    
+
     res.json(categoriesWithSlugs);
   } catch (err) {
     res.status(500).json({ error: 'Kategoriler alınırken hata oluştu.' });
@@ -299,22 +299,22 @@ router.get('/categories', async (req, res) => {
 
 // Record a product visit (guest or logged-in user)
 router.post('/products/:id/visit', async (req, res) => {
-    const productId = parseInt(req.params.id, 10);
-    if (!productId || isNaN(productId)) {
-        return res.status(400).json({ error: 'Invalid product ID' });
-    }
-    let userId = null;
-    if (req.user && req.user.id) userId = req.user.id;
-    try {
-        const { error } = await supabase
-            .from('ProductVisits')
-            .insert([{ product_id: productId, user_id: userId }]);
-        if (error) throw error;
-        res.json({ message: "Visit recorded" });
-    } catch (err) {
-        console.error("Error recording visit:", err);
-        res.status(500).json({ error: 'Error recording visit' });
-    }
+  const productId = parseInt(req.params.id, 10);
+  if (!productId || isNaN(productId)) {
+    return res.status(400).json({ error: 'Invalid product ID' });
+  }
+  let userId = null;
+  if (req.user && req.user.id) userId = req.user.id;
+  try {
+    const { error } = await supabase
+      .from('ProductVisits')
+      .insert([{ product_id: productId, user_id: userId }]);
+    if (error) throw error;
+    res.json({ message: "Visit recorded" });
+  } catch (err) {
+    console.error("Error recording visit:", err);
+    res.status(500).json({ error: 'Error recording visit' });
+  }
 });
 
 module.exports = router;

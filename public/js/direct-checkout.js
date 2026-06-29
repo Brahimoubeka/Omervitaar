@@ -69,6 +69,12 @@ function initDirectCheckout(product) {
     const subtotal = product.price * quantity;
     document.getElementById('directCheckoutProductName').textContent = `${product.name} (${quantity}x)`;
     document.getElementById('directCheckoutProductPrice').textContent = `${subtotal} دج`;
+    
+    const deliveryEl = document.getElementById('directCheckoutDeliveryPrice');
+    if (deliveryEl) {
+      deliveryEl.textContent = `${deliveryPrice} دج`;
+    }
+    
     total = subtotal + deliveryPrice;
     document.getElementById('directCheckoutTotalPrice').textContent = `${total} دج`;
   };
@@ -248,10 +254,7 @@ if (!addressValidation.isValid) {
         throw new Error(result.error || 'حدث خطأ أثناء معالجة الطلب');
       }
       
-      // Show success message and close modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('directCheckoutModal'));
-      modal.hide();
-      
+      // Show success message
       showCartMessage('تم تقديم طلبك بنجاح!', 'success');
 
       // Reset form

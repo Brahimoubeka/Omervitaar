@@ -58,16 +58,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (autoRefreshInterval) {
       clearInterval(autoRefreshInterval);
     }
-    
+
     autoRefreshInterval = setInterval(async () => {
       try {
         // Only refresh if page is visible to avoid unnecessary requests
         if (!isPageVisible) return;
-        
+
         // Silently refresh latest products
         console.log('Auto-refreshing latest products...');
         await loadLatestProducts();
-        
+
       } catch (error) {
         console.log('Auto-refresh failed:', error);
       }
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   // Handle page visibility changes to optimize auto-refresh
   document.addEventListener('visibilitychange', () => {
     isPageVisible = !document.hidden;
-    
+
     if (isPageVisible) {
       // Page became visible, resume auto-refresh if it was enabled
       if (autoRefreshInterval === null) {

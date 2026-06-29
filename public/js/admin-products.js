@@ -24,6 +24,32 @@ function showNotification(message, type = 'success', timeout = 3000) {
   }, timeout);
 }
 
+// --- Dynamic Paragraphs Helper ---
+window.addParagraphField = function (containerId, data = null) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'paragraph-item mb-3 p-3 border rounded bg-white position-relative shadow-sm';
+  div.innerHTML = `
+    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" aria-label="إزالة" onclick="this.parentElement.remove()"></button>
+    <div class="row">
+      <div class="col-md-8 mb-2">
+        <label class="form-label">عنوان الفقرة (اختياري):</label>
+        <input type="text" class="form-control para-title" value="${data && data.title ? data.title.replace(/"/g, '&quot;') : ''}">
+      </div>
+      <div class="col-md-4 mb-2">
+        <label class="form-label">لون العنوان:</label>
+        <input type="color" class="form-control form-control-color w-100 para-color" value="${data && data.color ? data.color : '#715100'}">
+      </div>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">محتوى الفقرة:</label>
+      <textarea class="form-control para-content" rows="3" required>${data && data.content ? data.content : ''}</textarea>
+    </div>
+  `;
+  container.appendChild(div);
+};
+
 // --- Helper for handling 401 authentication errors ---
 function handleAuthError(response) {
   if (response.status === 401) {
@@ -146,7 +172,7 @@ async function loadProducts() {
 let deleteProductId = null;
 
 // ----------- DELETE PRODUCT WITH MODAL -----------
-window.openDeleteModal = function(productId, productName) {
+window.openDeleteModal = function (productId, productName) {
   deleteProductId = productId;
   // Always treat productName as string
   document.getElementById('delete-product-name').innerHTML = productName;
@@ -154,7 +180,7 @@ window.openDeleteModal = function(productId, productName) {
   deleteModal.show();
 };
 
-document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+document.getElementById('confirmDeleteBtn').addEventListener('click', async function () {
   if (!deleteProductId) return;
   const btn = this;
   const originalBtnHtml = btn.innerHTML;
@@ -204,7 +230,7 @@ async function deleteProduct(productId) {
 }
 
 // ----------- UPDATE PRODUCT WITH MODAL -----------
-window.showUpdateForm = function(productId) {
+window.showUpdateForm = function (productId) {
   const product = productsMap[productId];
   let productCategories = (product.categories || []).map(cat => cat.id);
 
@@ -233,6 +259,15 @@ window.showUpdateForm = function(productId) {
         <label class="form-label">الفئات:</label>
         <div id="update-category-checkboxes-${productId}"></div>
       </div>
+      <hr>
+      <div class="mb-3">
+        <label class="form-label fw-bold"><i class="bi bi-text-paragraph me-2"></i>فقرات إضافية (اختياري)</label>
+        <div id="update-paragraphs-container-${productId}"></div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addParagraphField('update-paragraphs-container-${productId}')">
+          <i class="bi bi-plus"></i> إضافة فقرة
+        </button>
+      </div>
+      <hr>
       <div class="mb-3">
         <label class="form-label">الصور (حد أقصى 5):</label>
         <input type="file" name="images" accept="image/*" multiple class="form-control">
@@ -242,6 +277,12 @@ window.showUpdateForm = function(productId) {
     </form>
   `;
   renderUpdateCategoryCheckboxes(productId, productCategories);
+
+  // Render existing paragraphs
+  const parasContainerId = `update-paragraphs-container-${productId}`;
+  if (product.paragraphs && Array.isArray(product.paragraphs)) {
+    product.paragraphs.forEach(p => addParagraphField(parasContainerId, p));
+  }
 
   // Attach submit event
   document.getElementById(`update-form-${productId}-form`).addEventListener('submit', async (e) => {
@@ -278,24 +319,36 @@ window.showUpdateForm = function(productId) {
     Array.from(files).forEach(file => {
       formData.append('images', file);
     });
-    
+
+    // Gather Paragraphs
+    const paragraphs = [];
+    form.querySelectorAll('.paragraph-item').forEach(item => {
+      const title = item.querySelector('.para-title').value;
+      const color = item.querySelector('.para-color').value;
+      const content = item.querySelector('.para-content').value;
+      if (content.trim()) {
+        paragraphs.push({ title, color, content });
+      }
+    });
+    formData.append('paragraphs', JSON.stringify(paragraphs));
+
     // Validate price
     const priceValue = form.querySelector('input[name="price"]').value.replace(',', '.');
     if (!/^\d+(\.\d{1,2})?$/.test(priceValue) || parseFloat(priceValue) < 0) {
       showNotification('حقل السعر يجب أن يكون رقمًا موجبًا فقط (مثال: 12.34).', 'danger');
       return;
     }
-    
+
     // Validate stock
     const stockValue = form.querySelector('input[name="stock"]').value;
     if (!/^\d+$/.test(stockValue) || parseInt(stockValue) < 0) {
       showNotification('حقل المخزون يجب أن يكون عددًا صحيحًا موجبًا فقط (مثال: 5).', 'danger');
       return;
     }
-    
+
     formData.set('price', parseFloat(priceValue));
     formData.set('stock', parseInt(stockValue));
-    
+
     try {
       const response = await fetch(`/api/admin/products/${productId}`, {
         method: 'PUT',
@@ -305,6 +358,10 @@ window.showUpdateForm = function(productId) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || result.message || 'تعذر التحديث!');
       showNotification(result.message || 'تم التحديث!', 'success');
+
+      // Clear product from cache so changes show immediately
+      localStorage.removeItem(`cache_product_${productId}`);
+
       loadProducts();
       // Hide modal after success
       setTimeout(() => {
@@ -342,9 +399,9 @@ async function loadProducts() {
       showNotification('عنصر المنتجات غير موجود في الصفحة (products-container).', 'danger');
       return;
     }
-     // Sort products to show newest first
+    // Sort products to show newest first
     products.sort((a, b) => {
-      
+
       // sort by ID (assuming higher ID = newer)
       return b.id - a.id;
     });
@@ -441,14 +498,26 @@ document.getElementById('add-product-form').addEventListener('submit', async (e)
   Array.from(files).forEach(file => {
     formData.append('images', file);
   });
-  
+
+  // Gather Paragraphs
+  const paragraphs = [];
+  form.querySelectorAll('.paragraph-item').forEach(item => {
+    const title = item.querySelector('.para-title').value;
+    const color = item.querySelector('.para-color').value;
+    const content = item.querySelector('.para-content').value;
+    if (content.trim()) {
+      paragraphs.push({ title, color, content });
+    }
+  });
+  formData.append('paragraphs', JSON.stringify(paragraphs));
+
   // Validate price
   const priceValue = form.querySelector('input[name="price"]').value.replace(',', '.');
   if (!/^\d+(\.\d{1,2})?$/.test(priceValue) || parseFloat(priceValue) < 0) {
     showNotification('حقل السعر يجب أن يكون رقمًا موجبًا فقط (مثال: 12.34).', 'danger');
     return;
   }
-  
+
   // Validate stock
   const stockValue = form.querySelector('input[name="stock"]').value;
   if (!/^\d+$/.test(stockValue) || parseInt(stockValue) < 0) {
@@ -458,7 +527,7 @@ document.getElementById('add-product-form').addEventListener('submit', async (e)
 
   formData.set('price', parseFloat(priceValue));
   formData.set('stock', parseInt(stockValue));
-  
+
   try {
     const response = await fetch('/api/admin/products', {
       method: 'POST',
@@ -488,6 +557,11 @@ document.getElementById('add-product-form').addEventListener('submit', async (e)
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCategories();
   loadProducts();
+
+  const addParaBtn = document.getElementById('add-paragraph-btn');
+  if (addParaBtn) {
+    addParaBtn.addEventListener('click', () => addParagraphField('paragraphs-container'));
+  }
 });
 
 
@@ -496,84 +570,84 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- Upload new logo ---
 async function uploadLogo(file) {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    formData.append('logo', file);
-    try {
-        const response = await fetch('/api/admin/logo', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || result.message);
-        showNotification('تم تحديث الشعار بنجاح!', 'success');
-        setTimeout(() => location.reload(), 1500);
-    } catch (error) {
-        showNotification('حدث خطأ أثناء تحديث الشعار: ' + error.message, 'danger');
-    }
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('logo', file);
+  try {
+    const response = await fetch('/api/admin/logo', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || result.message);
+    showNotification('تم تحديث الشعار بنجاح!', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch (error) {
+    showNotification('حدث خطأ أثناء تحديث الشعار: ' + error.message, 'danger');
+  }
 }
 
 // --- Upload new slide image ---
 async function uploadSlide(file, index) {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    formData.append('slide', file);
-    formData.append('index', index); // cover1.png, cover2.png, etc.
-    try {
-        const response = await fetch('/api/admin/slide', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || result.message);
-        showNotification(`تم تحديث صورة السلايد رقم ${index} بنجاح!`, 'success');
-        setTimeout(() => location.reload(), 1500);
-    } catch (error) {
-        showNotification('حدث خطأ أثناء تحديث صورة السلايد: ' + error.message, 'danger');
-    }
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('slide', file);
+  formData.append('index', index); // cover1.png, cover2.png, etc.
+  try {
+    const response = await fetch('/api/admin/slide', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || result.message);
+    showNotification(`تم تحديث صورة السلايد رقم ${index} بنجاح!`, 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch (error) {
+    showNotification('حدث خطأ أثناء تحديث صورة السلايد: ' + error.message, 'danger');
+  }
 }
 
 
 // --- Logo Upload ---
-document.getElementById('logoUploadForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const file = this.logo.files[0];
-    if (!file || !isValidImageFile(file)) {
-        showNotification('يرجى اختيار صورة شعار صالحة.', 'danger');
-        return;
-    }
-    uploadLogo(file);
+document.getElementById('logoUploadForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const file = this.logo.files[0];
+  if (!file || !isValidImageFile(file)) {
+    showNotification('يرجى اختيار صورة شعار صالحة.', 'danger');
+    return;
+  }
+  uploadLogo(file);
 });
 
 // --- Slide Uploads ---
-document.getElementById('slideUploadForm1').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const file = this.slide.files[0];
-    if (!file || !isValidImageFile(file)) {
-        showNotification('يرجى اختيار صورة سلايد صالحة.', 'danger');
-        return;
-    }
-    uploadSlide(file, 1);
+document.getElementById('slideUploadForm1').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const file = this.slide.files[0];
+  if (!file || !isValidImageFile(file)) {
+    showNotification('يرجى اختيار صورة سلايد صالحة.', 'danger');
+    return;
+  }
+  uploadSlide(file, 1);
 });
-document.getElementById('slideUploadForm2').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const file = this.slide.files[0];
-    if (!file || !isValidImageFile(file)) {
-        showNotification('يرجى اختيار صورة سلايد صالحة.', 'danger');
-        return;
-    }
-    uploadSlide(file, 2);
+document.getElementById('slideUploadForm2').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const file = this.slide.files[0];
+  if (!file || !isValidImageFile(file)) {
+    showNotification('يرجى اختيار صورة سلايد صالحة.', 'danger');
+    return;
+  }
+  uploadSlide(file, 2);
 });
-document.getElementById('slideUploadForm3').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const file = this.slide.files[0];
-    if (!file || !isValidImageFile(file)) {
-        showNotification('يرجى اختيار صورة سلايد صالحة.', 'danger');
-        return;
-    }
-    uploadSlide(file, 3);
+document.getElementById('slideUploadForm3').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const file = this.slide.files[0];
+  if (!file || !isValidImageFile(file)) {
+    showNotification('يرجى اختيار صورة سلايد صالحة.', 'danger');
+    return;
+  }
+  uploadSlide(file, 3);
 });
 
 
@@ -601,7 +675,7 @@ async function loadBrandingInfo() {
 document.getElementById('brandingLinksModal').addEventListener('show.bs.modal', loadBrandingInfo);
 
 // Save branding info
-document.getElementById('brandingLinksForm').addEventListener('submit', async function(e) {
+document.getElementById('brandingLinksForm').addEventListener('submit', async function (e) {
   e.preventDefault();
   const token = localStorage.getItem('token');
   const payload = {
@@ -659,7 +733,7 @@ function populateDeliveryPricesTable() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
   await fetchDeliveryCosts();
   const deliveryPricesModal = document.getElementById('deliveryPricesModal');
   if (deliveryPricesModal) {
@@ -667,7 +741,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
   const deliveryPricesForm = document.getElementById('delivery-prices-form');
   if (deliveryPricesForm) {
-    deliveryPricesForm.addEventListener('submit', async function(e) {
+    deliveryPricesForm.addEventListener('submit', async function (e) {
       e.preventDefault();
       const token = localStorage.getItem('token');
       const inputs = deliveryPricesForm.querySelectorAll('input[type="number"]');

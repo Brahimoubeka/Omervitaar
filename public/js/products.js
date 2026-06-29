@@ -1,5 +1,7 @@
 let allProducts = [];
 let allCategories = [];
+let autoRefreshInterval = null;
+let isPageVisible = true;
 
 // Helper to get all categories for filter dropdown
 async function loadCategories() {
@@ -10,14 +12,14 @@ async function loadCategories() {
       throw new Error('تعذر تحميل الفئات');
     }
     allCategories = await resp.json();
-    
+
     const filter = document.getElementById('category-filter');
     if (filter) {
       filter.innerHTML = `<option value="">كل الفئات</option>`; // Clear and add default
       allCategories.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat.id;
-        opt.textContent  = cat.name;
+        opt.textContent = cat.name;
         filter.appendChild(opt);
       });
     }
@@ -88,7 +90,7 @@ function renderProducts(products, append = false) {
           <div class="carousel-inner">
             ${product.images.map((src, idx) => `
               <div class="carousel-item${idx === 0 ? ' active' : ''}">
-                <img src="${src}" class="d-block w-100" style="height:230px;object-fit:contain;background:#f8f8f8;" alt="${product.name} ${idx+1}" loading="lazy">
+                <img src="${src}" class="d-block w-100" style="height:230px;object-fit:contain;background:#f8f8f8;" alt="${product.name} ${idx + 1}" loading="lazy">
               </div>
             `).join('')}
           </div>
@@ -131,7 +133,7 @@ function renderProducts(products, append = false) {
       // Generate stars based on rating
       let starsHtml = '';
       const roundedRating = Math.round(avg * 2) / 2; // Round to nearest 0.5
-      
+
       for (let i = 1; i <= 5; i++) {
         // Full star
         if (i <= Math.floor(roundedRating)) {
@@ -146,7 +148,7 @@ function renderProducts(products, append = false) {
           starsHtml += `<i class="bi bi-star text-warning"></i>`;
         }
       }
-      
+
       ratingHtml = `
         <div class="d-flex align-items-center mt-1 mb-2">
           <div class="stars-container" style="font-size: 0.8rem;">${starsHtml}</div>
@@ -156,8 +158,8 @@ function renderProducts(products, append = false) {
     }
 
     // Truncate title if longer than 60 characters
-    const truncatedTitle = product.name.length > 60 
-      ? product.name.substring(0, 60) + '...' 
+    const truncatedTitle = product.name.length > 60
+      ? product.name.substring(0, 60) + '...'
       : product.name;
 
     productCard.innerHTML = `
@@ -172,36 +174,36 @@ function renderProducts(products, append = false) {
         <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}</div>
         <div class="d-flex justify-content-between mt-2">
           <button class="btn product-card-button flex-grow-1 me-2" style="font-size:1.1em;padding:.1em .1em;">عرض التفاصيل</button>
-          ${product.stock === 0 ? 
-            `<button class="btn btn-secondary add-cart-btn flex-grow-1" disabled style="font-size:1.1em;padding:.1em .1em;opacity:.6;cursor:not-allowed;">
+          ${product.stock === 0 ?
+        `<button class="btn btn-secondary add-cart-btn flex-grow-1" disabled style="font-size:1.1em;padding:.1em .1em;opacity:.6;cursor:not-allowed;">
               <i class="bi bi-cart-plus"></i>
-             </button>` : 
-            `<button class="btn btn-primary add-cart-btn flex-grow-1" style="font-size:1.1em;padding:.1em .1em;">
+             </button>` :
+        `<button class="btn btn-primary add-cart-btn flex-grow-1" style="font-size:1.1em;padding:.1em .1em;">
               <i class="bi bi-cart-plus"></i>
              </button>`
-          }
+      }
         </div>
       </div>
     `;
-    
+
     // Make title clickable to go to product details
     productCard.querySelector('.product-card-title').addEventListener('click', () => {
       window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
     });
-    
+
     productCard.querySelector('.product-card-button').addEventListener('click', () => {
       window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
     });
-    
+
     // Add event listener for the "Add to Cart" button if product is in stock
     if (product.stock !== 0) {
       productCard.querySelector('.add-cart-btn').addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent parent card click
-        
+
         // Add product to cart
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         const existingProduct = cart.find(item => item.id === product.id);
-        
+
         if (existingProduct) {
           existingProduct.quantity += 1;
         } else {
@@ -209,22 +211,23 @@ function renderProducts(products, append = false) {
             id: product.id,
             name: product.name,
             price: product.price,
+            thumbnail: (product.images && product.images[0]) || product.imagePath || 'images/default-product.jpg',
             quantity: 1
           });
         }
-        
+
         localStorage.setItem('cart', JSON.stringify(cart));
-        
+
         // Show success message with enhanced cart popup
         showCartMessage('<i class="bi bi-check-circle-fill"></i> تم إضافة المنتج إلى السلة!', 'success', product);
-        
+
         // Update cart counter if function exists
         if (typeof updateCartCounter === 'function') {
           updateCartCounter();
         }
       });
     }
-    
+
     productCol.appendChild(productCard);
     container.appendChild(productCol);
     // --- Ensure Bootstrap carousel auto-slides ---
@@ -246,45 +249,7 @@ function addCacheBusting(url) {
   return `${url}${separator}_t=${Date.now()}`;
 }
 
-// Loads products and fetches their images for carousel use
-async function loadProducts() {
-  // Responsive skeleton count
-  let skeletonCount = 8;
-  if (window.innerWidth < 600) skeletonCount = 2;
-  else if (window.innerWidth < 900) skeletonCount = 4;
-  renderSkeletonProducts(skeletonCount);
-  showGlobalLoadingSpinner('جاري تحميل المنتجات...');
-  try {
-    const response = await fetch('/api/products');
-    if (!response.ok) {
-      throw new Error('تعذر جلب المنتجات');
-    }
-    let products = await response.json();
 
-    // For each product, fetch images array from /api/products/:id/images
-    const productsWithImages = await Promise.all(products.map(async (prod) => {
-      try {
-        const imgResp = await fetch(`/api/products/${prod.id}/images`);
-        const imgs = await imgResp.json();
-        return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
-      } catch {
-        return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
-      }
-    }));
-
-    // Sort products to show newest first
-    productsWithImages.sort((a, b) => b.id - a.id);
-
-    allProducts = productsWithImages;
-    
-    // Always render all products initially, then checkCategoryURL will filter if needed
-    renderProducts(allProducts);
-  } catch (error) {
-    console.error('حدث خطأ أثناء تحميل المنتجات:', error);
-  } finally {
-    hideGlobalLoadingSpinner();
-  }
-}
 
 // --- Filtering ---
 function filterAndRender() {
@@ -326,10 +291,10 @@ function filterAndRender() {
 
   // Update active filters display
   updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPrice);
-  
+
   // Update filter control styles
   updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, sortPrice);
-  
+
   renderProducts(filtered);
 }
 
@@ -337,7 +302,7 @@ function filterAndRender() {
 function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPrice) {
   const activeFiltersContainer = document.getElementById('active-filters');
   let activeFilters = [];
-  
+
   // Search filter
   if (query) {
     activeFilters.push({
@@ -346,7 +311,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
       value: query
     });
   }
-  
+
   // Category filter
   if (cat) {
     const catElement = document.getElementById('category-filter');
@@ -357,7 +322,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
       value: cat
     });
   }
-  
+
   // Price range filter
   if (minPrice !== null || maxPrice !== null) {
     let priceText = "السعر: ";
@@ -374,7 +339,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
       value: 'price'
     });
   }
-  
+
   // Rating filter
   if (minRating !== null) {
     const stars = '★'.repeat(minRating) + '☆'.repeat(5 - minRating);
@@ -384,7 +349,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
       value: minRating
     });
   }
-  
+
   // Price sorting
   if (sortPrice) {
     const sortText = sortPrice === 'asc' ? 'الأرخص للأغلى' : 'الأغلى للأرخص';
@@ -394,7 +359,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
       value: sortPrice
     });
   }
-  
+
   // Update the UI
   if (activeFilters.length > 0) {
     activeFiltersContainer.innerHTML = activeFilters.map(filter => {
@@ -402,7 +367,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
                 ${filter.text} <i class="bi bi-x ms-1"></i>
               </span>`;
     }).join('');
-    
+
     // Add click event listeners to remove filters
     activeFiltersContainer.querySelectorAll('.badge').forEach(badge => {
       badge.addEventListener('click', () => {
@@ -412,7 +377,7 @@ function updateActiveFilters(query, cat, minPrice, maxPrice, minRating, sortPric
   } else {
     activeFiltersContainer.innerHTML = '<span class="badge bg-light text-secondary border">لا توجد فلاتر نشطة</span>';
   }
-  
+
   // Also update sliding panel active filters
   if (typeof updateSlidingActiveFilters === 'function') {
     updateSlidingActiveFilters();
@@ -425,7 +390,7 @@ function updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, so
   document.querySelectorAll('.filter-control').forEach(el => {
     el.classList.remove('active');
   });
-  
+
   // Add active class to controls with values
   if (query) document.getElementById('search-bar').classList.add('active');
   if (cat) document.getElementById('category-filter').classList.add('active');
@@ -437,7 +402,7 @@ function updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, so
 
 // Remove a filter when clicked
 function removeFilter(type, value) {
-  switch(type) {
+  switch (type) {
     case 'search':
       document.getElementById('search-bar').value = '';
       break;
@@ -455,7 +420,7 @@ function removeFilter(type, value) {
       document.getElementById('price-sort').value = '';
       break;
   }
-  
+
   filterAndRender(); // Reapply filters and update UI
 }
 
@@ -467,31 +432,31 @@ function clearAllFilters() {
   document.getElementById('max-price').value = '';
   document.getElementById('rating-filter').value = '';
   document.getElementById('price-sort').value = '';
-  
+
   filterAndRender(); // Reapply filters and update UI
 }
 
 // --- Event Listeners for all filters ---
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 Products page DOM loaded, initializing...');
-  
+
   await loadCategories();
   await loadProducts();
-  
+
   // Initialize auto-refresh for real-time updates
   console.log('🔄 Auto-refresh disabled - service worker removed');
   // enableAutoRefresh(); // Removed - no longer needed without service worker caching
-  
+
   // Add manual refresh button for testing
   // addManualRefreshButton(); // Removed - no longer needed without service worker caching
-  
+
   // Check for category URL (handles both slug and legacy URLs)
   // This runs after both categories and products are loaded
   // Use setTimeout to ensure DOM is fully updated
   setTimeout(() => {
     checkCategoryURL();
   }, 200);
-  
+
   // Set up filter event listeners
   document.getElementById('search-bar').addEventListener('input', () => {
     syncOriginalToSlidingPanel();
@@ -518,10 +483,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncOriginalToSlidingPanel();
     filterAndRender();
   });
-  
+
   // Clear all filters button
   document.getElementById('clear-filters').addEventListener('click', clearAllFilters);
-  
+
   // Tooltip initialization for filters (if using Bootstrap tooltips)
   try {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -534,7 +499,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Sliding filter panel setup
   setupSlidingFilterPanel();
-  
+
   // Add manual refresh button for testing
   addManualRefreshButton();
 });
@@ -543,12 +508,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 function checkCategoryURL() {
   const path = window.location.pathname;
   const params = new URLSearchParams(window.location.search);
-  
+
   // Handle category slug URLs: /categories/category-name-123
   if (path.match(/^\/categories\/[a-z0-9-]+$/i)) {
     const slug = path.replace('/categories/', '');
     const categoryId = SlugUtil.extractIdFromSlug(slug);
-    
+
     if (categoryId) {
       // Set the category filter
       const filter = document.getElementById('category-filter');
@@ -591,10 +556,10 @@ function updateCategoryURL(categoryId) {
       const slug = category.slug || SlugUtil.generateCategorySlug(category);
       const newUrl = `/categories/${slug}`;
       window.history.pushState({}, '', newUrl);
-      
+
       // Update page title and SEO
       document.title = `${category.name} - المنتجات - Omervita`;
-      
+
       // Update canonical URL
       let canonical = document.querySelector('link[rel="canonical"]');
       if (!canonical) {
@@ -608,7 +573,7 @@ function updateCategoryURL(categoryId) {
     // No category selected, go back to products page
     window.history.pushState({}, '', '/products');
     document.title = 'المنتجات - Omervita';
-    
+
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
@@ -650,7 +615,7 @@ function showCartMessage(message, type = 'info', product = null) {
   if (existingMessage) {
     existingMessage.remove();
   }
-  
+
   // Create message element
   const messageElement = document.createElement('div');
   messageElement.id = 'cart-message';
@@ -667,7 +632,7 @@ function showCartMessage(message, type = 'info', product = null) {
     animation: slideIn 0.3s ease-out forwards;
     max-width: 300px;
   `;
-  
+
   // Add animation styles
   const style = document.createElement('style');
   if (!document.getElementById('cart-message-styles')) {
@@ -687,37 +652,37 @@ function showCartMessage(message, type = 'info', product = null) {
     `;
     document.head.appendChild(style);
   }
-  
+
   // Add to document
   document.body.appendChild(messageElement);
-  
+
   // Auto-dismiss after 3 seconds
   setTimeout(() => {
     messageElement.classList.add('cart-message-hide');
     setTimeout(() => messageElement.remove(), 300);
   }, 3000);
-  
+
   // Enhanced cart popup
   if (product) {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const cartPopupModal = new bootstrap.Modal(document.getElementById('cartPopupModal'));
-    
+
     // Set product details
     document.getElementById('cartPopupProductName').textContent = product.name;
     document.getElementById('cartPopupProductPrice').textContent = `دج${product.price}`;
-    
+
     // Calculate cart total
     let total = 0;
     const itemsContainer = document.getElementById('cartPopupItemsList');
     itemsContainer.innerHTML = '';
-    
+
     // Show cart items (limited to 3)
     if (cart.length > 0) {
       const displayItems = cart.slice(0, 3);
       displayItems.forEach(item => {
         const itemTotal = item.price * item.quantity;
         total += itemTotal;
-        
+
         const itemElement = document.createElement('div');
         itemElement.className = 'd-flex justify-content-between align-items-center mb-2';
         itemElement.innerHTML = `
@@ -729,7 +694,7 @@ function showCartMessage(message, type = 'info', product = null) {
         `;
         itemsContainer.appendChild(itemElement);
       });
-      
+
       // If there are more items
       if (cart.length > 3) {
         const moreItems = document.createElement('div');
@@ -740,10 +705,10 @@ function showCartMessage(message, type = 'info', product = null) {
     } else {
       itemsContainer.innerHTML = '<p class="text-center text-muted my-2">لا توجد منتجات في السلة</p>';
     }
-    
+
     // Update total
     document.getElementById('cartPopupTotal').textContent = `دج${total}`;
-    
+
     // Show the modal
     cartPopupModal.show();
   }
@@ -784,7 +749,7 @@ function setupSlidingFilterPanel() {
     filterPanelOverlay.addEventListener('click', closeFilterPanel);
 
     // Close panel with Escape key
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && filterPanel.classList.contains('active')) {
         closeFilterPanel();
       }
@@ -951,8 +916,8 @@ function updateSlidingActiveFilters() {
 
   if (minPrice || maxPrice) {
     const priceText = minPrice && maxPrice ? `${minPrice} - ${maxPrice} دج` :
-                     minPrice ? `من ${minPrice} دج` :
-                     `حتى ${maxPrice} دج`;
+      minPrice ? `من ${minPrice} دج` :
+        `حتى ${maxPrice} دج`;
     const badge = createSlidingFilterBadge('price', `السعر: ${priceText}`, 'filter-badge-price');
     container.appendChild(badge);
     hasActiveFilters = true;
@@ -983,11 +948,11 @@ function createSlidingFilterBadge(type, text, className) {
   const badge = document.createElement('span');
   badge.className = `badge border ${className}`;
   badge.innerHTML = `${text} <i class="bi bi-x ms-1" style="cursor: pointer;"></i>`;
-  
+
   badge.querySelector('i').addEventListener('click', () => {
     clearSlidingFilter(badge.dataset.filterType);
   });
-  
+
   return badge;
 }
 
@@ -1052,7 +1017,10 @@ async function loadProducts() {
   renderSkeletonProducts(skeletonCount);
   showGlobalLoadingSpinner('جاري تحميل المنتجات...');
   try {
-    const response = await fetch('/api/products');
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch('/api/products', { headers });
     if (!response.ok) {
       throw new Error('تعذر جلب المنتجات');
     }
@@ -1076,7 +1044,7 @@ async function loadProducts() {
     renderProducts(allProducts);
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
-    
+
     // Show user-friendly error message
     const container = document.getElementById('products-container');
     container.innerHTML = `
@@ -1128,14 +1096,14 @@ async function loadProducts() {
 // Function to enable auto-refresh for real-time data
 function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for testing
   console.log('🔄 Enabling auto-refresh with interval:', intervalMs, 'ms');
-  
+
   if (autoRefreshInterval) {
     clearInterval(autoRefreshInterval);
   }
-  
+
   // Show refresh indicator on first enable
   showRefreshIndicator();
-  
+
   autoRefreshInterval = setInterval(async () => {
     console.log('🔄 Auto-refresh triggered at:', new Date().toLocaleTimeString());
     try {
@@ -1144,23 +1112,23 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
         console.log('🔄 Page not visible, skipping auto-refresh');
         return;
       }
-      
+
       // Silently refresh products and categories without showing loading spinner
       console.log('🔄 Auto-refreshing products and categories...');
-      
+
       // Store current filter state
       const currentSearch = document.getElementById('search-bar').value;
       const currentCategory = document.getElementById('category-filter').value;
       const currentMinPrice = document.getElementById('min-price').value;
       const currentMaxPrice = document.getElementById('max-price').value;
       const currentSort = document.getElementById('sort-by').value;
-      
+
       console.log('🔄 Current filters:', { currentSearch, currentCategory, currentMinPrice, currentMaxPrice, currentSort });
-      
+
       // Refresh categories first
       console.log('🔄 Refreshing categories...');
       await loadCategories();
-      
+
       // Refresh products data
       console.log('🔄 Refreshing products...');
       const response = await fetch(`/api/products?_t=${Date.now()}`);
@@ -1168,7 +1136,7 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
         throw new Error('تعذر جلب المنتجات');
       }
       let products = await response.json();
-      
+
       console.log('🔄 Fetched', products.length, 'products');
 
       // For each product, fetch images array from /api/products/:id/images
@@ -1186,20 +1154,20 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
       productsWithImages.sort((a, b) => b.id - a.id);
 
       allProducts = productsWithImages;
-      
+
       console.log('🔄 Updated allProducts array with', allProducts.length, 'products');
-      
+
       // Restore filter state
       document.getElementById('search-bar').value = currentSearch;
       document.getElementById('category-filter').value = currentCategory;
       document.getElementById('min-price').value = currentMinPrice;
       document.getElementById('max-price').value = currentMaxPrice;
       document.getElementById('sort-by').value = currentSort;
-      
+
       // Re-apply filters to show updated results
       console.log('🔄 Re-applying filters and rendering...');
       filterAndRender();
-      
+
       // Force a complete re-render to ensure DOM updates
       setTimeout(() => {
         const container = document.getElementById('products-container');
@@ -1208,11 +1176,11 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
           renderProducts(allProducts);
         }
       }, 500);
-      
+
       // Show refresh notification
       console.log('🔄 Showing refresh notification...');
       showRefreshNotification('تم تحديث قائمة المنتجات والفئات');
-      
+
     } catch (error) {
       console.error('❌ Auto-refresh failed:', error);
     }
@@ -1230,7 +1198,7 @@ function disableAutoRefresh() {
 // Handle page visibility changes to optimize auto-refresh
 document.addEventListener('visibilitychange', () => {
   isPageVisible = !document.hidden;
-  
+
   if (isPageVisible) {
     // Page became visible, resume auto-refresh if it was enabled
     if (autoRefreshInterval === null) {
@@ -1270,14 +1238,14 @@ function showRefreshNotification(message = 'تم تحديث قائمة المن�
     `;
     document.body.appendChild(notification);
   }
-  
+
   notification.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${message}`;
-  
+
   // Show notification
   setTimeout(() => {
     notification.style.transform = 'translateX(0)';
   }, 100);
-  
+
   // Hide notification after 3 seconds
   setTimeout(() => {
     notification.style.transform = 'translateX(100%)';
@@ -1310,7 +1278,7 @@ function showRefreshIndicator() {
     indicator.innerHTML = `<i class="bi bi-arrow-clockwise me-1"></i>التحديث التلقائي مفعل`;
     document.body.appendChild(indicator);
   }
-  
+
   // Auto-hide after 5 seconds
   setTimeout(() => {
     if (indicator.parentNode) {
@@ -1323,7 +1291,7 @@ function showRefreshIndicator() {
 function addManualRefreshButton() {
   // Only add if not already present
   if (document.getElementById('manual-refresh-btn')) return;
-  
+
   const refreshBtn = document.createElement('button');
   refreshBtn.id = 'manual-refresh-btn';
   refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
@@ -1334,12 +1302,12 @@ function addManualRefreshButton() {
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   `;
-  
+
   refreshBtn.addEventListener('click', async () => {
     console.log('🔄 Manual refresh triggered');
     refreshBtn.disabled = true;
     refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...';
-    
+
     try {
       // Store current filter state
       const currentSearch = document.getElementById('search-bar').value;
@@ -1347,10 +1315,10 @@ function addManualRefreshButton() {
       const currentMinPrice = document.getElementById('min-price').value;
       const currentMaxPrice = document.getElementById('max-price').value;
       const currentSort = document.getElementById('sort-by').value;
-      
+
       // Refresh categories first
       await loadCategories();
-      
+
       // Refresh products data
       const response = await fetch(`/api/products?_t=${Date.now()}`);
       if (!response.ok) {
@@ -1373,20 +1341,20 @@ function addManualRefreshButton() {
       productsWithImages.sort((a, b) => b.id - a.id);
 
       allProducts = productsWithImages;
-      
+
       // Restore filter state
       document.getElementById('search-bar').value = currentSearch;
       document.getElementById('category-filter').value = currentCategory;
       document.getElementById('min-price').value = currentMinPrice;
       document.getElementById('max-price').value = currentMaxPrice;
       document.getElementById('sort-by').value = currentSort;
-      
+
       // Re-apply filters to show updated results
       filterAndRender();
-      
+
       // Show success notification
       showRefreshNotification('تم تحديث البيانات بنجاح!');
-      
+
     } catch (error) {
       console.error('❌ Manual refresh failed:', error);
       showRefreshNotification('فشل في تحديث البيانات');
@@ -1395,6 +1363,32 @@ function addManualRefreshButton() {
       refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>تحديث يدوي';
     }
   });
-  
+
   document.body.appendChild(refreshBtn);
 }
+
+// =====================================================
+// === PAGE INITIALIZATION ===
+// =====================================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Load categories for filter dropdown
+  await loadCategories();
+
+  // 2. Load and display products
+  await loadProducts();
+
+  // 3. Setup filter panel
+  setupSlidingFilterPanel();
+
+  // 4. Check for ?category= in URL and pre-select
+  const urlParams = new URLSearchParams(window.location.search);
+  const categoryParam = urlParams.get('category');
+  if (categoryParam) {
+    const catEl = document.getElementById('category-filter');
+    if (catEl) {
+      catEl.value = categoryParam;
+      filterAndRender();
+    }
+  }
+});

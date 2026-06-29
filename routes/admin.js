@@ -101,6 +101,10 @@ router.post('/admin/products', verifyAdmin, async (req, res) => {
         if (fields.categories) {
             categories = Array.isArray(fields.categories) ? fields.categories : [fields.categories];
         }
+        let paragraphs = [];
+        if (fields.paragraphs) {
+            try { paragraphs = JSON.parse(fields.paragraphs); } catch (e) { paragraphs = []; }
+        }
         // Fix: If name/description are arrays, use first element
         if (Array.isArray(name)) name = name[0];
         if (Array.isArray(description)) description = description[0];
@@ -116,7 +120,7 @@ router.post('/admin/products', verifyAdmin, async (req, res) => {
             // Insert Product
             const { data: productData, error: productError } = await supabase
                 .from('Products')
-                .insert([{ name, description, price, stock }])
+                .insert([{ name, description, price, stock, paragraphs }])
                 .select('id');
             if (productError) throw productError;
             const productId = productData[0].id;
@@ -136,7 +140,7 @@ router.post('/admin/products', verifyAdmin, async (req, res) => {
                     // Minimize image
                     const buffer = await sharp(file.filepath).resize({ width: 800 }).jpeg({ quality: 70 }).toBuffer();
                     const ext = file.originalFilename.split('.').pop();
-                    const fileName = `products/${productId}_${Date.now()}_${Math.floor(Math.random()*1e6)}.jpeg`;
+                    const fileName = `products/${productId}_${Date.now()}_${Math.floor(Math.random() * 1e6)}.jpeg`;
                     const publicUrl = await uploadToSupabaseStorage('product-images', fileName, buffer, 'image/jpeg');
                     const { error: imgError } = await supabase
                         .from('ProductImages')
@@ -170,6 +174,10 @@ router.put('/admin/products/:id', verifyAdmin, async (req, res) => {
         if (fields.categories) {
             categories = Array.isArray(fields.categories) ? fields.categories : [fields.categories];
         }
+        let paragraphs = [];
+        if (fields.paragraphs) {
+            try { paragraphs = JSON.parse(fields.paragraphs); } catch (e) { paragraphs = []; }
+        }
         // --- Fix: If name/description are arrays, use first element ---
         if (Array.isArray(name)) name = name[0];
         if (Array.isArray(description)) description = description[0];
@@ -185,7 +193,7 @@ router.put('/admin/products/:id', verifyAdmin, async (req, res) => {
             // Update product
             const { error: updateError } = await supabase
                 .from('Products')
-                .update({ name, description, price, stock })
+                .update({ name, description, price, stock, paragraphs })
                 .eq('id', productId);
             if (updateError) throw updateError;
             // Remove old categories
@@ -225,7 +233,7 @@ router.put('/admin/products/:id', verifyAdmin, async (req, res) => {
                 // 4. Save and minimize new images to Supabase Storage
                 for (const file of images) {
                     const buffer = await sharp(file.filepath).resize({ width: 800 }).jpeg({ quality: 70 }).toBuffer();
-                    const fileName = `products/${productId}_${Date.now()}_${Math.floor(Math.random()*1e6)}.jpeg`;
+                    const fileName = `products/${productId}_${Date.now()}_${Math.floor(Math.random() * 1e6)}.jpeg`;
                     const publicUrl = await uploadToSupabaseStorage('product-images', fileName, buffer, 'image/jpeg');
                     const { error: imgInsertError } = await supabase
                         .from('ProductImages')
