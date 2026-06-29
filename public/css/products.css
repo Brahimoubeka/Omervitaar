@@ -436,6 +436,9 @@
       font-size: 0.8rem !important;
       padding: 0.4rem 0.5rem !important;
     }
+    select.sliding-filter-control {
+      text-align: center;
+    }
     .sliding-filter-section .input-group-text {
       font-size: 0.8rem !important;
       padding: 0.4rem 0.5rem !important;
@@ -1303,6 +1306,9 @@
     font-size: 0.65rem !important;
     padding: 0.2rem 0.3rem !important;
     height: auto !important;
+  }
+  .desktop-sidebar select.sliding-filter-control {
+    text-align: center;
   }
   .desktop-sidebar .input-group-text i {
     font-size: 0.6rem !important;

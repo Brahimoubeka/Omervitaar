@@ -65,13 +65,12 @@ function renderProducts(products, append = false) {
     }
 
     // Badges (stock, etc)
-    let badges = [];
+    let badgeHTML = '';
     if (product.stock === 0) {
-      badges.push(`<span class="product-badge" style="background:#e84141;color:#fff;">غير متوفر</span>`);
+      badgeHTML = `<span class="badge bg-danger position-absolute top-0 end-0 m-2 z-3" style="font-size: 0.65rem; padding: 0.3rem 0.45rem;"><i class="bi bi-x-circle ms-1"></i>نفذت الكمية</span>`;
     } else if (product.stock !== undefined && product.stock < 10) {
-      badges.push(`<span class="product-badge">كمية محدودة</span>`);
+      badgeHTML = `<span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2 z-3" style="font-size: 0.65rem; padding: 0.3rem 0.45rem;"><i class="bi bi-exclamation-triangle ms-1"></i>كمية محدودة</span>`;
     }
-    let badgeHTML = badges.join('');
 
     // Category badge(s)
     let catBadges = '';
@@ -126,7 +125,7 @@ function renderProducts(products, append = false) {
         <h5 class="product-card-title" style="margin: .1em .1em ;" title="${product.name}">${truncatedTitle}</h5>
         <div class="mb-1">${catBadges}</div>
         ${ratingHtml}
-        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}</div>
+        <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag ms-1"></i>${product.price} دج</div>
         <div class="mt-2">
           ${product.stock === 0 ?
         `<button class="btn btn-secondary add-cart-btn w-100" disabled style="font-size:0.85rem;padding:.4rem;opacity:.6;cursor:not-allowed; border-radius: 12px; font-weight: normal;">
