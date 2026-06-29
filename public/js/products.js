@@ -3,6 +3,12 @@ let allCategories = [];
 let autoRefreshInterval = null;
 let isPageVisible = true;
 
+// Infinite scroll state
+let currentFilteredProducts = [];
+let currentlyRenderedCount = 0;
+const BATCH_SIZE = 12;
+let productObserver = null;
+
 // Helper to get all categories for filter dropdown
 async function loadCategories() {
   try {
@@ -38,42 +44,6 @@ function renderProducts(products, append = false) {
   const container = document.getElementById('products-container');
   if (!append) container.innerHTML = '';
 
-  // --- SEO: Generate JSON-LD for all visible products ---
-  const productsJsonLd = products.map(product => {
-    // Use first image as main image
-    let image = (product.images && product.images[0]) || product.imagePath || 'https://omervita.com/images/logo.png';
-    // Use first category name if available
-    let category = (product.categories && product.categories[0] && product.categories[0].name) || '';
-    // Build offer object
-    let offer = {
-      '@type': 'Offer',
-      'price': product.price,
-      'priceCurrency': 'DZD',
-      'availability': product.stock === 0 ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
-      'url': `https://omervita.com/products/${product.slug || SlugUtil.generateProductSlug(product)}`
-    };
-    return {
-      '@context': 'https://schema.org/',
-      '@type': 'Product',
-      'name': product.name,
-      'image': image.startsWith('http') ? image : `https://omervita.com/${image.replace(/^\/*/, '')}`,
-      'description': product.description || '',
-      'sku': product.sku || product.id,
-      'brand': {
-        '@type': 'Brand',
-        'name': 'Omervita'
-      },
-      'category': category,
-      'offers': offer
-    };
-  });
-  // Inject JSON-LD into the placeholder script
-  const jsonLdScript = document.getElementById('products-jsonld');
-  if (jsonLdScript) {
-    jsonLdScript.textContent = JSON.stringify(productsJsonLd, null, 2);
-  }
-  // --- END SEO JSON-LD ---
-
   products.forEach(product => {
     const productCol = document.createElement('div');
     productCol.classList.add('col', 'mb-4', 'd-flex', 'justify-content-center');
@@ -81,32 +51,17 @@ function renderProducts(products, append = false) {
     const productCard = document.createElement('div');
     productCard.classList.add('product-card', 'shadow-sm', 'h-100');
 
-    // Carousel or image
-    let carouselHTML = '';
+    // Premium Image Crossfade on Hover
+    let imageHTML = '';
+    const mainImg = (product.images && product.images[0]) || product.imagePath || 'images/default-product.jpg';
     if (product.images && Array.isArray(product.images) && product.images.length > 1) {
-      const carouselId = `product-carousel-${product.id}`;
-      carouselHTML = `
-        <div id="${carouselId}" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000" >
-          <div class="carousel-inner">
-            ${product.images.map((src, idx) => `
-              <div class="carousel-item${idx === 0 ? ' active' : ''}">
-                <img src="${src}" class="d-block w-100" style="height:230px;object-fit:contain;background:#f8f8f8;" alt="${product.name} ${idx + 1}" loading="lazy">
-              </div>
-            `).join('')}
-          </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev" >
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">السابق</span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">التالي</span>
-          </button>
-        </div>
+      const hoverImg = product.images[1];
+      imageHTML = `
+        <img src="${mainImg}" class="product-img-primary d-block w-100" alt="${product.name}" loading="lazy">
+        <img src="${hoverImg}" class="product-img-hover d-block w-100" alt="${product.name} alternate" loading="lazy">
       `;
     } else {
-      let src = (product.images && product.images[0]) || product.imagePath || 'images/default-product.jpg';
-      carouselHTML = `<img src="${src}" class="d-block w-100" style="height:230px;object-fit:contain;background:#f8f8f8;" alt="${product.name}" loading="lazy">`;
+      imageHTML = `<img src="${mainImg}" class="product-img-primary d-block w-100" alt="${product.name}" loading="lazy">`;
     }
 
     // Badges (stock, etc)
@@ -122,8 +77,8 @@ function renderProducts(products, append = false) {
     let catBadges = '';
     if (product.categories && product.categories.length) {
       catBadges = product.categories.map(cat =>
-        `<span class="badge bg-light border text-dark me-1" style="font-size:0.58em;padding:.25em .53em;"><i class="bi bi-tag"></i> ${cat.name}</span>`
-      ).join('');
+        `<span style="font-size:0.75rem; color:#888;">${cat.name}</span>`
+      ).join('<span style="font-size:0.75rem; color:#888; margin: 0 4px;">•</span>');
     }
 
     // Rating (show average if available, otherwise nothing)
@@ -164,7 +119,7 @@ function renderProducts(products, append = false) {
 
     productCard.innerHTML = `
       <div class="product-img-box position-relative">
-        ${carouselHTML}
+        ${imageHTML}
         ${badgeHTML}
       </div>
       <div class="product-card-body" >
@@ -172,27 +127,25 @@ function renderProducts(products, append = false) {
         <div class="mb-1">${catBadges}</div>
         ${ratingHtml}
         <div style="margin: .1em .1em ;" class="product-card-price"><i class="bi bi-tag me-1"></i>دج${product.price}</div>
-        <div class="d-flex justify-content-between mt-2">
-          <button class="btn product-card-button flex-grow-1 me-2" style="font-size:1.1em;padding:.1em .1em;">عرض التفاصيل</button>
+        <div class="mt-2">
           ${product.stock === 0 ?
-        `<button class="btn btn-secondary add-cart-btn flex-grow-1" disabled style="font-size:1.1em;padding:.1em .1em;opacity:.6;cursor:not-allowed;">
-              <i class="bi bi-cart-plus"></i>
+        `<button class="btn btn-secondary add-cart-btn w-100" disabled style="font-size:0.85rem;padding:.4rem;opacity:.6;cursor:not-allowed; border-radius: 12px; font-weight: normal;">
+              غير متوفر <i class="bi bi-cart-x ms-1"></i>
              </button>` :
-        `<button class="btn btn-primary add-cart-btn flex-grow-1" style="font-size:1.1em;padding:.1em .1em;">
-              <i class="bi bi-cart-plus"></i>
+        `<button class="btn add-cart-btn w-100" style="background: var(--orange-accent); color: #000; font-weight: normal; font-size:0.85rem; padding:.4rem; border:none; border-radius: 12px; box-shadow: 0 4px 10px rgba(255,191,0,0.3); transition: transform 0.2s, box-shadow 0.2s;">
+              أضف إلى السلة <i class="bi bi-cart-plus ms-1"></i>
              </button>`
       }
         </div>
       </div>
     `;
 
-    // Make title clickable to go to product details
-    productCard.querySelector('.product-card-title').addEventListener('click', () => {
-      window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
-    });
-
-    productCard.querySelector('.product-card-button').addEventListener('click', () => {
-      window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
+    // Make entire card clickable except for the add to cart button
+    productCard.style.cursor = 'pointer';
+    productCard.addEventListener('click', (e) => {
+      if (!e.target.closest('.add-cart-btn')) {
+        window.location.href = `/products/${product.slug || SlugUtil.generateProductSlug(product)}`;
+      }
     });
 
     // Add event listener for the "Add to Cart" button if product is in stock
@@ -230,15 +183,6 @@ function renderProducts(products, append = false) {
 
     productCol.appendChild(productCard);
     container.appendChild(productCol);
-    // --- Ensure Bootstrap carousel auto-slides ---
-    if (product.images && Array.isArray(product.images) && product.images.length > 1) {
-      setTimeout(() => {
-        const el = document.getElementById(`product-carousel-${product.id}`);
-        if (el && window.bootstrap && window.bootstrap.Carousel) {
-          new window.bootstrap.Carousel(el, { interval: 3000, ride: 'carousel' });
-        }
-      }, 0);
-    }
   });
 }
 
@@ -295,7 +239,63 @@ function filterAndRender() {
   // Update filter control styles
   updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, sortPrice);
 
-  renderProducts(filtered);
+  // --- SEO: Generate JSON-LD for all visible products ---
+  const productsJsonLd = filtered.map(product => {
+    let image = (product.images && product.images[0]) || product.imagePath || 'https://omervita.com/images/logo.png';
+    let category = (product.categories && product.categories[0] && product.categories[0].name) || '';
+    return {
+      '@context': 'https://schema.org/',
+      '@type': 'Product',
+      'name': product.name,
+      'image': image.startsWith('http') ? image : `https://omervita.com/${image.replace(/^\/*/, '')}`,
+      'description': product.description || '',
+      'sku': product.sku || product.id,
+      'brand': { '@type': 'Brand', 'name': 'Omervita' },
+      'category': category,
+      'offers': {
+        '@type': 'Offer',
+        'price': product.price,
+        'priceCurrency': 'DZD',
+        'availability': product.stock === 0 ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        'url': `https://omervita.com/products/${product.slug || SlugUtil.generateProductSlug(product)}`
+      }
+    };
+  });
+  const jsonLdScript = document.getElementById('products-jsonld');
+  if (jsonLdScript) {
+    jsonLdScript.textContent = JSON.stringify(productsJsonLd, null, 2);
+  }
+
+  currentFilteredProducts = filtered;
+  currentlyRenderedCount = 0;
+  document.getElementById('products-container').innerHTML = ''; // Clear container
+  loadMoreProducts();
+}
+
+function loadMoreProducts() {
+  if (currentlyRenderedCount >= currentFilteredProducts.length) return;
+
+  const nextBatch = currentFilteredProducts.slice(currentlyRenderedCount, currentlyRenderedCount + BATCH_SIZE);
+  renderProducts(nextBatch, true);
+  currentlyRenderedCount += nextBatch.length;
+
+  setupIntersectionObserver();
+}
+
+function setupIntersectionObserver() {
+  const container = document.getElementById('products-container');
+  const cards = container.querySelectorAll('.col');
+  if (cards.length === 0) return;
+
+  if (productObserver) productObserver.disconnect();
+
+  productObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      loadMoreProducts();
+    }
+  }, { rootMargin: '200px' });
+
+  productObserver.observe(cards[cards.length - 1]);
 }
 
 // Update the visual indication of active filters
@@ -1026,22 +1026,12 @@ async function loadProducts() {
     }
     let products = await response.json();
 
-    // For each product, fetch images array from /api/products/:id/images
-    const productsWithImages = await Promise.all(products.map(async (prod) => {
-      try {
-        const imgResp = await fetch(`/api/products/${prod.id}/images`);
-        const imgs = await imgResp.json();
-        return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
-      } catch {
-        return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
-      }
-    }));
-
+    // Products already have images from the backend enrichment
     // Sort products to show newest first
-    productsWithImages.sort((a, b) => b.id - a.id);
+    products.sort((a, b) => b.id - a.id);
 
-    allProducts = productsWithImages;
-    renderProducts(allProducts);
+    allProducts = products;
+    filterAndRender();
   } catch (error) {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
 
@@ -1093,8 +1083,11 @@ async function loadProducts() {
 
 // Auto-refresh functionality for real-time updates
 
+let isAutoRefreshIntentionallyEnabled = false;
+
 // Function to enable auto-refresh for real-time data
 function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for testing
+  isAutoRefreshIntentionallyEnabled = true;
   console.log('🔄 Enabling auto-refresh with interval:', intervalMs, 'ms');
 
   if (autoRefreshInterval) {
@@ -1139,21 +1132,11 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
 
       console.log('🔄 Fetched', products.length, 'products');
 
-      // For each product, fetch images array from /api/products/:id/images
-      const productsWithImages = await Promise.all(products.map(async (prod) => {
-        try {
-          const imgResp = await fetch(`/api/products/${prod.id}/images?_t=${Date.now()}`);
-          const imgs = await imgResp.json();
-          return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
-        } catch {
-          return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
-        }
-      }));
-
+      // Products already have images from the backend enrichment
       // Sort products to show newest first
-      productsWithImages.sort((a, b) => b.id - a.id);
+      products.sort((a, b) => b.id - a.id);
 
-      allProducts = productsWithImages;
+      allProducts = products;
 
       console.log('🔄 Updated allProducts array with', allProducts.length, 'products');
 
@@ -1168,15 +1151,6 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
       console.log('🔄 Re-applying filters and rendering...');
       filterAndRender();
 
-      // Force a complete re-render to ensure DOM updates
-      setTimeout(() => {
-        const container = document.getElementById('products-container');
-        if (container && allProducts.length > 0) {
-          console.log('🔄 Force re-rendering products container');
-          renderProducts(allProducts);
-        }
-      }, 500);
-
       // Show refresh notification
       console.log('🔄 Showing refresh notification...');
       showRefreshNotification('تم تحديث قائمة المنتجات والفئات');
@@ -1189,6 +1163,7 @@ function enableAutoRefresh(intervalMs = 15000) { // Reduced to 15 seconds for te
 
 // Function to disable auto-refresh
 function disableAutoRefresh() {
+  isAutoRefreshIntentionallyEnabled = false;
   if (autoRefreshInterval) {
     clearInterval(autoRefreshInterval);
     autoRefreshInterval = null;
@@ -1201,7 +1176,7 @@ document.addEventListener('visibilitychange', () => {
 
   if (isPageVisible) {
     // Page became visible, resume auto-refresh if it was enabled
-    if (autoRefreshInterval === null) {
+    if (autoRefreshInterval === null && isAutoRefreshIntentionallyEnabled) {
       enableAutoRefresh();
     }
   } else {
@@ -1326,21 +1301,11 @@ function addManualRefreshButton() {
       }
       let products = await response.json();
 
-      // For each product, fetch images array from /api/products/:id/images
-      const productsWithImages = await Promise.all(products.map(async (prod) => {
-        try {
-          const imgResp = await fetch(`/api/products/${prod.id}/images?_t=${Date.now()}`);
-          const imgs = await imgResp.json();
-          return { ...prod, images: imgs && imgs.length > 0 ? imgs : (prod.imagePath ? [prod.imagePath] : []) };
-        } catch {
-          return { ...prod, images: prod.imagePath ? [prod.imagePath] : [] };
-        }
-      }));
-
+      // Products already have images from the backend enrichment
       // Sort products to show newest first
-      productsWithImages.sort((a, b) => b.id - a.id);
+      products.sort((a, b) => b.id - a.id);
 
-      allProducts = productsWithImages;
+      allProducts = products;
 
       // Restore filter state
       document.getElementById('search-bar').value = currentSearch;
@@ -1368,27 +1333,5 @@ function addManualRefreshButton() {
 }
 
 // =====================================================
-// === PAGE INITIALIZATION ===
+// === END OF FILE ===
 // =====================================================
-
-document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Load categories for filter dropdown
-  await loadCategories();
-
-  // 2. Load and display products
-  await loadProducts();
-
-  // 3. Setup filter panel
-  setupSlidingFilterPanel();
-
-  // 4. Check for ?category= in URL and pre-select
-  const urlParams = new URLSearchParams(window.location.search);
-  const categoryParam = urlParams.get('category');
-  if (categoryParam) {
-    const catEl = document.getElementById('category-filter');
-    if (catEl) {
-      catEl.value = categoryParam;
-      filterAndRender();
-    }
-  }
-});

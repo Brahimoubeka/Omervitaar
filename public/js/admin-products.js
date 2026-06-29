@@ -423,12 +423,7 @@ async function loadProducts() {
     const tbody = document.getElementById('admin-products-table-body');
     for (const product of products) {
       productsMap[product.id] = product;
-      let images = [];
-      try {
-        const imagesResp = await fetch(`/api/products/${product.id}/images`);
-        images = await imagesResp.json();
-      } catch { images = []; }
-      const thumbnail = images.length > 0 ? images[0] : (product.imagePath || 'images/default-product.jpg');
+      const thumbnail = (product.images && product.images.length > 0) ? product.images[0] : (product.imagePath || 'images/default-product.jpg');
       const categoryLabels = (product.categories || []).map(cat => `<span class="badge bg-secondary me-1">${cat.name}</span>`).join('');
       const tr = document.createElement('tr');
       tr.innerHTML = `
