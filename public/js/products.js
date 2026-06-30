@@ -499,8 +499,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Sliding filter panel setup
   setupSlidingFilterPanel();
 
-  // Add manual refresh button for testing
-  addManualRefreshButton();
+  // Add manual refresh button for testing (Removed as per user request)
+  // addManualRefreshButton();
 });
 
 // Check for category-based URL on page load

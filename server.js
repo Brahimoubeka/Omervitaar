@@ -318,7 +318,6 @@ app.use((req, res, next) => {
     '/products.html': '/products',
     '/contact.html': '/contact',
     '/cart.html': '/cart',
-    '/checkout.html': '/checkout',
     '/login.html': '/login',
     '/register.html': '/register',
     '/orders.html': '/orders',
@@ -494,9 +493,6 @@ app.use(async (req, res, next) => {
   }
   else if (url === '/cart') {
     req.url = '/cart.html';
-  }
-  else if (url === '/checkout') {
-    req.url = '/checkout.html';
   }
   else if (url === '/login') {
     req.url = '/login.html';

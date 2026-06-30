@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar">
 <head>
 
@@ -51,12 +51,13 @@
   
   <style>
     :root {
-      --military-green: #715100;
-      --light-military: #bb7900;
-      --orange-accent: #ffbf00;
+      --military-green: #5a6344;
+      --light-military: #7c875d;
+      --orange-accent: #d6a848;
       --dark-charcoal: #2c2c2c;
-      --light-gray: #f8f9fa;
+      --light-gray: #fcfcfc;
       --white: #ffffff;
+      --primary-brand: #5a6344;
     }
     * { font-family: 'cairo', 'Inter', sans-serif; }
     body { background: var(--light-gray); padding-top: 120px; }
@@ -336,107 +337,99 @@ fbq('track', 'PageView');
 src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->
+  <link rel="stylesheet" href="/css/global-ui.css">
 </head>
 <body>
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
-    <div class="container">
-      <img data-dynamic-logo src="../images/logo.png" alt="Omervita Logo" width="100px" height="100px" style="margin-bottom: 20px;" />
-      <a class="navbar-brand fw-bold" href="/">Omervita</a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav"
-        aria-expanded="false"
-        aria-label="فتح/إغلاق القائمة"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-bag me-1"></i> المنتجات
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="productsDropdown" id="categoriesDropdownMenu">
-              <li><span class="dropdown-item text-muted">جاري التحميل...</span></li>
-            </ul>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="/contact"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
-        </ul>
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
-          <li class="nav-item"><a class="nav-link" href="/login"><i class="bi bi-person me-1"></i> تسجيل الدخول / إنشاء حساب</a></li>
-          <li class="nav-item"><a class="nav-link active" aria-current="page" href="/cart"><i class="bi bi-cart me-1"></i> سلتي <span id="cart-counter">(0)</span></a></li>
-        </ul>
+  <div id="global-navbar"></div>
+  <main class="container my-5" dir="rtl">
+    <h1 class="mb-4 text-center"><i class="bi bi-cart-check me-2"></i>إتمام الطلب</h1>
+    
+    <div class="row g-4">
+      <!-- Right Column in RTL: Cart Items -->
+      <div class="col-lg-5">
+        <div class="p-3 p-md-4 rounded-4 bg-white shadow-sm border h-100">
+          <h5 class="mb-3 text-secondary border-bottom pb-2"><i class="bi bi-basket me-2"></i>منتجاتك</h5>
+          
+          <!-- Cart items -->
+          <div id="cart-container" class="d-flex flex-column gap-2 mb-3">
+            <!-- Cart items dynamically inserted here as cards -->
+          </div>
+        </div>
       </div>
+      
+      <!-- Left Column in RTL: Simplified Checkout Form -->
+      <div class="col-lg-7">
+        <div class="p-3 p-md-4 rounded-4 bg-white shadow-sm border h-100">
+          <h5 class="mb-3 text-secondary border-bottom pb-2"><i class="bi bi-person-lines-fill me-2"></i>معلومات الاتصال (إجباري)</h5>
+          
+          <form id="checkout-form">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="firstName" class="form-label small text-muted mb-1">الاسم</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-secondary"></i></span>
+                  <input type="text" id="firstName" name="firstName" maxlength="40" class="form-control border-start-0 ps-0" placeholder="اسمك الأول" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label for="lastName" class="form-label small text-muted mb-1">اللقب</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-secondary"></i></span>
+                  <input type="text" id="lastName" name="lastName" maxlength="40" class="form-control border-start-0 ps-0" placeholder="لقب العائلة" required>
+                </div>
+              </div>
+              <div class="col-12">
+                <label for="shippingName" class="form-label small text-muted mb-1">رقم الهاتف</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-telephone text-secondary"></i></span>
+                  <input type="tel" id="shippingName" name="shippingName" maxlength="11" class="form-control border-start-0 ps-0" placeholder="مثال: 0555444332" required>
+                </div>
+              </div>
+              
+              <h5 class="mb-2 mt-4 text-secondary border-bottom pb-2"><i class="bi bi-truck me-2"></i>معلومات التوصيل</h5>
+              
+              <div class="col-md-6">
+                <label for="city" class="form-label small text-muted mb-1">الولاية (تحدد سعر التوصيل)</label>
+                <select id="city" name="city" class="form-select" required>
+                  <option value="">اختر الولاية...</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="province" class="form-label small text-muted mb-1">المنطقة أو البلدية</label>
+                <input type="text" id="province" name="province" class="form-control" placeholder="اكتب البلدية" required>
+              </div>
+            </div>
+            
+            <!-- Price Summary -->
+            <div class="price-summary p-3 bg-light rounded-3 mt-4 mb-3 border">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">مجموع المنتجات:</span>
+                <span id="cart-total" class="fw-semibold">دج0.00</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">تكلفة الشحن:</span>
+                <span id="delivery-cost" class="fw-semibold">دج0.00</span>
+              </div>
+              <div class="d-flex justify-content-between pt-2 border-top mt-2">
+                <span class="fw-bold text-dark fs-5">المجموع الكلي:</span>
+                <span id="final-total" class="fw-bold text-dark fs-5">دج0.00</span>
+              </div>
+              <p class="text-muted mt-2 mb-0 text-center" style="font-size:0.75rem; background-color: rgba(0, 128, 0, 0.1); padding: 5px; border-radius: 4px;">سيتم التواصل معكم لتأكيد الطلبية</p>
+            </div>
+            
+            <button type="submit" id="checkout-button" class="btn btn-primary w-100 py-2 fw-semibold fs-5" style="background: var(--orange-accent); color: #000; border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(214, 168, 72, 0.3);">
+              <i class="bi bi-check-circle me-2"></i>تأكيد الطلب
+            </button>
+            <div id="checkout-message" class="mt-3 text-center"></div>
+          </form>
+        </div>
+      </div>
+      
     </div>
-  </nav>
-  <main class="container my-5">
-    <h1 class="mb-4 text-center"><i class="bi bi-cart me-2"></i>سلتك</h1>
-    <p class="text-center text-muted mb-4" style="font-size:0.8em; background-color:rgba(0, 128, 0, 0.231);">اضغط على اتمام الطلب اسفل الصفحة لادخال معلومات الاتصال الخاصة بك وارسال طلبيتك</p>
-    <!-- Cart items -->
-    <div id="cart-container" class="row">
-      <!-- Cart items dynamically inserted here as cards -->
-    </div>
-    
-    <!-- total checkout -->
-    <div id="cart-total" class="my-4 text-end fs-4 fw-semibold"></div>
-    
-    <!-- checkout button -->
-    <button id="checkout-button" class="btn btn-primary w-100"><i class="bi bi-bag-check me-2"></i>إتمام الطلب</button>
   </main>
 <!-- Updated Footer with better mobile centering -->
-<footer class="pt-5 pb-4">
-  <div class="container">
-    <div class="row">
-      <!-- Logo and tagline section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <a href="/" class="d-block mb-3">
-          <img data-dynamic-logo src="images/logo.png" alt="Omervita Logo" class="img-fluid mx-auto mx-md-0 d-block" style="max-width: 120px;" />
-        </a>
-        <p class="mx-auto mx-md-0" style="max-width: 250px;">رضا العملاء أولويتنا</p>
-      </div>
-      
-      <!-- About section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-info-circle me-2"></i>عن Omervita</h5>
-        <p class="mx-auto mx-md-0" style="max-width: 250px;">العناية الشخصية من الطبيعة 100٪. استمتعوا بمستوى جديد من الجمال والرفاهية مختارة بعناية بواسطة Omervita</p>
-      </div>
-      
-      <!-- Quick links section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
-        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="/" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
-          <li class="mb-2"><a href="/products" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
-          <li class="mb-2"><a href="/contact" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
-        </ul>
-      </div>
-      
-      <!-- Social media section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
-        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
-          <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
-          <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
-        </ul>
-      </div>
-    </div>
-    
-    <hr style="border-color: #555; margin: 2rem 0;">
-    
-    <div class="text-center py-2">
-      <small style="color: #b0b0b0; font-size: 0.9rem;">
-        <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
-        2025 Omervita. جميع الحقوق محفوظة. | تجربة تسوق آمنة
-      </small>
-    </div>
-  </div>
-</footer>
+<div id="global-footer"></div>
   <!-- Bootstrap JS Bundle CDN -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/header.js?v=1736152800"></script>
@@ -457,32 +450,6 @@ async function updateBrandingLinks() {
 }
 updateBrandingLinks();
 </script>
-  <script>
-    // Dynamically load categories into navbar dropdown
-    async function loadCategoriesDropdown() {
-      try {
-        const res = await fetch('/api/categories');
-        const categories = await res.json();
-        const menu = document.getElementById('categoriesDropdownMenu');
-        menu.innerHTML = '';
-        if (Array.isArray(categories) && categories.length > 0) {
-          categories.forEach(cat => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.className = 'dropdown-item';
-            a.href = `products.html?category=${cat.id}`;
-            a.textContent = cat.name;
-            li.appendChild(a);
-            menu.appendChild(li);
-          });
-        } else {
-          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
-        }
-      } catch (e) {
-        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
-      }
-    }
-    loadCategoriesDropdown();
-  </script>
+  
 </body>
 </html>

@@ -90,37 +90,11 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
 
   <!-- Product Structured Data (JSON-LD) placeholder for SEO -->
   <script id="products-jsonld" type="application/ld+json"></script>
+  <link rel="stylesheet" href="/css/global-ui.css">
 </head>
 <body>
   <!-- Bootstrap Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
-    <div class="container">
-      <img data-dynamic-logo src="../images/logo.png" alt="Omervita Logo" width="100px" height="100px" style="margin-bottom: 20px;" >
-      <a class="navbar-brand fw-bold" href="/">Omervita</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="فتح/إغلاق القائمة">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a class="nav-link" href="/"><i class="bi bi-house me-1"></i> الصفحة الرئيسية</a></li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-bag me-1"></i> المنتجات
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="productsDropdown" id="categoriesDropdownMenu">
-              <li><span class="dropdown-item text-muted">جاري التحميل...</span></li>
-            </ul>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="/contact"><i class="bi bi-envelope me-1"></i> تواصل معنا</a></li>
-        </ul>
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 user-actions">
-          <li class="nav-item"><a class="nav-link" href="/login"><i class="bi bi-person me-1"></i> تسجيل الدخول / إنشاء حساب</a></li>
-          <li class="nav-item"><a class="nav-link" href="/cart"><i class="bi bi-cart me-1"></i> سلتي</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+  <div id="global-navbar"></div>
 
   <main class="container my-5" dir="rtl">
     <h1 class="mb-4 text-center"><i class="bi bi-basket me-2"></i>منتجاتنا</h1>
@@ -410,54 +384,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   </button>
 
   <!-- Updated Footer with better mobile centering -->
-<footer class="pt-5 pb-4">
-  <div class="container">
-    <div class="row">
-      <!-- Logo and tagline section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <a href="/" class="d-block mb-3">
-          <img data-dynamic-logo src="/images/logo.png" alt="Omervita Logo" class="img-fluid mx-auto mx-md-0 d-block" style="max-width: 120px;" />
-        </a>
-        <p class="mx-auto mx-md-0" style="max-width: 250px;">رضا العملاء أولويتنا</p>
-      </div>
-      
-      <!-- About section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-info-circle me-2"></i>عن Omervita</h5>
-        <p class="mx-auto mx-md-0" style="max-width: 250px;">العناية الشخصية من الطبيعة 100٪. استمتعوا بمستوى جديد من الجمال والرفاهية مختارة بعناية بواسطة Omervita</p>
-      </div>
-      
-      <!-- Quick links section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
-        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="/" class="footer-link"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
-          <li class="mb-2"><a href="/products" class="footer-link"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
-          <li class="mb-2"><a href="/contact" class="footer-link"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
-        </ul>
-      </div>
-      
-      <!-- Social media section -->
-      <div class="col-md-3 col-12 mb-4 text-center text-md-start">
-        <h5><i class="bi bi-share me-2"></i>تابعنا</h5>
-        <ul class="list-unstyled d-flex flex-column align-items-center align-items-md-start">
-          <li class="mb-2"><a href="https://www.facebook.com/people/Omervita/61568626858755/" class="footer-link social-facebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
-          <li class="mb-2"><a href="https://www.instagram.com/omervita_" class="footer-link social-instagram"><i class="bi bi-instagram me-2"></i>Instagram</a></li>
-          <li class="mb-2"><a href="https://www.tiktok.com/@omervita" class="footer-link social-tiktok"><i class="bi bi-tiktok me-2"></i>TikTok</a></li>
-        </ul>
-      </div>
-    </div>
-    
-    <hr style="border-color: #555; margin: 2rem 0;">
-    
-    <div class="text-center py-2">
-      <small style="color: #b0b0b0; font-size: 0.9rem;">
-        <i class="bi bi-c-circle me-1" style="color: var(--orange-accent);"></i>
-        2025 Omervita. جميع الحقوق محفوظة. | تجربة تسوق آمنة
-      </small>
-    </div>
-  </div>
-</footer>
+<div id="global-footer"></div>
   <!-- Bootstrap JS Bundle CDN (Popper + Bootstrap JS) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/header.js?v=1736152800"></script>
@@ -492,38 +419,7 @@ updateBrandingLinks();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   </script>
-<script>
-    // Dynamically load categories into navbar dropdown
-    async function loadCategoriesDropdown() {
-      try {
-        const res = await fetch('/api/categories');
-        const categories = await res.json();
-        const menu = document.getElementById('categoriesDropdownMenu');
-        menu.innerHTML = '';
-        if (Array.isArray(categories) && categories.length > 0) {
-          categories.forEach(cat => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.className = 'dropdown-item';
-            a.href = `/categories/${cat.slug || SlugUtil.generateCategorySlug(cat)}`;
-            // Ensure absolute URL handling
-            a.addEventListener('click', (e) => {
-              e.preventDefault();
-              window.location.href = a.href;
-            });
-            a.textContent = cat.name;
-            li.appendChild(a);
-            menu.appendChild(li);
-          });
-        } else {
-          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
-        }
-      } catch (e) {
-        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
-      }
-    }
-    loadCategoriesDropdown();
-  </script>
+
 
   <!-- Cart Popup Modal -->
   <div class="modal fade" id="cartPopupModal" tabindex="-1" aria-labelledby="cartPopupModalLabel" aria-hidden="true">
