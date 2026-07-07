@@ -43,6 +43,10 @@ class ImageOptimizer {
     const images = document.querySelectorAll('img[data-src], img[src]');
     
     images.forEach(img => {
+      // Skip the header logo and other critical images to prevent CSS conflicts
+      if (img.hasAttribute('data-dynamic-logo') || img.classList.contains('logo-image') || img.classList.contains('critical-image')) {
+        return;
+      }
       this.processImage(img);
     });
   }

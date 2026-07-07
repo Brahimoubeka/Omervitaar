@@ -508,24 +508,20 @@ function checkCategoryURL() {
   const path = window.location.pathname;
   const params = new URLSearchParams(window.location.search);
 
+  let shouldFilter = false;
+
   // Handle category slug URLs: /categories/category-name-123
   if (path.match(/^\/categories\/[a-z0-9-]+$/i)) {
     const slug = path.replace('/categories/', '');
     const categoryId = SlugUtil.extractIdFromSlug(slug);
 
     if (categoryId) {
-      // Set the category filter
       const filter = document.getElementById('category-filter');
       if (filter) {
         filter.value = categoryId;
-        // Sync with sliding panel
         const slidingFilter = document.getElementById('sliding-category-filter');
-        if (slidingFilter) {
-          slidingFilter.value = categoryId;
-        }
-        // Apply the filter immediately
-        filterAndRender();
-        window.scrollTo(0, 0);
+        if (slidingFilter) slidingFilter.value = categoryId;
+        shouldFilter = true;
       }
     }
   }
@@ -535,14 +531,27 @@ function checkCategoryURL() {
     const filter = document.getElementById('category-filter');
     if (filter) {
       filter.value = categoryId;
-      // Sync with sliding panel
       const slidingFilter = document.getElementById('sliding-category-filter');
-      if (slidingFilter) {
-        slidingFilter.value = categoryId;
-      }
-      filterAndRender();
-      window.scrollTo(0, 0);
+      if (slidingFilter) slidingFilter.value = categoryId;
+      shouldFilter = true;
     }
+  }
+
+  // Handle Search URL parameter: /products?search=keyword
+  if (params.get('search')) {
+    const searchQuery = params.get('search');
+    const searchBar = document.getElementById('search-bar');
+    if (searchBar) {
+      searchBar.value = searchQuery;
+      const slidingSearchBar = document.getElementById('sliding-search-bar');
+      if (slidingSearchBar) slidingSearchBar.value = searchQuery;
+      shouldFilter = true;
+    }
+  }
+
+  if (shouldFilter) {
+    filterAndRender();
+    window.scrollTo(0, 0);
   }
 }
 

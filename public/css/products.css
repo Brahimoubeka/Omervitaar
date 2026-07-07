@@ -11,7 +11,6 @@
 
     body {
       background: var(--white);
-      padding-top: 120px;
     }
    
     /* Navbar  */
@@ -504,156 +503,28 @@
     }
 
     /* Footer  */
-    footer {
-      background: var(--dark-charcoal) !important;
-      color: white;
-      margin-top: 60px;
-      border-top: 4px solid var(--orange-accent);
-    }
-    footer h5 {
-      color: var(--orange-accent);
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-    footer p, footer ul, footer li, footer a {
-      color: #e0e0e0 !important;
-      font-size: 0.96rem;
-      transition: color 0.25s, text-shadow 0.3s;
-      font-weight: 400;
-    }
-    footer a {
-      text-decoration: none;
-      font-weight: 500;
-    }
+    
+    
+    
+    
     footer a:hover {
       color: var(--orange-accent) !important;
       text-shadow: 0 0 8px rgba(255, 191, 0, 0.25);
     }
-    .footer-link {
-      position: relative;
-      display: inline-block;
-      padding: 8px 0;
-      border-radius: 6px;
-      transition: all 0.3s;
-    }
-    .footer-link:hover {
-      background: rgba(255, 191, 0, 0.07);
-      padding-left: 10px;
-      padding-right: 10px;
-    }
-    .footer-link::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: 5px;
-      left: 50%;
-      background: var(--orange-accent);
-      transition: all 0.3s;
-    }
-    .footer-link:hover::after {
-      width: 80%;
-      left: 10%;
-    }
-    .social-facebook { color: #1877F2 !important; }
-    .social-facebook:hover { color: #0d5bb8 !important; }
-    .social-instagram { color: #E4405F !important; }
-    .social-instagram:hover { color: #c13584 !important; }
-    .social-tiktok { color: #000000 !important; }
-    .social-tiktok:hover { color: #333333 !important; }
-
-    /* Mobile responsive footer centering */
-@media (max-width: 768px) {
-  footer .row > .col-md-3 {
-    text-align: center !important;
-    margin-bottom: 2rem;
-  }
-  
-  footer .col-md-3 img {
-    margin: 0 auto;
-  }
-  
-  footer .list-unstyled {
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  footer .list-unstyled li {
-    margin-bottom: 0.75rem;
-  }
-  
-  footer h5 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  footer p {
-    text-align: center;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-}
-
-/* Extra small devices (phones, less than 576px) */
-@media (max-width: 576px) {
-  footer .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  footer .col-md-3 {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  
-  footer h5 {
-    font-size: 1.1rem;
-  }
-  
-  footer p, footer a {
-    font-size: 0.9rem;
-  }
-}
     
-    /* CHATBOT STYLES - FIXED VERSION */
-    .chatbot-container {
-      position: fixed;
-      top: 50%; /* Center vertically */
-      right: 20px;
-      transform: translateY(-50%); /* Perfect centering */
-      z-index: 1050; /* Above everything including Bootstrap navbar (1030) */
-    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    .chatbot-button {
-      width: 50px; /* Slightly larger */
-      height: 50px; /* Slightly larger */
-      border-radius: 50%;
-      background: linear-gradient(135deg, #007bff, #0056b3);
-      color: white;
-      border: none;
-      box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 22px; /* Slightly larger font */
-      transition: all 0.3s ease;
-      animation: pulse 2s infinite;
-      z-index: 1049; /* One below the chat window */
-    }
+    
 
-    .chatbot-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
-    }
 
-    @keyframes pulse {
-      0% { box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3); }
-      50% { box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5), 0 0 0 8px rgba(0, 123, 255, 0.1); }
-      100% { box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3); }
-    }
 
     .chatbot-window {
       position: fixed; /* Changed from absolute to fixed */
@@ -1272,7 +1143,7 @@
   .desktop-sidebar {
     display: block !important;
     position: sticky;
-    top: 100px;
+    top: 140px;
     width: 200px;
     flex-shrink: 0;
     background: #fff;

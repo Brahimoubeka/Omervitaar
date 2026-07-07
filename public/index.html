@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 
 <head>
 
@@ -115,9 +115,9 @@
     as="style" onload="this.rel='stylesheet'">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" as="style"
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" as="style"
     onload="this.rel='stylesheet'">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap"
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
     rel="stylesheet" />
 
   <!-- Image Optimization CSS -->
@@ -148,7 +148,7 @@
     }
 
     * {
-      font-family: 'Tajawal', 'Inter', sans-serif;
+      font-family: 'Cairo', 'Inter', sans-serif;
     }
 
 
@@ -910,25 +910,25 @@
     <section class="hero-section position-relative mb-5">
       <div id="coverCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
         <div class="carousel-indicators" style="z-index: 15;">
-          <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="0" class="active" aria-current="true"
-            aria-label="Slide 1"></button>
-          <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-          <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+          <!-- Indicators built dynamically by branding.js -->
+          <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
         </div>
         <div class="carousel-inner">
+          <!-- Slides loaded dynamically from site_settings by branding.js -->
           <div class="carousel-item active">
-            <img src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp"
-              class="d-block w-100 hero-img" alt="غلاف المنتجات الطبيعية" loading="eager" decoding="async">
-          </div>
-          <div class="carousel-item">
-            <img src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp"
-              class="d-block w-100 hero-img" alt="مجموعة منتجات العناية الطبيعية" loading="lazy" decoding="async">
-          </div>
-          <div class="carousel-item">
-            <img src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp"
-              class="d-block w-100 hero-img" alt="منتجات الصحة والجمال الطبيعية" loading="lazy" decoding="async">
+            <div class="d-block w-100 hero-img" style="background: linear-gradient(135deg, var(--military-green) 0%, var(--light-military) 100%); display:flex; align-items:center; justify-content:center;">
+              <div class="spinner-border text-light" role="status"><span class="visually-hidden">جاري التحميل...</span></div>
+            </div>
           </div>
         </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#coverCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">السابق</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#coverCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">التالي</span>
+        </button>
       </div>
 
       <!-- Hero Content Overlay -->
@@ -1182,29 +1182,7 @@
       }
     });
 
-    // Navbar scroll effect
-    window.addEventListener('scroll', function () {
-      const navbar = document.querySelector('.navbar');
-      if (window.scrollY > 50) {
-        navbar.classList.add('scrolled');
-      } else {
-        navbar.classList.remove('scrolled');
-      }
-    });
 
-    // Add scroll animations
-    window.addEventListener('scroll', () => {
-      const elements = document.querySelectorAll('.feature-card');
-      elements.forEach(element => {
-        const elementTop = element.getBoundingClientRect().top;
-        const elementVisible = 150;
-
-        if (elementTop < window.innerHeight - elementVisible) {
-          element.style.opacity = '1';
-          element.style.transform = 'translateY(0)';
-        }
-      });
-    });
 
     // Counter animation for stats
     function animateCounters() {
@@ -1233,32 +1211,7 @@
       });
     }
 
-    // Trigger counter animation when stats section is visible
-    // const observer = new IntersectionObserver((entries) => {
-    //   entries.forEach(entry => {
-    //     if (entry.isIntersecting) {
-    //       animateCounters();
-    //       observer.unobserve(entry.target);
-    //     }
-    //   });
-    // });
 
-    // observer.observe(document.querySelector('.stats-section'));
-
-
-
-    async function updateBrandingLinks() {
-      const res = await fetch('/api/branding');
-      const branding = await res.json();
-
-      // Update social links (use your real selectors/IDs as needed)
-      document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
-      document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
-      document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
-      // Phone numbers
-      document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
-    }
-    updateBrandingLinks();
   </script>
   <script>
     // Scroll to Top Button
@@ -1297,38 +1250,7 @@
       }
     }
   </script>
-  <script>
-    // Dynamically load categories into navbar dropdown
-    async function loadCategoriesDropdown() {
-      try {
-        const res = await fetch('/api/categories');
-        const categories = await res.json();
-        const menu = document.getElementById('categoriesDropdownMenu');
-        menu.innerHTML = '';
-        if (Array.isArray(categories) && categories.length > 0) {
-          categories.forEach(cat => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.className = 'dropdown-item';
-            a.href = `/categories/${cat.slug || SlugUtil.generateCategorySlug(cat)}`;
-            // Ensure absolute URL handling
-            a.addEventListener('click', (e) => {
-              e.preventDefault();
-              window.location.href = a.href;
-            });
-            a.textContent = cat.name;
-            li.appendChild(a);
-            menu.appendChild(li);
-          });
-        } else {
-          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
-        }
-      } catch (e) {
-        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
-      }
-    }
-    loadCategoriesDropdown();
-  </script>
+
 
   <!-- Image Optimization JavaScript -->
   <script src="/js/image-optimizer.js?v=1736152800"></script>
@@ -1373,28 +1295,8 @@
   </script>
 
   <script>
-    // Debug carousel images loading
-    document.addEventListener('DOMContentLoaded', function () {
-      console.log('Debugging carousel images...');
-
-      // Check each cover image availability
-      const coverImages = [
-        'https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp',
-        'https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp',
-        'https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp'
-      ];
-
-      coverImages.forEach((url, index) => {
-        const img = new Image();
-        img.onload = function () {
-          console.log(`Cover ${index + 1} loaded successfully:`, url);
-        };
-        img.onerror = function () {
-          console.error(`Cover ${index + 1} failed to load:`, url);
-        };
-        img.src = url;
-      });
-    });
+    // Debug carousel images loading — removed (now dynamic via branding.js)
+    console.log('Carousel images loaded dynamically from site_settings.');
   </script>
   <script src="/js/home-products.js"></script>
 </body>

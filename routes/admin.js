@@ -210,27 +210,40 @@ router.put('/admin/products/:id', verifyAdmin, async (req, res) => {
                 if (addCatError) throw addCatError;
             }
             // Handle images
+            // 1. Fetch all old image paths
+            const { data: oldImages, error: imgFetchError } = await supabase
+                .from('ProductImages')
+                .select('id, imagePath')
+                .eq('product_id', productId);
+            if (imgFetchError) throw imgFetchError;
+
+            // 2. Determine which old images to retain and which to delete
+            let retainedImages = [];
+            if (fields.retained_images) {
+                let retainedStr = Array.isArray(fields.retained_images) ? fields.retained_images[0] : fields.retained_images;
+                try { 
+                    retainedImages = JSON.parse(retainedStr); 
+                } catch(e) {
+                    console.error("Error parsing retained_images:", e);
+                }
+            } else if (!files.images && oldImages) {
+                // Legacy fallback: if no new images and no retained_images sent, keep all
+                retainedImages = oldImages.map(img => img.imagePath);
+            }
+
+            const imagesToDelete = (oldImages || []).filter(img => !retainedImages.includes(img.imagePath));
+            
+            // 3. Delete removed images from Supabase Storage & DB
+            for (const img of imagesToDelete) {
+                const urlParts = img.imagePath.split('/');
+                const fileName = urlParts.slice(-2).join('/'); // e.g. products/12345_xxx.jpeg
+                await supabase.storage.from('product-images').remove([fileName]);
+                await supabase.from('ProductImages').delete().eq('id', img.id);
+            }
+
+            // 4. Save and minimize NEW images to Supabase Storage
             const images = files.images ? (Array.isArray(files.images) ? files.images : [files.images]) : [];
             if (images.length > 0) {
-                // 1. Fetch all old image paths
-                const { data: oldImages, error: imgFetchError } = await supabase
-                    .from('ProductImages')
-                    .select('imagePath')
-                    .eq('product_id', productId);
-                if (imgFetchError) throw imgFetchError;
-                // 2. Delete old images from Supabase Storage
-                for (const img of oldImages) {
-                    const urlParts = img.imagePath.split('/');
-                    const fileName = urlParts.slice(-2).join('/'); // e.g. products/12345_xxx.jpeg
-                    await supabase.storage.from('product-images').remove([fileName]);
-                }
-                // 3. Delete DB records
-                const { error: delImgError } = await supabase
-                    .from('ProductImages')
-                    .delete()
-                    .eq('product_id', productId);
-                if (delImgError) throw delImgError;
-                // 4. Save and minimize new images to Supabase Storage
                 for (const file of images) {
                     const buffer = await sharp(file.filepath).resize({ width: 800 }).jpeg({ quality: 70 }).toBuffer();
                     const fileName = `products/${productId}_${Date.now()}_${Math.floor(Math.random() * 1e6)}.jpeg`;
@@ -240,10 +253,8 @@ router.put('/admin/products/:id', verifyAdmin, async (req, res) => {
                         .insert([{ product_id: productId, imagePath: publicUrl }]);
                     if (imgInsertError) throw imgInsertError;
                 }
-                res.json({ message: 'تم تحديث المنتج' });
-            } else {
-                res.json({ message: 'تم تحديث معلومات المنتج' });
             }
+            res.json({ message: 'تم تحديث المنتج بنجاح' });
         } catch (err) {
             console.error(err);
             res.status(500).json({ error: 'خطأ في الخادم', details: err.message });
@@ -261,15 +272,28 @@ router.delete('/admin/products/:id', verifyAdmin, async (req, res) => {
         await supabase.from('Reviews').delete().eq('product_id', productId);
         // Delete orders
         await supabase.from('Orders').delete().eq('product_id', productId);
-        // Fetch all image paths
+        
+        // Fetch and delete all images from Supabase Storage
         const { data: images } = await supabase.from('ProductImages').select('imagePath').eq('product_id', productId);
-        for (const img of images) {
-            const filePath = path.join(__dirname, '../public', img.imagePath);
-            if (fs.existsSync(filePath)) {
-                try { fs.unlinkSync(filePath); } catch (err) { console.error(`Error deleting file ${filePath}:`, err); }
+        if (images && images.length > 0) {
+            for (const img of images) {
+                if (img.imagePath && img.imagePath.includes('/storage/v1/object/public/')) {
+                    const urlParts = img.imagePath.split('/');
+                    const fileName = urlParts.slice(-2).join('/'); // e.g. products/12345_xxx.jpeg
+                    await supabase.storage.from('product-images').remove([fileName]);
+                }
             }
         }
-        // Remove images and categories
+
+        // Fetch main imagePath from Products table to delete if it exists
+        const { data: mainProductData } = await supabase.from('Products').select('imagePath').eq('id', productId).single();
+        if (mainProductData && mainProductData.imagePath && mainProductData.imagePath.includes('/storage/v1/object/public/')) {
+            const urlParts = mainProductData.imagePath.split('/');
+            const fileName = urlParts.slice(-2).join('/');
+            await supabase.storage.from('product-images').remove([fileName]);
+        }
+
+        // Remove images and categories from DB
         await supabase.from('ProductImages').delete().eq('product_id', productId);
         await supabase.from('ProductCategories').delete().eq('product_id', productId);
         // Remove product
@@ -290,6 +314,23 @@ router.get('/products/:id/images', async (req, res) => {
         res.json(data);
     } catch (err) {
         res.status(500).json({ error: 'خطأ في الخادم', details: err.message });
+    }
+});
+
+// Route: Toggle product active status
+router.put('/admin/products/:id/toggle-active', verifyAdmin, async (req, res) => {
+    const productId = req.params.id;
+    const { is_active } = req.body;
+    try {
+        const { error } = await supabase
+            .from('Products')
+            .update({ is_active })
+            .eq('id', productId);
+        if (error) throw error;
+        res.json({ message: 'تم تحديث حالة المنتج بنجاح' });
+    } catch (err) {
+        console.error('Error toggling product active status:', err);
+        res.status(500).json({ error: 'حدث خطأ أثناء تحديث حالة المنتج.' });
     }
 });
 

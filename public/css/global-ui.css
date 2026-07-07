@@ -50,18 +50,13 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Add top padding to body for fixed navbar */
+/* Add top padding to body for fixed 2-line navbar */
 body {
-  padding-top: 80px;
+  padding-top: 135px;
 }
 
-@media (max-width: 768px) {
-  body {
-    padding-top: 85px;
-  }
-}
-
-@media (max-width: 576px) {
+/* On mobile/tablet, the navbar collapses to 1 line */
+@media (max-width: 991px) {
   body {
     padding-top: 85px;
   }
@@ -205,3 +200,5 @@ a:has(img[data-dynamic-logo]) {
     font-size: 0.9rem;
   }
 }
+.social-btn i.bi { margin: 0 !important; }
+

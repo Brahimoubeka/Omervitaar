@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Omervita - إعدادات الموقع</title>
+  <meta name="description" content="إدارة إعدادات الموقع - الشعار، السلايد، روابط التواصل، الهواتف، والبريد الإلكتروني.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/global-ui.css">
+
+  <style>
+    :root {
+      --military-green: #715100;
+      --light-military: #bb7900;
+      --orange-accent: #ffbf00;
+      --dark-charcoal: #2c2c2c;
+      --light-gray: #f8f9fa;
+    }
+    * { font-family: 'Cairo', 'Inter', sans-serif; }
+    body { background: var(--light-gray); }
+
+    .settings-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      border: 1px solid rgba(113,81,0,0.1);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .settings-card-header {
+      background: linear-gradient(135deg, var(--military-green), var(--light-military));
+      color: #fff;
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .settings-card-header h5 { margin: 0; font-weight: 700; font-size: 1.1rem; }
+    .settings-card-body { padding: 1.5rem; }
+
+    .btn-primary {
+      background: var(--orange-accent);
+      color: var(--dark-charcoal) !important;
+      border: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn-primary:hover {
+      background: var(--military-green);
+      color: #fff !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(113,81,0,0.2);
+    }
+    .btn-danger-custom {
+      background: #e84141;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-danger-custom:hover { background: #c81919; }
+
+    .slide-preview-item {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f0f0f0;
+      border: 2px solid #e0e0e0;
+      transition: box-shadow 0.2s;
+    }
+    .slide-preview-item:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.15); border-color: var(--orange-accent); }
+    .slide-preview-item img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+    }
+    .slide-preview-item .slide-actions {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 5px;
+    }
+    .slide-number-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+    }
+
+    .input-entry-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .input-entry-row .form-control { flex: 1; }
+
+    .social-platform-row {
+      display: grid;
+      grid-template-columns: 140px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .platform-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .logo-preview-wrap {
+      width: 120px;
+      height: 120px;
+      border-radius: 16px;
+      border: 2px dashed #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #f8f9fa;
+      transition: border-color 0.2s;
+    }
+    .logo-preview-wrap:hover { border-color: var(--orange-accent); }
+    .logo-preview-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    .toast-container { position: fixed; top: 80px; right: 20px; z-index: 9999; }
+    .toast-msg {
+      background: #2c2c2c;
+      color: #fff;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      animation: slideIn 0.3s ease-out;
+      margin-bottom: 8px;
+    }
+    .toast-msg.success { background: #1a6e4a; }
+    .toast-msg.error { background: #c81919; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    @media (max-width: 768px) {
+      .social-platform-row { grid-template-columns: 1fr; }
+      .slide-preview-item img { height: 100px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="global-navbar"></div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <main class="container my-4" dir="rtl">
+    <div class="d-flex align-items-center mb-4">
+      <a href="/admin-products" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-right me-1"></i>رجوع للمنتجات
+      </a>
+      <h1 class="mb-0" style="color: var(--military-green); font-weight: 700;">
+        <i class="bi bi-gear-fill me-2"></i>إعدادات الموقع
+      </h1>
+    </div>
+
+    <!-- ===== LOGO ===== -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-image fs-4"></i>
+        <h5>شعار الموقع (Logo)</h5>
+      </div>
+      <div class="settings-card-body">
+        <div class="d-flex align-items-center gap-4 flex-wrap">
+          <div class="logo-preview-wrap" id="logo-preview-wrap">
+            <span class="text-muted small" id="logo-placeholder"><i class="bi bi-image fs-2"></i></span>
+            <img id="logo-preview-img" src="" alt="Logo" style="display:none; max-width:100%; max-height:100%; object-fit:contain;">
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <form id="logo-upload-form">
+              <label class="form-label fw-semibold">تحميل شعار جديد:</label>
+              <input type="file" id="logo-file" name="logo" accept="image/*" class="form-control mb-2" required>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload me-1"></i> تحديث الشعار
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDES ===== -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-images fs-4"></i>
+        <h5>صور السلايد (الحد الأدنى 1، الحد الأقصى 7)</h5>
+      </div>
+      <div class="settings-card-body">
+        <!-- Current slides preview -->
+        <div class="row g-3 mb-4" id="slides-grid">
+          <div class="col-12 text-center text-muted py-3" id="slides-loading">
+            <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل السلايدات...
+          </div>
+        </div>
+
+        <!-- Add new slide -->
+        <div id="add-slide-section">
+          <hr>
+          <form id="add-slide-form">
+            <label class="form-label fw-semibold"><i class="bi bi-plus-circle me-1"></i>إضافة سلايد جديد:</label>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <input type="file" id="new-slide-file" name="slide" accept="image/*" class="form-control" style="max-width:300px;" required>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> إضافة سلايد
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Replace slide modal trigger area -->
+        <div id="replace-slide-area" class="mt-3" style="display:none;">
+          <form id="replace-slide-form">
+            <input type="hidden" id="replace-slide-index" value="">
+            <label class="form-label fw-semibold" id="replace-slide-label">تغيير صورة السلايد:</label>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+              <input type="file" id="replace-slide-file" name="slide" accept="image/*" class="form-control" style="max-width:300px;" required>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-upload me-1"></i> تحديث
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('replace-slide-area').style.display='none'">
+                إلغاء
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PHONE NUMBERS ===== -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-telephone-fill fs-4"></i>
+        <h5>أرقام الهاتف</h5>
+      </div>
+      <div class="settings-card-body">
+        <div id="phones-list">
+          <!-- Filled dynamically -->
+        </div>
+        <button type="button" class="btn btn-outline-success btn-sm" onclick="addPhoneEntry()">
+          <i class="bi bi-plus-circle me-1"></i>إضافة رقم هاتف
+        </button>
+        <div class="mt-3">
+          <button type="button" class="btn btn-primary" onclick="saveContactInfo()">
+            <i class="bi bi-save me-1"></i> حفظ أرقام الهاتف
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EMAILS ===== -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-envelope-fill fs-4"></i>
+        <h5>عناوين البريد الإلكتروني</h5>
+      </div>
+      <div class="settings-card-body">
+        <div id="emails-list">
+          <!-- Filled dynamically -->
+        </div>
+        <button type="button" class="btn btn-outline-success btn-sm" onclick="addEmailEntry()">
+          <i class="bi bi-plus-circle me-1"></i>إضافة بريد إلكتروني
+        </button>
+        <div class="mt-3">
+          <button type="button" class="btn btn-primary" onclick="saveContactInfo()">
+            <i class="bi bi-save me-1"></i> حفظ البريد الإلكتروني
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SOCIAL LINKS ===== -->
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <i class="bi bi-share-fill fs-4"></i>
+        <h5>روابط وسائل التواصل الاجتماعي</h5>
+      </div>
+      <div class="settings-card-body">
+        <div id="social-links-form">
+          <!-- Platforms -->
+          <div class="social-platform-row" data-platform="facebook">
+            <div class="platform-label"><i class="bi bi-facebook" style="color:#1877F2; font-size:1.3rem;"></i> Facebook</div>
+            <input type="url" class="form-control" id="social-facebook" placeholder="https://www.facebook.com/...">
+            <button class="btn-danger-custom" onclick="clearSocialInput('facebook')" title="مسح"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="social-platform-row" data-platform="instagram">
+            <div class="platform-label"><i class="bi bi-instagram" style="color:#E4405F; font-size:1.3rem;"></i> Instagram</div>
+            <input type="url" class="form-control" id="social-instagram" placeholder="https://www.instagram.com/...">
+            <button class="btn-danger-custom" onclick="clearSocialInput('instagram')" title="مسح"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="social-platform-row" data-platform="tiktok">
+            <div class="platform-label"><i class="bi bi-tiktok" style="color:#000; font-size:1.3rem;"></i> TikTok</div>
+            <input type="url" class="form-control" id="social-tiktok" placeholder="https://www.tiktok.com/...">
+            <button class="btn-danger-custom" onclick="clearSocialInput('tiktok')" title="مسح"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="social-platform-row" data-platform="youtube">
+            <div class="platform-label"><i class="bi bi-youtube" style="color:#FF0000; font-size:1.3rem;"></i> YouTube</div>
+            <input type="url" class="form-control" id="social-youtube" placeholder="https://www.youtube.com/...">
+            <button class="btn-danger-custom" onclick="clearSocialInput('youtube')" title="مسح"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="social-platform-row" data-platform="whatsapp">
+            <div class="platform-label"><i class="bi bi-whatsapp" style="color:#25D366; font-size:1.3rem;"></i> WhatsApp</div>
+            <input type="url" class="form-control" id="social-whatsapp" placeholder="https://wa.me/...">
+            <button class="btn-danger-custom" onclick="clearSocialInput('whatsapp')" title="مسح"><i class="bi bi-x-lg"></i></button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <button type="button" class="btn btn-primary" onclick="saveSocialLinks()">
+            <i class="bi bi-save me-1"></i> حفظ الروابط الاجتماعية
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="global-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/header.js?v=1736152800"></script>
+  <script src="/js/branding.js?v=1736152800"></script>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast-msg ${type}`;
+      toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${msg}`;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.animation = 'slideIn 0.3s reverse'; setTimeout(() => toast.remove(), 300); }, 3500);
+    }
+
+    // ====== LOAD SETTINGS ======
+    let currentSettings = {};
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/admin/site-settings', { headers: { Authorization: `Bearer ${token}` } });
+        currentSettings = await res.json();
+        applySettings(currentSettings);
+      } catch (e) {
+        showToast('خطأ في تحميل الإعدادات', 'error');
+      }
+    }
+
+    function applySettings(settings) {
+      // Logo
+      const logoImg = document.getElementById('logo-preview-img');
+      const logoPlaceholder = document.getElementById('logo-placeholder');
+      if (settings.logo) {
+        logoImg.src = settings.logo;
+        logoImg.style.display = 'block';
+        logoPlaceholder.style.display = 'none';
+      }
+
+      // Slides
+      renderSlidesGrid(settings.slides || []);
+
+      // Phones
+      renderPhonesList(settings.phones || []);
+
+      // Emails
+      renderEmailsList(settings.emails || []);
+
+      // Social links
+      const sl = settings.social_links || {};
+      ['facebook', 'instagram', 'tiktok', 'youtube', 'whatsapp'].forEach(p => {
+        const inp = document.getElementById(`social-${p}`);
+        if (inp) inp.value = sl[p] || '';
+      });
+    }
+
+    // ====== SLIDES ======
+    function renderSlidesGrid(slides) {
+      const grid = document.getElementById('slides-grid');
+      const addSection = document.getElementById('add-slide-section');
+      grid.innerHTML = '';
+
+      if (slides.length === 0) {
+        grid.innerHTML = '<div class="col-12 text-muted text-center py-3">لا توجد سلايدات بعد. أضف واحدة أدناه.</div>';
+      } else {
+        slides.forEach((url, i) => {
+          const col = document.createElement('div');
+          col.className = 'col-6 col-md-3';
+          col.innerHTML = `
+            <div class="slide-preview-item">
+              <img src="${url}" alt="Slide ${i+1}">
+              <div class="slide-actions">
+                <button class="btn btn-sm btn-warning" onclick="showReplaceSlide(${i})" title="تغيير"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteSlide(${i})" title="حذف"><i class="bi bi-trash"></i></button>
+              </div>
+              <span class="slide-number-badge">سلايد ${i + 1}</span>
+            </div>
+          `;
+          grid.appendChild(col);
+        });
+      }
+
+      // Show/hide add button based on max
+      if (slides.length >= 7) {
+        addSection.style.display = 'none';
+      } else {
+        addSection.style.display = 'block';
+      }
+    }
+
+    function showReplaceSlide(index) {
+      document.getElementById('replace-slide-index').value = index;
+      document.getElementById('replace-slide-label').textContent = `تغيير صورة السلايد رقم ${index + 1}:`;
+      document.getElementById('replace-slide-area').style.display = 'block';
+      document.getElementById('replace-slide-file').value = '';
+      document.getElementById('replace-slide-area').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function deleteSlide(index) {
+      if (!confirm(`هل أنت متأكد من حذف السلايد رقم ${index + 1}؟`)) return;
+      try {
+        const res = await fetch(`/api/admin/site-settings/slide/${index}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'خطأ في الحذف', 'error'); return; }
+        currentSettings.slides = data.slides;
+        renderSlidesGrid(data.slides);
+        showToast('تم حذف السلايد بنجاح');
+      } catch (e) {
+        showToast('خطأ في الحذف', 'error');
+      }
+    }
+
+    // Add new slide
+    document.getElementById('add-slide-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('new-slide-file');
+      if (!fileInput.files[0]) { showToast('اختر صورة أولاً', 'error'); return; }
+      const formData = new FormData();
+      formData.append('slide', fileInput.files[0]);
+      // No index = append
+      try {
+        const res = await fetch('/api/admin/site-settings/slide', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'خطأ في الإضافة', 'error'); return; }
+        currentSettings.slides = data.slides;
+        renderSlidesGrid(data.slides);
+        fileInput.value = '';
+        showToast('تم إضافة السلايد بنجاح');
+      } catch (e) {
+        showToast('خطأ في الإضافة', 'error');
+      }
+    });
+
+    // Replace slide
+    document.getElementById('replace-slide-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const index = parseInt(document.getElementById('replace-slide-index').value);
+      const fileInput = document.getElementById('replace-slide-file');
+      if (!fileInput.files[0]) { showToast('اختر صورة أولاً', 'error'); return; }
+      const formData = new FormData();
+      formData.append('slide', fileInput.files[0]);
+      formData.append('index', index);
+      try {
+        const res = await fetch('/api/admin/site-settings/slide', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'خطأ في التحديث', 'error'); return; }
+        currentSettings.slides = data.slides;
+        renderSlidesGrid(data.slides);
+        document.getElementById('replace-slide-area').style.display = 'none';
+        showToast(`تم تحديث السلايد ${index + 1} بنجاح`);
+      } catch (e) {
+        showToast('خطأ في التحديث', 'error');
+      }
+    });
+
+    // ====== LOGO ======
+    document.getElementById('logo-upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('logo-file');
+      if (!fileInput.files[0]) { showToast('اختر صورة أولاً', 'error'); return; }
+      const formData = new FormData();
+      formData.append('logo', fileInput.files[0]);
+      try {
+        const res = await fetch('/api/admin/site-settings/logo', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'خطأ في تحميل الشعار', 'error'); return; }
+        const logoImg = document.getElementById('logo-preview-img');
+        const logoPlaceholder = document.getElementById('logo-placeholder');
+        logoImg.src = data.logo + '?t=' + Date.now();
+        logoImg.style.display = 'block';
+        logoPlaceholder.style.display = 'none';
+        fileInput.value = '';
+        showToast('تم تحديث الشعار بنجاح');
+      } catch (e) {
+        showToast('خطأ في تحميل الشعار', 'error');
+      }
+    });
+
+    // ====== PHONES ======
+    function renderPhonesList(phones) {
+      const container = document.getElementById('phones-list');
+      container.innerHTML = '';
+      if (phones.length === 0) {
+        addPhoneEntry();
+        return;
+      }
+      phones.forEach((p, i) => {
+        addPhoneEntry(p);
+      });
+    }
+
+    function addPhoneEntry(value = '') {
+      const container = document.getElementById('phones-list');
+      const row = document.createElement('div');
+      row.className = 'input-entry-row';
+      row.innerHTML = `
+        <input type="tel" class="form-control phone-input" placeholder="مثال: 0550123456" value="${value}">
+        <button type="button" class="btn-danger-custom" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>
+      `;
+      container.appendChild(row);
+    }
+
+    // ====== EMAILS ======
+    function renderEmailsList(emails) {
+      const container = document.getElementById('emails-list');
+      container.innerHTML = '';
+      if (emails.length === 0) {
+        addEmailEntry();
+        return;
+      }
+      emails.forEach((e) => {
+        addEmailEntry(e);
+      });
+    }
+
+    function addEmailEntry(value = '') {
+      const container = document.getElementById('emails-list');
+      const row = document.createElement('div');
+      row.className = 'input-entry-row';
+      row.innerHTML = `
+        <input type="email" class="form-control email-input" placeholder="مثال: contact@omervita.com" value="${value}">
+        <button type="button" class="btn-danger-custom" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>
+      `;
+      container.appendChild(row);
+    }
+
+    // Save phones + emails together
+    async function saveContactInfo() {
+      const phones = Array.from(document.querySelectorAll('.phone-input')).map(i => i.value.trim()).filter(Boolean);
+      const emails = Array.from(document.querySelectorAll('.email-input')).map(i => i.value.trim()).filter(Boolean);
+      try {
+        const res = await fetch('/api/admin/site-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ phones, emails })
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'خطأ في الحفظ', 'error'); return; }
+        showToast('تم حفظ معلومات التواصل بنجاح');
+      } catch (e) {
+        showToast('خطأ في الحفظ', 'error');
+      }
+    }
+
+    // ====== SOCIAL LINKS ======
+    function clearSocialInput(platform) {
+      const inp = document.getElementById(`social-${platform}`);
+      if (inp) inp.value = '';
+    }
+
+    async function saveSocialLinks() {
+      const platforms = ['facebook', 'instagram', 'tiktok', 'youtube', 'whatsapp'];
+      const social_links = {};
+      platforms.forEach(p => {
+        const val = (document.getElementById(`social-${p}`)?.value || '').trim();
+        if (val) social_links[p] = val;
+      });
+      try {
+        const res = await fetch('/api/admin/site-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ social_links })
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'خطأ في الحفظ', 'error'); return; }
+        showToast('تم حفظ الروابط الاجتماعية بنجاح');
+      } catch (e) {
+        showToast('خطأ في الحفظ', 'error');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadSettings);
+  </script>
+</body>
+</html>

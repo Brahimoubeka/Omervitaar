@@ -455,70 +455,27 @@ body {
   border-bottom: none;
 }
 
-.modal-footer {
-  border-top: none;
-  background: var(--light-gray);
-  border-radius: 0 0 20px 20px;
-}
+.modal-
 
 /* Footer (existing overrides) */
-footer {
-  background: var(--dark-charcoal) !important;
-  color: white;
-  margin-top: 60px;
-  border-top: 4px solid var(--orange-accent);
-}
-footer h5 {
-  color: var(--orange-accent);
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-footer p, footer ul, footer li, footer a {
-  color: #e0e0e0 !important;
-  font-size: 0.96rem;
-  transition: color 0.25s, text-shadow 0.3s;
-  font-weight: 400;
-}
-footer a {
-  text-decoration: none;
-  font-weight: 500;
-}
+
+
+
+
 footer a:hover {
   color: var(--orange-accent) !important;
   text-shadow: 0 0 8px rgba(255, 191, 0, 0.25);
 }
-.footer-link {
-  position: relative;
-  display: inline-block;
-  padding: 8px 0;
-  border-radius: 6px;
-  transition: all 0.3s;
-}
-.footer-link:hover {
-  background: rgba(255, 191, 0, 0.07);
-  padding-left: 10px;
-  padding-right: 10px;
-}
-.footer-link::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: 5px;
-  left: 50%;
-  background: var(--orange-accent);
-  transition: all 0.3s;
-}
-.footer-link:hover::after {
-  width: 80%;
-  left: 10%;
-}
-.social-facebook { color: #1877F2 !important; }
-.social-facebook:hover { color: #0d5bb8 !important; }
-.social-instagram { color: #E4405F !important; }
-.social-instagram:hover { color: #c13584 !important; }
-.social-tiktok { color: #000000 !important; }
-.social-tiktok:hover { color: #333333 !important; }
+
+
+
+
+
+
+
+
+
+
 
 /* Mobile responsive footer centering and RTL fixes */
 @media (max-width: 768px) {
@@ -542,10 +499,7 @@ footer a:hover {
     margin-bottom: 0.75rem;
   }
   
-  footer h5 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
+  
   
   footer p {
     text-align: center;
@@ -572,10 +526,7 @@ footer a:hover {
   }
   
   /* Keep footer full width */
-  footer {
-    margin-left: -15px !important;
-    margin-right: -15px !important;
-  }
+  
   
   footer .container {
     padding-left: 1rem !important;
@@ -589,75 +540,7 @@ footer a:hover {
   }
 }
 
-/* Extra small devices (phones, less than 576px) */
-@media (max-width: 576px) {
-  footer .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  footer .col-md-3 {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  
-  footer h5 {
-    font-size: 1.1rem;
-  }
-  
-  footer p, footer a {
-    font-size: 0.9rem;
-  }
-  
-  .breadcrumb {
-    font-size: 0.85rem !important;
-    padding: 0.5rem 0.75rem !important;
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-  }
-  
-  .breadcrumb-item {
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-    display: flex !important;
-    align-items: center !important;
-  }
-  
-  .breadcrumb-item + .breadcrumb-item::before {
-    content: "<" !important;
-    padding: 0 0.6rem !important;
-    display: inline-block !important;
-  }
-  
-  .breadcrumb-item i.bi {
-    margin-left: 6px !important;
-  }
-  
-  /* Additional mobile fixes */
-  .navbar-toggler {
-    margin-left: 10px !important;
-    margin-right: 10px !important;
-  }
-  
-  .navbar-collapse {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-  
-  /* Ensure proper spacing on very small screens */
-  body {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-  }
-  
-  main.container {
-    padding-left: 15px !important;
-    padding-right: 15px !important;
-    max-width: 100% !important;
-  }
-}
+
 
 /* Back to Top Button */
 #back-to-top-btn {

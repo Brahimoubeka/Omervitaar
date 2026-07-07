@@ -30,6 +30,8 @@
   <!-- Performance: Preload critical API endpoints -->
   <link rel="prefetch" href="/api/categories">
   <link rel="prefetch" href="/api/branding">
+  <!-- Performance: Preload critical JS -->
+  <link rel="preload" href="/js/product-detail.js?v=1736152800" as="script">
 
   <!-- Performance: Cache control meta tags -->
   <meta http-equiv="Cache-Control" content="public, max-age=300">
@@ -973,7 +975,7 @@ hr{
 
   <main class="container my-5" dir="rtl">
     <!-- Breadcrumb navigation -->
-    <nav aria-label="breadcrumb" class="mb-4">
+    <nav aria-label="breadcrumb" id="product-breadcrumb-nav" class="mb-4" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
       <ol class="breadcrumb" id="product-breadcrumb">
         <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
         <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
@@ -983,10 +985,23 @@ hr{
     </nav>
 
     <div id="product-detail-container" class="row gy-4">
-      <div id="product-image-carousel-col" class="col-md-6 mb-4"></div>
-      <div id="product-info-col" class="col-md-6"></div>
-      <hr>
+      <div id="product-image-carousel-col" class="col-md-6 mb-4">
+        <div class="product-carousel-box skeleton-detail-img"></div>
+      </div>
+      <div id="product-info-col" class="col-md-6">
+        <div class="skeleton-detail-title mb-3"></div>
+        <div class="skeleton-detail-price mb-2"></div>
+        <div class="skeleton-detail-rating mb-2"></div>
+        <div class="skeleton-detail-badges mb-2"></div>
+        <div class="skeleton-detail-desc mb-4"></div>
+        <div class="d-flex gap-2">
+          <div class="skeleton-detail-btn flex-grow-1"></div>
+          <div class="skeleton-detail-btn flex-grow-1"></div>
+        </div>
+      </div>
 
+      <div id="product-secondary-content" style="display: none; opacity: 0; transition: opacity 0.5s ease; width: 100%;">
+      <hr>
       <!-- Features / Trust Badges -->
       <div class="d-flex flex-column align-items-start gap-2 mt-3 mb-2 text-secondary">
         <div>
@@ -1142,6 +1157,7 @@ hr{
 
       <div id="related-products-row" class="my-5"></div>
       <hr>
+      </div>
 
 
     </div>
@@ -1150,12 +1166,12 @@ hr{
   <div id="cart-message-container" style="position: fixed; top: 20px; right: 20px; z-index: 1070;"></div>
 
   <!-- Small Sticky Order Button -->
-  <button type="button" class="btn sticky-order-now-small" onclick="document.getElementById('directCheckoutContainer').scrollIntoView({behavior: 'smooth'})" aria-label="أطلب الآن">
+  <button type="button" id="sticky-order-btn" class="btn sticky-order-now-small" style="display: none; opacity: 0; transition: opacity 0.5s ease;" onclick="document.getElementById('directCheckoutContainer').scrollIntoView({behavior: 'smooth'})" aria-label="أطلب الآن">
     <i class="bi bi-cart-check-fill"></i> أطلب الآن
   </button>
 
   <!-- Cart Popup Modal -->
-  <div class="modal fade" id="cartPopupModal" tabindex="-1" aria-labelledby="cartPopupModalLabel" aria-hidden="true">
+  <div class="modal fade" id="cartPopupModal" tabindex="-1" aria-labelledby="cartPopupModalLabel" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-success text-white" style="border-bottom: 2px solid #218838;">
@@ -1198,7 +1214,7 @@ hr{
   <!-- copy link button -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index: 1060">
     <div id="share-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
-      aria-atomic="true">
+      aria-atomic="true" style="display: none;">
       <div class="d-flex">
         <div class="toast-body">
           <i class="bi bi-clipboard-check me-2"></i> تم نسخ رابط المنتج!

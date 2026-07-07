@@ -206,97 +206,26 @@
       main { padding: 0 0.2rem;}
     }
     /* Footer styling */
-    footer {
-      background: var(--dark-charcoal) !important;
-      color: white;
-      margin-top: 60px;
-      border-top: 4px solid var(--orange-accent);
-    }
-    footer h5 {
-      color: var(--orange-accent);
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-    footer p, footer ul, footer li, footer a {
-      color: #e0e0e0 !important;
-      font-size: 0.96rem;
-      transition: color 0.25s, text-shadow 0.3s;
-      font-weight: 400;
-    }
-    footer a {
-      text-decoration: none;
-      font-weight: 500;
-    }
+    
+    
+    
+    
     footer a:hover {
       color: var(--orange-accent) !important;
       text-shadow: 0 0 8px rgba(255, 191, 0, 0.25);
     }
-    .footer-link {
-      position: relative;
-      display: inline-block;
-      padding: 8px 0;
-      border-radius: 6px;
-      transition: all 0.3s;
-    }
-    .footer-link:hover {
-      background: rgba(255, 191, 0, 0.07);
-      padding-left: 10px;
-      padding-right: 10px;
-    }
-    .footer-link::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: 5px;
-      left: 50%;
-      background: var(--orange-accent);
-      transition: all 0.3s;
-    }
-    .footer-link:hover::after {
-      width: 80%;
-      left: 10%;
-    }
-    .social-facebook { color: #1877F2 !important; }
-    .social-facebook:hover { color: #0d5bb8 !important; }
-    .social-instagram { color: #E4405F !important; }
-    .social-instagram:hover { color: #c13584 !important; }
-    .social-tiktok { color: #000000 !important; }
-    .social-tiktok:hover { color: #333333 !important; }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    /* Mobile responsive footer centering */
-@media (max-width: 768px) {
-  footer .row > .col-md-3 {
-    text-align: center !important;
-    margin-bottom: 2rem;
-  }
-  
-  footer .col-md-3 img {
-    margin: 0 auto;
-  }
-  
-  footer .list-unstyled {
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  footer .list-unstyled li {
-    margin-bottom: 0.75rem;
-  }
-  
-  footer h5 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  footer p {
-    text-align: center;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-}
+    
 
 /* Extra small devices (phones, less than 576px) */
 @media (max-width: 576px) {
@@ -310,13 +239,9 @@
     padding-right: 0.5rem;
   }
   
-  footer h5 {
-    font-size: 1.1rem;
-  }
   
-  footer p, footer a {
-    font-size: 0.9rem;
-  }
+  
+  footer p, 
 }
   </style>
 
@@ -436,20 +361,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   <script src="/js/cart.js?v=1736152800"></script>
   <script src="/js/branding.js?v=1736152800"></script>
 
-  <script>
-async function updateBrandingLinks() {
-  const res = await fetch('/api/branding');
-  const branding = await res.json();
-
-  // Update social links (use your real selectors/IDs as needed)
-  document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
-  document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
-  document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
-  // Phone numbers
-  document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
-}
-updateBrandingLinks();
-</script>
+  
   
 </body>
 </html>

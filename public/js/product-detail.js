@@ -242,6 +242,52 @@ async function loadProductDetail() {
       CacheManager.set(cacheKey, product);
     }
 
+    // Check if product is inactive and user is not admin
+    if (product.is_active === false) {
+      let isAdmin = false;
+      try {
+        if (token) {
+          // Use parseJwt if available (from header.js) or decode manually
+          const parseJwt = window.parseJwt || function(t) {
+            const base64Url = t.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            return JSON.parse(window.atob(base64));
+          };
+          const userData = parseJwt(token);
+          if (userData && userData.role === 'admin') isAdmin = true;
+        }
+      } catch (e) {
+        console.error('Error parsing token for admin check:', e);
+      }
+      
+      if (!isAdmin) {
+        hideGlobalLoadingSpinner();
+        const container = document.getElementById('product-detail-container');
+        if (container) {
+          container.innerHTML = `
+            <div class="container text-center py-5 my-5" style="min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+              <i class="bi bi-eye-slash text-muted mb-3" style="font-size: 5rem;"></i>
+              <h2 class="text-dark fw-bold mb-3">المنتج غير متاح</h2>
+              <p class="text-muted fs-5 mb-4">نعتذر، هذا المنتج لم يعد متوفراً حالياً.</p>
+              <a href="/products" class="btn btn-primary px-4 py-2 fw-bold" style="background: var(--orange-accent); color: var(--dark-charcoal); border: none; border-radius: 8px;">
+                <i class="bi bi-shop me-2"></i>العودة لصفحة المنتجات
+              </a>
+            </div>
+          `;
+        }
+        document.title = "Omervita - المنتج غير متاح";
+        const breadcrumbContainer = document.getElementById('product-breadcrumb');
+        if (breadcrumbContainer) {
+          breadcrumbContainer.innerHTML = `
+            <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
+            <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
+            <li class="breadcrumb-item active" aria-current="page">منتج غير متاح</li>
+          `;
+        }
+        return;
+      }
+    }
+
     // Hide debug after successful load
     setTimeout(() => {
       const debugDiv = document.getElementById('debug-info');
@@ -257,25 +303,7 @@ async function loadProductDetail() {
     updatePageSEO(product);
     updateBreadcrumb(product);
 
-    let images = [];
-    try {
-      // Check cache for images first
-      const imagesCacheKey = `product_images_${product.id}`;
-      const cachedImages = CacheManager.get(imagesCacheKey, cacheExpiry);
-
-      if (cachedImages) {
-        images = cachedImages;
-      } else {
-        const imagesResp = await fetch(`/api/products/${product.id}/images`, {
-          headers: {
-            'Cache-Control': 'public, max-age=600', // 10 minutes for images
-          }
-        });
-        images = await imagesResp.json();
-        CacheManager.set(imagesCacheKey, images);
-      }
-    } catch { images = []; }
-    if (!images || images.length === 0) images = [product.imagePath || 'images/default-product.jpg'];
+    let images = (product.images && product.images.length > 0) ? product.images : [product.imagePath || 'images/default-product.jpg'];
 
     // --- YouTube: Extract video IDs from description ---
     const youTubeVideoIds = extractYouTubeLinks(product.description || '');
@@ -285,7 +313,7 @@ async function loadProductDetail() {
       ...images.map((src, idx) => ({
         type: 'image',
         src: src,
-        content: `<img src="${src}" class="d-block w-100 h-100 product-zoom" id="main-product-image" alt="صورة المنتج ${idx + 1}" style="cursor: zoom-in;" onclick="openImageModal(window.currentImageIndex || 0)" title="انقر لتكبير الصورة" ${idx === 0 ? 'loading="eager"' : 'loading="lazy"'}>`
+        content: `<img src="${src}" class="d-block w-100 h-100 product-zoom" id="main-product-image" alt="صورة المنتج ${idx + 1}" style="cursor: zoom-in;" onclick="openImageModal(window.currentImageIndex || 0)" title="انقر لتكبير الصورة" ${idx === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'}>`
       })),
       ...youTubeVideoIds.map((vid, idx) => ({
         type: 'youtube',
@@ -842,6 +870,7 @@ async function loadProductDetail() {
     // --- OPTIONAL PARAGRAPHS ---
     const dynamicParasContainer = document.getElementById('product-dynamic-paragraphs');
     if (dynamicParasContainer) {
+      dynamicParasContainer.innerHTML = ''; // Prevent duplicates
       if (product.paragraphs && Array.isArray(product.paragraphs) && product.paragraphs.length > 0) {
         product.paragraphs.forEach(p => {
           const itemDiv = document.createElement('div');
@@ -873,6 +902,22 @@ async function loadProductDetail() {
     }
 
     loadReviews(productId);
+
+    // Fade in secondary content now that everything is loaded
+    const elementsToReveal = [
+      document.getElementById('product-secondary-content'),
+      document.getElementById('product-breadcrumb-nav'),
+      document.getElementById('sticky-order-btn')
+    ];
+    elementsToReveal.forEach(el => {
+      if (el) {
+        el.style.display = 'block';
+        // Slight delay to allow display:block to apply before changing opacity
+        setTimeout(() => {
+          el.style.opacity = '1';
+        }, 50);
+      }
+    });
 
     // Auto-refresh disabled - service worker removed
     // Note: Service worker functionality has been removed for better performance
@@ -1440,18 +1485,19 @@ function showManualCopyDialog(text) {
   setTimeout(() => modal.remove(), 10000);
 }
 
-function showShareToast(message) {
-  const toastEl = document.getElementById('share-toast');
-  if (message) {
-    toastEl.querySelector('.toast-body').innerHTML =
-      `<i class="bi bi-clipboard-check me-2"></i> ${message}`;
-  } else {
-    toastEl.querySelector('.toast-body').innerHTML =
-      `<i class="bi bi-clipboard-check me-2"></i> تم نسخ رابط المنتج!`;
+  function showShareToast(message) {
+    const toastEl = document.getElementById('share-toast');
+    if (message) {
+      toastEl.querySelector('.toast-body').innerHTML =
+        `<i class="bi bi-clipboard-check me-2"></i> ${message}`;
+    } else {
+      toastEl.querySelector('.toast-body').innerHTML =
+        `<i class="bi bi-clipboard-check me-2"></i> تم نسخ رابط المنتج!`;
+    }
+    toastEl.style.display = 'block';
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
   }
-  const toast = new bootstrap.Toast(toastEl);
-  toast.show();
-}
 
 // Function to open image modal at specific slide
 function openImageModal(startIndex = 0) {

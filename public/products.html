@@ -391,20 +391,7 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   <script src="/js/slug-util.js?v=1736152800"></script>
   <script src="/js/products.js?v=1736152800"></script>
 <script src="/js/branding.js?v=1736152800"></script>
-<script>
-async function updateBrandingLinks() {
-  const res = await fetch('/api/branding');
-  const branding = await res.json();
 
-  // Update social links (use your real selectors/IDs as needed)
-  document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
-  document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
-  document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
-  // Phone numbers
-  document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
-}
-updateBrandingLinks();
-</script>
 <script>
     // Scroll to Top Button
     const scrollToTopBtn = document.getElementById('scrollToTopBtn');

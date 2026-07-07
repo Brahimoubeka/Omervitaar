@@ -229,6 +229,35 @@ async function deleteProduct(productId) {
   }
 }
 
+// Global map for tracking existing images when editing
+window.retainedImagesMap = {};
+
+window.removeExistingImage = function(productId, imgUrl) {
+  const retained = window.retainedImagesMap[productId];
+  if (!retained) return;
+  const idx = retained.indexOf(imgUrl);
+  if (idx !== -1) {
+    retained.splice(idx, 1);
+    window.renderExistingImages(productId);
+  }
+};
+
+window.renderExistingImages = function(productId) {
+  const container = document.getElementById(`update-existing-images-${productId}`);
+  if (!container) return;
+  const retained = window.retainedImagesMap[productId] || [];
+  if (retained.length === 0) {
+    container.innerHTML = `<div class="text-muted small w-100 p-2 text-center">لا توجد صور حالية سيتم الاحتفاظ بها</div>`;
+    return;
+  }
+  container.innerHTML = retained.map(url => `
+    <div class="position-relative d-inline-block">
+      <img src="${url}" alt="صورة" class="rounded" style="width: 70px; height: 70px; object-fit: cover; border: 1px solid #ddd;">
+      <button type="button" class="btn-close position-absolute top-0 start-0 m-1 bg-white border border-secondary shadow-sm" style="font-size: 0.5rem; opacity: 1;" aria-label="حذف" onclick="removeExistingImage(${productId}, '${url}')"></button>
+    </div>
+  `).join('');
+};
+
 // ----------- UPDATE PRODUCT WITH MODAL -----------
 window.showUpdateForm = function (productId) {
   const product = productsMap[productId];
@@ -238,45 +267,80 @@ window.showUpdateForm = function (productId) {
   const container = document.getElementById('update-product-form-container');
   container.innerHTML = `
     <form id="update-form-${productId}-form">
-      <div class="mb-3">
-        <label class="form-label">الاسم:</label>
-        <input type="text" name="name" required value="${product.name || ''}" class="form-control">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">الوصف:</label>
-        <textarea name="description" class="form-control">${product.description || ''}</textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">السعر:</label>
-        <input type="number" name="price" required step="0.01" inputmode="decimal" value="${product.price || ''}" class="form-control">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">المخزون:</label>
-        <input type="number" name="stock" required value="${product.stock || ''}" class="form-control">
+      <div class="row">
+        <!-- Column 1: Basic Info -->
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-info-circle me-2"></i>المعلومات الأساسية</h6>
+              <div class="mb-3">
+                <label class="form-label fw-bold">اسم المنتج <span class="text-danger">*</span></label>
+                <input type="text" name="name" required value="${product.name || ''}" class="form-control" style="background: #f8f9fa; border-radius: 8px;">
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">تفاصيل المنتج</label>
+                <textarea name="description" class="form-control" rows="4" style="background: #f8f9fa; border-radius: 8px;">${product.description || ''}</textarea>
+              </div>
+              <div class="row">
+                <div class="col-6 mb-3">
+                  <label class="form-label fw-bold">السعر (دج) <span class="text-danger">*</span></label>
+                  <input type="number" name="price" required step="0.01" inputmode="decimal" value="${product.price || ''}" class="form-control" style="background: #f8f9fa; border-radius: 8px;">
+                </div>
+                <div class="col-6 mb-3">
+                  <label class="form-label fw-bold">المخزون <span class="text-danger">*</span></label>
+                  <input type="number" name="stock" required value="${product.stock || ''}" class="form-control" style="background: #f8f9fa; border-radius: 8px;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         
+        <!-- Column 2: Media & Categories -->
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-tags me-2"></i>التصنيفات والصور</h6>
+              <div class="mb-3">
+                <label class="form-label fw-bold">الفئات (يمكن اختيار أكثر من واحدة):</label>
+                <div id="update-category-checkboxes-${productId}" class="p-3 border rounded" style="background: #f8f9fa;"></div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-bold">الصور الحالية للمنتج:</label>
+                <div id="update-existing-images-${productId}" class="d-flex flex-wrap gap-2 mb-2 p-2 border rounded bg-white" style="min-height: 60px;">
+                  <!-- Existing images will be injected here -->
+                </div>
+                <label class="form-label fw-bold mt-2">إضافة صور جديدة (لإضافتها إلى الصور الحالية):</label>
+                <input type="file" name="images" accept="image/*" multiple class="form-control" style="border-radius: 8px;">
+                <div class="form-text text-muted"><i class="bi bi-info-circle me-1"></i>سيتم إضافة هذه الصور إلى الصور الحالية (الحد الأقصى الإجمالي 5 صور).</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card border-0 shadow-sm mb-3" style="border-radius: 12px;">
+            <div class="card-body">
+              <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-text-paragraph me-2"></i>فقرات إضافية (اختياري)</h6>
+              <div id="update-paragraphs-container-${productId}"></div>
+              <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-2" onclick="addParagraphField('update-paragraphs-container-${productId}')" style="border-radius: 8px;">
+                <i class="bi bi-plus-lg me-1"></i> أضف فقرة مخصصة
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="mb-3">
-        <label class="form-label">الفئات:</label>
-        <div id="update-category-checkboxes-${productId}"></div>
+      <div id="update-message-${productId}"></div>
+      <div class="text-end mt-2 pt-3 border-top">
+        <button type="submit" class="btn btn-success px-5 fw-bold" style="background: var(--orange-accent); color: var(--dark-charcoal); border: none; border-radius: 8px;"><i class="bi bi-check2-circle me-2"></i>حفظ التعديلات</button>
       </div>
-      <hr>
-      <div class="mb-3">
-        <label class="form-label fw-bold"><i class="bi bi-text-paragraph me-2"></i>فقرات إضافية (اختياري)</label>
-        <div id="update-paragraphs-container-${productId}"></div>
-        <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addParagraphField('update-paragraphs-container-${productId}')">
-          <i class="bi bi-plus"></i> إضافة فقرة
-        </button>
-      </div>
-      <hr>
-      <div class="mb-3">
-        <label class="form-label">الصور (حد أقصى 5):</label>
-        <input type="file" name="images" accept="image/*" multiple class="form-control">
-      </div>
-      <button type="submit" class="btn btn-success"><i class="bi bi-pencil-square"></i> تحديث</button>
-      <div id="update-message-${productId}" class="mt-3"></div>
     </form>
   `;
   renderUpdateCategoryCheckboxes(productId, productCategories);
+  
+  // Initialize and render existing images
+  const existingImages = product.images ? product.images : (product.imagePath ? [product.imagePath] : []);
+  window.retainedImagesMap[productId] = [...existingImages];
+  setTimeout(() => {
+    if (window.renderExistingImages) window.renderExistingImages(productId);
+  }, 0);
 
   // Render existing paragraphs
   const parasContainerId = `update-paragraphs-container-${productId}`;
@@ -320,6 +384,10 @@ window.showUpdateForm = function (productId) {
       formData.append('images', file);
     });
 
+    // Append retained existing images
+    const retained = window.retainedImagesMap[productId] || [];
+    formData.append('retained_images', JSON.stringify(retained));
+
     // Gather Paragraphs
     const paragraphs = [];
     form.querySelectorAll('.paragraph-item').forEach(item => {
@@ -361,6 +429,7 @@ window.showUpdateForm = function (productId) {
 
       // Clear product from cache so changes show immediately
       localStorage.removeItem(`cache_product_${productId}`);
+      localStorage.removeItem(`product_images_${productId}`);
 
       loadProducts();
       // Hide modal after success
@@ -385,7 +454,7 @@ window.showUpdateForm = function (productId) {
   updateModal.show();
 };
 
-// --- Update products table to use new modals for action buttons ---
+  // --- Update products table to use new modals for action buttons ---
 async function loadProducts() {
   const token = localStorage.getItem('token');
   try {
@@ -400,11 +469,7 @@ async function loadProducts() {
       return;
     }
     // Sort products to show newest first
-    products.sort((a, b) => {
-
-      // sort by ID (assuming higher ID = newer)
-      return b.id - a.id;
-    });
+    products.sort((a, b) => b.id - a.id);
     container.innerHTML = `
       <table class="admin-products-table">
         <thead>
@@ -414,6 +479,7 @@ async function loadProducts() {
             <th>الفئات</th>
             <th>السعر</th>
             <th>المخزون</th>
+            <th>الحالة</th>
             <th>الإجراءات</th>
           </tr>
         </thead>
@@ -426,15 +492,27 @@ async function loadProducts() {
       const thumbnail = (product.images && product.images.length > 0) ? product.images[0] : (product.imagePath || 'images/default-product.jpg');
       const categoryLabels = (product.categories || []).map(cat => `<span class="badge bg-secondary me-1">${cat.name}</span>`).join('');
       const tr = document.createElement('tr');
+      const isActive = product.is_active !== false; // Default true
+      const statusBtnClass = isActive ? 'btn-success' : 'btn-secondary';
+      const statusIcon = isActive ? 'bi-eye-fill' : 'bi-eye-slash-fill';
+      const statusTitle = isActive ? 'مفعل (مرئي للزوار)' : 'معطل (مخفي عن الزوار)';
+      
+      const slug = product.slug || product.id;
+      
       tr.innerHTML = `
         <td><img src="${thumbnail}" alt="${product.name}" class="product-thumb-img"></td>
-        <td class="product-title-cell">${product.name}</td>
+        <td class="product-title-cell"><a href="/products/${slug}" target="_blank" style="text-decoration:none; color:inherit;" title="عرض صفحة المنتج">${product.name} <i class="bi bi-box-arrow-up-right ms-1" style="font-size:0.8rem; color:#888;"></i></a></td>
         <td>${categoryLabels}</td>
         <td><span style="color:var(--orange-accent,#ffbf00); font-weight:600;">دج${product.price}</span></td>
         <td>${product.stock}</td>
+        <td>
+          <button onclick="toggleProductActive(${product.id}, ${isActive})" class="btn ${statusBtnClass} btn-sm" title="${statusTitle}">
+            <i class="bi ${statusIcon}"></i>
+          </button>
+        </td>
         <td class="action-btns">
           <button onclick="openDeleteModal(${product.id}, '${product.name.replace(/'/g, "\\'")}')" class="btn btn-danger btn-sm mb-1" title="حذف"><i class="bi bi-trash"></i></button>
-          <button onclick="showUpdateForm(${product.id})" class="btn btn-success btn-sm mb-1" title="تحديث"><i class="bi bi-pencil-square"></i></button>
+          <button onclick="showUpdateForm(${product.id})" class="btn btn-primary btn-sm mb-1" title="تحديث"><i class="bi bi-pencil-square"></i></button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -444,6 +522,28 @@ async function loadProducts() {
     console.error('حدث خطأ أثناء تحميل المنتجات:', error);
   }
 }
+
+// Function to toggle product active status
+window.toggleProductActive = async function(productId, currentState) {
+  const token = localStorage.getItem('token');
+  const newState = !currentState;
+  try {
+    const response = await fetch(`/api/admin/products/${productId}/toggle-active`, {
+      method: 'PUT',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ is_active: newState })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || result.message);
+    showNotification(result.message || 'تم تحديث حالة المنتج', 'success');
+    loadProducts(); // Reload table
+  } catch (error) {
+    showNotification('حدث خطأ أثناء تحديث الحالة: ' + error.message, 'danger');
+  }
+};
 
 
 function renderUpdateCategoryCheckboxes(productId, selected = []) {

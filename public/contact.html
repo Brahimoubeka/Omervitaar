@@ -1,5 +1,5 @@
-﻿﻿<!DOCTYPE html>
-<html lang="ar">
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
 <head>
 
   <!-- Google tag (gtag.js) -->
@@ -96,55 +96,102 @@
       font-size: 1.7rem;
       letter-spacing: 1px;
     }
-    main { max-width: 510px; margin: 0 auto; }
-    h1 {
-      font-weight: 700;
-      color: var(--military-green);
-      letter-spacing: 0.5px;
-      margin-bottom: 2rem;
+    .contact-hero {
+      background: linear-gradient(135deg, rgba(90, 99, 68, 0.05), rgba(214, 168, 72, 0.05));
+      border-radius: 24px;
+      padding: 3rem 2rem;
+      margin-bottom: 3rem;
+      border: 1px solid rgba(214, 168, 72, 0.2);
     }
     .contact-card {
       background: #ffffff;
       border-radius: 22px;
-      box-shadow: 0 10px 32px rgba(44,44,44,0.10);
-      padding: 2.2rem 2rem 1.8rem 2rem;
-      margin-bottom: 2.5rem;
-      transition: box-shadow 0.2s;
+      box-shadow: 0 10px 32px rgba(44,44,44,0.06);
+      padding: 2.2rem 2rem;
+      border: 1px solid rgba(0,0,0,0.05);
+      height: 100%;
     }
-    .contact-card:hover {
-      box-shadow: 0 24px 50px rgba(113, 81, 0, 0.13);
+    .info-card {
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 10px 32px rgba(44,44,44,0.06);
+      padding: 2.2rem 2rem;
+      border: 1px solid rgba(0,0,0,0.05);
+      height: 100%;
     }
-    .form-label { color: var(--military-green); font-weight: 500; }
+    .form-label { color: var(--military-green); font-weight: 600; font-size: 0.95rem; }
     .form-control {
       border-radius: 12px;
       padding: 0.95rem 1rem;
-      font-size: 1.05em;
-      border: 1.2px solid #1b6e00;
+      font-size: 1rem;
+      border: 1.2px solid #e0e0e0;
       box-shadow: none;
-      transition: border 0.18s;
+      transition: all 0.2s;
+      background: #fafafa;
     }
     .form-control:focus {
       border-color: var(--orange-accent);
-      box-shadow: 0 0 0 0.10rem rgba(255,191,0,.14);
+      background: #ffffff;
+      box-shadow: 0 0 0 0.15rem rgba(214, 168, 72, 0.15);
+    }
+    .input-group-text {
+      background: #fafafa;
+      border: 1.2px solid #e0e0e0;
+      border-left: none; /* RTL: right side of input has border-left:none */
+      color: var(--military-green);
+      border-radius: 0 12px 12px 0;
+    }
+    .form-control {
+      border-right: none;
+      border-radius: 12px 0 0 12px;
     }
     .btn-primary {
       background: var(--orange-accent);
       color: var(--dark-charcoal) !important;
       border: none;
-      font-weight: 600;
-      padding: 0.8rem 0;
-      border-radius: 16px;
-      transition: background 0.3s, color 0.2s, box-shadow 0.2s, transform 0.2s;
-      letter-spacing: 0.3px;
-      font-size: 1.13em;
-      box-shadow: 0 4px 16px rgba(232,123,25,0.11);
+      font-weight: 700;
+      padding: 1rem 0;
+      border-radius: 14px;
+      transition: all 0.3s;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 15px rgba(214, 168, 72, 0.2);
     }
     .btn-primary:hover {
       background: var(--military-green);
       color: #fff !important;
-      transform: translateY(-1px);
-      box-shadow: 0 8px 25px rgba(113, 81, 0, 0.11);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(90, 99, 68, 0.3);
     }
+    .social-links-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 1.5rem;
+    }
+    .social-btn-large {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: #f8f9fa;
+      color: #555;
+      font-size: 1.5rem;
+      transition: all 0.3s;
+      border: 1px solid #eee;
+      text-decoration: none;
+    }
+    .social-btn-large:hover {
+      transform: translateY(-3px);
+      color: #fff;
+    }
+    .social-btn-large.social-facebook:hover { background: #1877F2; border-color: #1877F2; }
+    .social-btn-large.social-instagram:hover { background: #E4405F; border-color: #E4405F; }
+    .social-btn-large.social-tiktok:hover { background: #000000; border-color: #000000; }
+    .social-btn-large.social-youtube:hover { background: #FF0000; border-color: #FF0000; }
+    .social-btn-large.social-whatsapp:hover { background: #25D366; border-color: #25D366; }
+    
     #contact-message { min-height: 30px; font-size: 1.03em; font-weight: 500; }
     .is-invalid { border-color: #dc3545 !important; }
     .invalid-feedback {
@@ -184,119 +231,8 @@
   border: 1.5px solid #bb7900;
 }
 
-    /* Footer  */
-    footer {
-      background: var(--dark-charcoal) !important;
-      color: white;
-      margin-top: 60px;
-      border-top: 4px solid var(--orange-accent);
-    }
-    footer h5 {
-      color: var(--orange-accent);
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-    footer p, footer ul, footer li, footer a {
-      color: #e0e0e0 !important;
-      font-size: 0.96rem;
-      transition: color 0.25s, text-shadow 0.3s;
-      font-weight: 400;
-    }
-    footer a {
-      text-decoration: none;
-      font-weight: 500;
-    }
-    footer a:hover {
-      color: var(--orange-accent) !important;
-      text-shadow: 0 0 8px rgba(255, 191, 0, 0.25);
-    }
-    .footer-link {
-      position: relative;
-      display: inline-block;
-      padding: 8px 0;
-      border-radius: 6px;
-      transition: all 0.3s;
-    }
-    .footer-link:hover {
-      background: rgba(255, 191, 0, 0.07);
-      padding-left: 10px;
-      padding-right: 10px;
-    }
-    .footer-link::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      bottom: 5px;
-      left: 50%;
-      background: var(--orange-accent);
-      transition: all 0.3s;
-    }
-    .footer-link:hover::after {
-      width: 80%;
-      left: 10%;
-    }
-    .social-facebook { color: #1877F2 !important; }
-    .social-facebook:hover { color: #0d5bb8 !important; }
-    .social-instagram { color: #E4405F !important; }
-    .social-instagram:hover { color: #c13584 !important; }
-    .social-tiktok { color: #000000 !important; }
-    .social-tiktok:hover { color: #333333 !important; }
 
-    /* Mobile responsive footer centering */
-@media (max-width: 768px) {
-  footer .row > .col-md-3 {
-    text-align: center !important;
-    margin-bottom: 2rem;
-  }
-  
-  footer .col-md-3 img {
-    margin: 0 auto;
-  }
-  
-  footer .list-unstyled {
-    padding-left: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  footer .list-unstyled li {
-    margin-bottom: 0.75rem;
-  }
-  
-  footer h5 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-  }
-  
-  footer p {
-    text-align: center;
-    max-width: 300px;
-    margin: 0 auto;
-  }
-}
 
-/* Extra small devices (phones, less than 576px) */
-@media (max-width: 576px) {
-  footer .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  footer .col-md-3 {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-  
-  footer h5 {
-    font-size: 1.1rem;
-  }
-  
-  footer p, footer a {
-    font-size: 0.9rem;
-  }
-}
   </style>
 
   <!-- Meta Pixel Code -->
@@ -323,80 +259,99 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   <div id="global-navbar"></div>
 
   <main class="container my-5">
-    <h1 class="mb-4 text-center"><i class="bi bi-envelope me-2"></i>تواصل معنا</h1>
-    <div class="contact-card">
-      <div class="mb-4 p-3 rounded" style="background: #fffbe7; border-left: 5px solid #715100;">
-  <div class="d-flex align-items-center mb-1">
-    <i class="bi bi-leaf text-success fs-3 me-3"></i>
-    <div>
-      <span class="fw-bold" style="color:#989898; font-size: small;"> مرحبا بك في متجرنا, نسعد بسماع اقتراحاتكم دائما . 
-        يمكنك ترك رسالتك وسيتم الاهتمام بها من طرف فريقنا في أقرب وقت.
-      </span> 
+    
+    <div class="contact-hero text-center">
+      <h1 class="display-5 fw-bold mb-3" style="color: var(--military-green);">تواصل معنا</h1>
+      <p class="lead text-muted mx-auto" style="max-width: 600px;">
+        مرحبا بك في متجرنا! نحن نسعد بسماع اقتراحاتكم دائماً. يمكنك ترك رسالتك وسيتم الرد عليها من قبل فريقنا في أقرب وقت ممكن.
+      </p>
     </div>
-  </div>
-</div>
 
-      <form id="contact-form" class="small-form">
-  <div class="mb-3">
-    <label for="full_name" class="form-label"><i class="bi bi-person me-1"></i>الاسم الكامل:</label>
-    <div class="input-group">
-      <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
-      <input type="text" id="full_name" name="full_name" maxlength="60"
-             class="form-control" placeholder="الاسم الكامل" />
-    </div>
-    <div class="invalid-feedback">يجب أن يكون على الأقل 3 أحرف، ويُسمح فقط بالأحرف والمسافة.</div>
-  </div>
-  <div class="mb-3">
-    <label for="phone_number" class="form-label"><i class="bi bi-telephone me-1"></i>رقم الهاتف:</label>
-    <div class="input-group">
-      <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
-      <input type="tel" id="phone_number" name="phone_number" maxlength="11"
-             class="form-control" inputmode="numeric" pattern="^0[0-9]{9}$"
-             placeholder="0XXXXXXXXX" autocomplete="tel" />
-    </div>
-    <div class="invalid-feedback">يجب أن يبدأ رقم الهاتف بـ 0 ويكون مكونًا من 10 رقمًا.</div>
-  </div>
-  <div class="mb-3">
-    <label for="subject" class="form-label"><i class="bi bi-info-circle me-1"></i>الموضوع:</label>
-    <div class="input-group">
-      <span class="input-group-text bg-white"><i class="bi bi-info-circle"></i></span>
-      <input type="text" id="subject" name="subject" maxlength="100"
-             class="form-control" placeholder="عنوان الموضوع" />
-    </div>
-    <div class="invalid-feedback">يجب أن يكون الموضوع على الأقل 3 أحرف.</div>
-  </div>
-  <div class="mb-3">
-    <label for="message_text" class="form-label"><i class="bi bi-chat-left-text me-1"></i>رسالتك:</label>
-    <textarea id="message_text" name="message_text" class="form-control" rows="4" placeholder="اكتب رسالتك..."></textarea>
-    <div class="invalid-feedback">يرجى كتابة رسالتك.</div>
-  </div>
-  <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send me-1"></i>إرسال الرسالة</button>
-</form>
-</div>
-<div id="contact-message" class="mt-3"></div>
-<!--social links-->
-<div class="text-center mt-4">
-  <div class="mb-2 fw-semibold" style="color:#715100;">يمكنك أيضًا التواصل معنا عبر وسائل التواصل الاجتماعي:</div>
-  <div class="d-flex justify-content-center gap-3 mb-2">
-    <a href="https://www.facebook.com/people/Omervita/61568626858755/" class="btn btn-light border rounded-pill social-facebook" target="_blank" rel="noopener" title="Facebook">
-      <i class="bi bi-facebook fs-4"></i>
-    </a>
-    <a href="https://www.instagram.com/omervita_" class="btn btn-light border rounded-pill social-instagram" target="_blank" rel="noopener" title="Instagram">
-      <i class="bi bi-instagram fs-4"></i>
-    </a>
-    <a href="https://www.tiktok.com/@omervita" class="btn btn-light border rounded-pill social-tiktok" target="_blank" rel="noopener" title="TikTok">
-      <i class="bi bi-tiktok fs-4"></i>
-    </a>
-  </div>
-  <div class="fw-semibold">
-    <i class="bi bi-telephone-forward-fill text-success me-2"></i>
-    <span class="branding-phone"></span>
-  </div>
-  <div class="fw-semibold mt-2">
-    <i class="bi bi-envelope-at-fill text-primary me-2"></i>
-    <span class="branding-email"></span>
-  </div>
-</div>
+    <div class="row g-4">
+      
+      <!-- Right Side (RTL) / Info & Social Links -->
+      <div class="col-lg-5 order-2 order-lg-1">
+        <div class="info-card">
+          <h4 class="fw-bold mb-4" style="color: var(--military-green);">معلومات التواصل</h4>
+          
+          <div class="mb-4">
+            <h6 class="text-muted fw-bold mb-3"><i class="bi bi-telephone-fill me-2 text-success"></i>أرقام الهاتف</h6>
+            <div id="contact-phones" class="d-flex flex-column gap-2">
+              <span class="text-muted small">جاري التحميل...</span>
+            </div>
+          </div>
+          
+          <hr class="my-4 text-muted" style="opacity: 0.2;">
+          
+          <div class="mb-4">
+            <h6 class="text-muted fw-bold mb-3"><i class="bi bi-envelope-fill me-2 text-primary"></i>البريد الإلكتروني</h6>
+            <div id="contact-emails" class="d-flex flex-column gap-2">
+              <span class="text-muted small">جاري التحميل...</span>
+            </div>
+          </div>
+
+          <hr class="my-4 text-muted" style="opacity: 0.2;">
+          
+          <div>
+            <h6 class="text-muted fw-bold mb-3"><i class="bi bi-share-fill me-2" style="color: var(--orange-accent);"></i>وسائل التواصل الاجتماعي</h6>
+            <div id="contact-social" class="social-links-grid">
+              <span class="text-muted small">جاري التحميل...</span>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- Left Side (RTL) / Contact Form -->
+      <div class="col-lg-7 order-1 order-lg-2">
+        <div class="contact-card">
+          <h4 class="fw-bold mb-4" style="color: var(--military-green);">أرسل رسالة</h4>
+          <form id="contact-form">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="full_name" class="form-label">الاسم الكامل</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-person"></i></span>
+                  <input type="text" id="full_name" name="full_name" maxlength="60" class="form-control" placeholder="اكتب اسمك الكامل" />
+                </div>
+                <div class="invalid-feedback">يجب أن يكون على الأقل 3 أحرف.</div>
+              </div>
+              
+              <div class="col-md-6">
+                <label for="phone_number" class="form-label">رقم الهاتف</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                  <input type="tel" id="phone_number" name="phone_number" maxlength="11" class="form-control" inputmode="numeric" pattern="^0[0-9]{9}$" placeholder="مثال: 0555000000" autocomplete="tel" />
+                </div>
+                <div class="invalid-feedback">رقم الهاتف يجب أن يبدأ بـ 0 ويكون 10 أرقام.</div>
+              </div>
+              
+              <div class="col-12">
+                <label for="subject" class="form-label">الموضوع</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-info-circle"></i></span>
+                  <input type="text" id="subject" name="subject" maxlength="100" class="form-control" placeholder="عنوان الرسالة" />
+                </div>
+                <div class="invalid-feedback">الموضوع يجب أن يكون 3 أحرف على الأقل.</div>
+              </div>
+              
+              <div class="col-12">
+                <label for="message_text" class="form-label">تفاصيل الرسالة</label>
+                <textarea id="message_text" name="message_text" class="form-control" rows="5" placeholder="اكتب استفسارك هنا بطريقة واضحة..." style="border-radius: 12px;"></textarea>
+                <div class="invalid-feedback">يرجى كتابة رسالتك بوضوح.</div>
+              </div>
+              
+              <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-send-fill me-2"></i>إرسال الرسالة
+                </button>
+              </div>
+            </div>
+          </form>
+          <div id="contact-message" class="mt-4 text-center"></div>
+        </div>
+      </div>
+      
     </div>
   </main>
   <!-- Footer -->
@@ -406,45 +361,61 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
   <script src="/js/header.js?v=1736152800"></script>
   <script src="/js/contact.js?v=1736152800"></script>
   <script src="/js/branding.js?v=1736152800"></script>
-  <script>
-async function updateBrandingLinks() {
-  const res = await fetch('/api/branding');
-  const branding = await res.json();
-
-  // Update social links (use your real selectors/IDs as needed)
-  document.querySelectorAll('a.social-facebook').forEach(a => a.href = branding.facebook || '#');
-  document.querySelectorAll('a.social-instagram').forEach(a => a.href = branding.instagram || '#');
-  document.querySelectorAll('a.social-tiktok').forEach(a => a.href = branding.tiktok || '#');
-  // Phone numbers
-  document.querySelectorAll('.branding-phone').forEach(span => span.textContent = branding.phone || '');
-  document.querySelectorAll('.branding-email').forEach(span => span.textContent = branding.email || '');
-}
-updateBrandingLinks();
-    // Dynamically load categories into navbar dropdown
-    async function loadCategoriesDropdown() {
-      try {
-        const res = await fetch('/api/categories');
-        const categories = await res.json();
-        const menu = document.getElementById('categoriesDropdownMenu');
-        menu.innerHTML = '';
-        if (Array.isArray(categories) && categories.length > 0) {
-          categories.forEach(cat => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.className = 'dropdown-item';
-            a.href = `products.html?category=${cat.id}`;
-            a.textContent = cat.name;
-            li.appendChild(a);
-            menu.appendChild(li);
-          });
-        } else {
-          menu.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
-        }
-      } catch (e) {
-        document.getElementById('categoriesDropdownMenu').innerHTML = '<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>';
-      }
+<script>
+async function updateContactInfo() {
+  try {
+    const res = await fetch('/api/site-settings');
+    const settings = await res.json();
+    
+    // Update Phones
+    const phonesDiv = document.getElementById('contact-phones');
+    if (phonesDiv && settings.phones && settings.phones.length > 0) {
+      phonesDiv.innerHTML = settings.phones.map(p => `
+        <a href="tel:${p}" class="text-decoration-none text-dark fw-semibold d-flex align-items-center mb-1" style="transition: color 0.2s;" onmouseover="this.style.color='var(--orange-accent)'" onmouseout="this.style.color='#212529'">
+          <span dir="ltr">${p}</span>
+        </a>
+      `).join('');
+    } else if (phonesDiv) {
+      phonesDiv.innerHTML = '<span class="text-muted small">لا توجد أرقام متاحة حالياً</span>';
     }
-    loadCategoriesDropdown();
+
+    // Update Emails
+    const emailsDiv = document.getElementById('contact-emails');
+    if (emailsDiv && settings.emails && settings.emails.length > 0) {
+      emailsDiv.innerHTML = settings.emails.map(e => `
+        <a href="mailto:${e}" class="text-decoration-none text-dark fw-semibold d-flex align-items-center mb-1" style="transition: color 0.2s;" onmouseover="this.style.color='var(--orange-accent)'" onmouseout="this.style.color='#212529'">
+          ${e}
+        </a>
+      `).join('');
+    } else if (emailsDiv) {
+      emailsDiv.innerHTML = '<span class="text-muted small">لا يوجد بريد إلكتروني حالياً</span>';
+    }
+
+    // Update Social Links
+    const socialDiv = document.getElementById('contact-social');
+    const sl = settings.social_links || {};
+    const icons = {
+      facebook: 'bi-facebook', instagram: 'bi-instagram', tiktok: 'bi-tiktok',
+      youtube: 'bi-youtube', whatsapp: 'bi-whatsapp', twitter: 'bi-twitter-x', linkedin: 'bi-linkedin'
+    };
+    
+    if (socialDiv) {
+      let html = '';
+      Object.entries(sl).forEach(([platform, url]) => {
+        if (!url) return;
+        const icon = icons[platform] || 'bi-link-45deg';
+        html += `<a href="${url}" class="social-btn-large social-${platform}" target="_blank" rel="noopener" aria-label="${platform}">
+                   <i class="bi ${icon}"></i>
+                 </a>`;
+      });
+      socialDiv.innerHTML = html || '<span class="text-muted small">لا توجد روابط متاحة حالياً</span>';
+    }
+    
+  } catch (err) {
+    console.error('Failed to load contact info:', err);
+  }
+}
+updateContactInfo();
   </script>
 </body>
 </html>

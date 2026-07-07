@@ -125,11 +125,12 @@ router.get('/products', async (req, res) => {
         .from('Products')
         .select('*')
         .in('id', productIds)
+        .neq('is_active', false)
         .order('id', { ascending: false })
         .limit(limit || 3);
       products = data;
     } else {
-      const { data } = await supabase.from('Products').select('*');
+      const { data } = await supabase.from('Products').select('*').neq('is_active', false);
       products = data;
     }
     const enriched = await enrichProducts(products);
@@ -160,12 +161,14 @@ router.get('/products/paginate', async (req, res) => {
         .from('Products')
         .select('*')
         .in('id', pagedIds)
+        .neq('is_active', false)
         .order('id', { ascending: false });
       products = pagedIds.map(id => data.find(p => p.id === id)).filter(Boolean);
     } else {
       const { data } = await supabase
         .from('Products')
         .select('*')
+        .neq('is_active', false)
         .order('id', { ascending: false })
         .range(offset, offset + limit - 1);
       products = data;
@@ -184,6 +187,7 @@ router.get('/products/latest', async (req, res) => {
     const { data, error } = await supabase
       .from('Products')
       .select('*')
+      .neq('is_active', false)
       .order('id', { ascending: false })
       .limit(2);
     if (error) throw error;

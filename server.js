@@ -8,6 +8,11 @@ require('dotenv').config();
 const supabase = require('./supabase');
 const jwt = require('jsonwebtoken');
 
+// Prevent unhandled promise rejections from crashing the server
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UnhandledRejection] at:', promise, 'reason:', reason);
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -531,6 +536,13 @@ app.use(async (req, res, next) => {
       next();
     });
   }
+  else if (url === '/admin-settings') {
+    // Verify admin access before redirecting to site settings page
+    return verifyAdminAccess(req, res, () => {
+      req.url = '/admin/site-settings.html';
+      next();
+    });
+  }
   else if (url === '/logout') {
     req.url = '/logout.html';
   }
@@ -592,30 +604,44 @@ app.use('/api', analyticsRoutes);
 const chatbotRoutes = require('./routes/chatbot');
 app.use('/api', chatbotRoutes);
 
-// --- Supabase Branding Table Helpers ---
+// --- site_settings Table Helpers ---
 
-// Get branding info from Supabase table (single row, id=1)
-async function getBrandingFromSupabase() {
+// Get site settings from Supabase (single row, id=1)
+async function getSiteSettings() {
   const { data, error } = await supabase
-    .from('branding')
+    .from('site_settings')
     .select('*')
     .eq('id', 1)
     .single();
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116: No rows found
-  return data || {};
+  if (error && error.code !== 'PGRST116') throw error;
+  const row = data || { phones: [], emails: [], social_links: {}, logo: null, slides: [] };
+  // Normalize slides: support both [{id,url}] objects and plain URL strings
+  if (Array.isArray(row.slides)) {
+    row.slides = row.slides.map(s => (typeof s === 'object' && s !== null && s.url) ? s.url : s).filter(Boolean);
+  } else {
+    row.slides = [];
+  }
+  // Normalize phones/emails to arrays of strings
+  if (!Array.isArray(row.phones)) row.phones = row.phones ? [row.phones] : [];
+  if (!Array.isArray(row.emails)) row.emails = row.emails ? [row.emails] : [];
+  if (!row.social_links || typeof row.social_links !== 'object') row.social_links = {};
+  return row;
 }
 
-// Update branding info in Supabase table (single row, id=1)
-async function updateBrandingInSupabase(fields) {
-  // Upsert row with id=1
+// Update site settings in Supabase (upsert single row id=1)
+async function updateSiteSettings(fields) {
   const { data, error } = await supabase
-    .from('branding')
-    .upsert([{ id: 1, ...fields }], { onConflict: ['id'] });
-  if (error) throw error;
+    .from('site_settings')
+    .upsert([{ id: 1, ...fields, updated_at: new Date().toISOString() }], { onConflict: 'id' })
+    .select();
+  if (error) {
+    console.error('[updateSiteSettings] Supabase error:', JSON.stringify(error));
+    throw error;
+  }
   return data && data[0] ? data[0] : fields;
 }
 
-// --- Helper: Upload buffer to Supabase Storage and return public URL
+// Upload buffer to Supabase Storage (branding bucket) and return public URL
 async function uploadToSupabaseBranding(fileBuffer, fileName, mimetype) {
   const { data, error } = await supabase.storage.from('branding').upload(fileName, fileBuffer, {
     contentType: mimetype,
@@ -626,14 +652,12 @@ async function uploadToSupabaseBranding(fileBuffer, fileName, mimetype) {
   return urlData.publicUrl;
 }
 
-// Helper: Remove file from Supabase Storage by public URL
+// Remove file from Supabase Storage by public URL
 async function removeFromSupabaseBranding(publicUrl) {
   if (!publicUrl) return;
   try {
-    // Extract the path after the bucket name
     const url = new URL(publicUrl);
     const parts = url.pathname.split('/');
-    // e.g. /storage/v1/object/public/branding/logo.png
     const brandingIdx = parts.indexOf('branding');
     if (brandingIdx !== -1 && parts.length > brandingIdx + 1) {
       const filePath = parts.slice(brandingIdx + 1).join('/');
@@ -642,10 +666,43 @@ async function removeFromSupabaseBranding(publicUrl) {
   } catch (e) { /* ignore */ }
 }
 
-// --- API: /api/branding (GET) ---
+// --- API: /api/site-settings (GET) — public endpoint ---
+app.get('/api/site-settings', async (req, res) => {
+  try {
+    const settings = await getSiteSettings();
+    res.json(settings);
+  } catch (e) {
+    res.status(500).json({ error: 'خطأ في تحميل إعدادات الموقع', details: e.message });
+  }
+});
+
+// --- API: /api/branding (GET) — COMPATIBILITY SHIM (maps site_settings → old branding shape) ---
 app.get('/api/branding', async (req, res) => {
   try {
-    const branding = await getBrandingFromSupabase();
+    const settings = await getSiteSettings();
+    const sl = settings.social_links || {};
+    const phones = settings.phones || [];
+    const emails = settings.emails || [];
+    const slides = settings.slides || [];
+    // Map to old branding format
+    const branding = {
+      logo: settings.logo || null,
+      facebook: sl.facebook || null,
+      instagram: sl.instagram || null,
+      tiktok: sl.tiktok || null,
+      youtube: sl.youtube || null,
+      whatsapp: sl.whatsapp || null,
+      phone: phones[0] || null,
+      email: emails[0] || null,
+      cover1: slides[0] || null,
+      cover2: slides[1] || null,
+      cover3: slides[2] || null,
+      // Extra: expose full arrays for new code
+      phones,
+      emails,
+      social_links: sl,
+      slides
+    };
     res.json(branding);
   } catch (e) {
     res.status(500).json({ error: 'خطأ في تحميل بيانات العلامة التجارية', details: e.message });
@@ -660,73 +717,169 @@ app.get('/api/delivery-costs', async (req, res) => {
   });
 });
 
-// --- API: /api/admin/branding (POST) ---
-app.post('/api/admin/branding', async (req, res) => {
+// --- API: /api/admin/site-settings (GET) — admin only ---
+app.get('/api/admin/site-settings', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  if (!token) return res.status(401).json({ error: 'غير مصرح' });
   try {
-    const fields = ['facebook', 'instagram', 'tiktok', 'phone', 'email', 'logo', 'cover1', 'cover2', 'cover3'];
-    const updateFields = {};
-    for (const key of fields) {
-      if (req.body[key] !== undefined) updateFields[key] = req.body[key];
-    }
-    const branding = await updateBrandingInSupabase(updateFields);
-    res.json(branding);
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
+    const settings = await getSiteSettings();
+    res.json(settings);
   } catch (e) {
-    res.status(500).json({ error: 'خطأ في حفظ بيانات العلامة التجارية', details: e.message });
+    res.status(401).json({ error: 'رمز غير صالح', details: e.message });
   }
 });
 
-// --- API: /api/admin/logo (POST) ---
-app.post('/api/admin/logo', async (req, res) => {
+// --- API: /api/admin/site-settings (POST) — save phones, emails, social_links ---
+app.post('/api/admin/site-settings', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  if (!token) return res.status(401).json({ error: 'غير مصرح' });
   try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
+    const { phones, emails, social_links } = req.body;
+    const updateFields = {};
+    if (Array.isArray(phones)) updateFields.phones = phones;
+    if (Array.isArray(emails)) updateFields.emails = emails;
+    if (social_links && typeof social_links === 'object') updateFields.social_links = social_links;
+    const result = await updateSiteSettings(updateFields);
+    res.json({ message: 'تم الحفظ بنجاح', settings: result });
+  } catch (e) {
+    console.error('[site-settings POST] Error:', e.message, e);
+    res.status(500).json({ error: 'خطأ في الحفظ', details: e.message });
+  }
+});
+
+// --- API: /api/admin/site-settings/logo (POST) — upload logo ---
+app.post('/api/admin/site-settings/logo', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  if (!token) return res.status(401).json({ error: 'غير مصرح' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
     const formidable = require('formidable');
     const form = new formidable.IncomingForm();
     form.parse(req, async (err, fields, files) => {
-      let file = files.logo;
-      if (Array.isArray(file)) file = file[0];
-      if (err || !file || !file.filepath) return res.status(400).json({ error: 'لم يتم تحميل الشعار.' });
-      // Get current branding from Supabase
-      const branding = await getBrandingFromSupabase();
-      // Remove old logo from Supabase if exists
-      if (branding.logo) await removeFromSupabaseBranding(branding.logo);
-      const fsPromises = require('fs').promises;
-      const fileBuffer = await fsPromises.readFile(file.filepath);
-      const ext = (file.originalFilename || 'logo.png').split('.').pop();
-      const fileName = `logo.${ext}`;
-      const publicUrl = await uploadToSupabaseBranding(fileBuffer, fileName, file.mimetype || 'image/png');
-      // Update branding in Supabase
-      await updateBrandingInSupabase({ logo: publicUrl });
-      res.json({ message: 'تم تحديث الشعار بنجاح!', logo: publicUrl });
+      try {
+        let file = files.logo;
+        if (Array.isArray(file)) file = file[0];
+        if (err || !file || !file.filepath) return res.status(400).json({ error: 'لم يتم تحميل الشعار.' });
+        const settings = await getSiteSettings();
+        if (settings.logo) await removeFromSupabaseBranding(settings.logo);
+        const fsPromises = require('fs').promises;
+        const fileBuffer = await fsPromises.readFile(file.filepath);
+        const ext = (file.originalFilename || 'logo.png').split('.').pop();
+        const fileName = `logo.${ext}`;
+        const publicUrl = await uploadToSupabaseBranding(fileBuffer, fileName, file.mimetype || 'image/png');
+        await updateSiteSettings({ logo: publicUrl });
+        res.json({ message: 'تم تحديث الشعار بنجاح!', logo: publicUrl });
+      } catch (e) {
+        console.error('[logo upload callback]', e.message);
+        if (!res.headersSent) res.status(500).json({ error: 'خطأ أثناء تحديث الشعار', details: e.message });
+      }
     });
   } catch (e) {
+    console.error('[logo upload outer]', e.message);
     res.status(500).json({ error: 'خطأ أثناء تحديث الشعار', details: e.message });
   }
 });
 
-// --- API: /api/admin/slide (POST) ---
-app.post('/api/admin/slide', async (req, res) => {
+// --- API: /api/admin/site-settings/slide (POST) — add or replace a slide ---
+app.post('/api/admin/site-settings/slide', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  if (!token) return res.status(401).json({ error: 'غير مصرح' });
   try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
     const formidable = require('formidable');
     const form = new formidable.IncomingForm();
     form.parse(req, async (err, fields, files) => {
-      let file = files.slide;
-      if (Array.isArray(file)) file = file[0];
-      const index = fields.index;
-      if (err || !file || !file.filepath || !index) return res.status(400).json({ error: 'لم يتم تحميل صورة السلايد.' });
-      // Get current branding from Supabase
-      const branding = await getBrandingFromSupabase();
-      // Remove old slide from Supabase if exists
-      if (branding[`cover${index}`]) await removeFromSupabaseBranding(branding[`cover${index}`]);
-      const fsPromises = require('fs').promises;
-      const fileBuffer = await fsPromises.readFile(file.filepath);
-      const ext = (file.originalFilename || `cover${index}.png`).split('.').pop();
-      const fileName = `cover${index}.${ext}`;
-      const publicUrl = await uploadToSupabaseBranding(fileBuffer, fileName, file.mimetype || 'image/png');
-      // Update branding in Supabase
-      await updateBrandingInSupabase({ [`cover${index}`]: publicUrl });
-      res.json({ message: `تم تحديث صورة السلايد رقم ${index} بنجاح!`, [`cover${index}`]: publicUrl });
+      try {
+        let file = files.slide;
+        if (Array.isArray(file)) file = file[0];
+        let index = fields.index;
+        if (Array.isArray(index)) index = index[0];
+        index = parseInt(index, 10);
+        if (err || !file || !file.filepath) return res.status(400).json({ error: 'لم يتم تحميل صورة السلايد.' });
+        const settings = await getSiteSettings();
+        const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
+        if (isNaN(index) && slides.length >= 7) {
+          return res.status(400).json({ error: 'الحد الأقصى للسلايدات هو 7.' });
+        }
+        if (!isNaN(index) && slides[index]) {
+          await removeFromSupabaseBranding(slides[index]);
+        }
+        const fsPromises = require('fs').promises;
+        const fileBuffer = await fsPromises.readFile(file.filepath);
+        const ext = (file.originalFilename || 'slide.png').split('.').pop();
+        const slideIdx = !isNaN(index) ? index : slides.length;
+        const fileName = `slide_${slideIdx}_${Date.now()}.${ext}`;
+        const publicUrl = await uploadToSupabaseBranding(fileBuffer, fileName, file.mimetype || 'image/png');
+        if (!isNaN(index)) {
+          slides[index] = publicUrl;
+        } else {
+          slides.push(publicUrl);
+        }
+        await updateSiteSettings({ slides });
+        res.json({ message: 'تم تحديث السلايد بنجاح!', slides, url: publicUrl });
+      } catch (e) {
+        console.error('[slide upload callback]', e.message);
+        if (!res.headersSent) res.status(500).json({ error: 'خطأ أثناء تحديث السلايد', details: e.message });
+      }
     });
   } catch (e) {
-    res.status(500).json({ error: 'خطأ أثناء تحديث صورة السلايد', details: e.message });
+    console.error('[slide upload outer]', e.message);
+    res.status(500).json({ error: 'خطأ أثناء تحديث السلايد', details: e.message });
+  }
+});
+
+// --- API: /api/admin/site-settings/slide/:index (DELETE) — remove a slide ---
+app.delete('/api/admin/site-settings/slide/:index', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  if (!token) return res.status(401).json({ error: 'غير مصرح' });
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
+    const index = parseInt(req.params.index, 10);
+    const settings = await getSiteSettings();
+    const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
+    if (slides.length <= 1) return res.status(400).json({ error: 'يجب أن يكون هناك سلايد واحد على الأقل.' });
+    if (isNaN(index) || index < 0 || index >= slides.length) return res.status(400).json({ error: 'رقم السلايد غير صالح.' });
+    // Remove from storage
+    await removeFromSupabaseBranding(slides[index]);
+    slides.splice(index, 1);
+    await updateSiteSettings({ slides });
+    res.json({ message: 'تم حذف السلايد بنجاح!', slides });
+  } catch (e) {
+    res.status(500).json({ error: 'خطأ أثناء حذف السلايد', details: e.message });
+  }
+});
+
+// --- Legacy compatibility: /api/admin/branding (POST) — maps to site_settings ---
+app.post('/api/admin/branding', async (req, res) => {
+  try {
+    const settings = await getSiteSettings();
+    const sl = { ...(settings.social_links || {}) };
+    const phones = [...(settings.phones || [])];
+    const emails = [...(settings.emails || [])];
+    if (req.body.facebook !== undefined) sl.facebook = req.body.facebook;
+    if (req.body.instagram !== undefined) sl.instagram = req.body.instagram;
+    if (req.body.tiktok !== undefined) sl.tiktok = req.body.tiktok;
+    if (req.body.phone !== undefined) phones[0] = req.body.phone;
+    if (req.body.email !== undefined) emails[0] = req.body.email;
+    await updateSiteSettings({ social_links: sl, phones, emails });
+    res.json({ message: 'تم الحفظ' });
+  } catch (e) {
+    res.status(500).json({ error: 'خطأ في الحفظ', details: e.message });
   }
 });
 
