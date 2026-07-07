@@ -244,7 +244,7 @@ function renderNavbar(userData) {
     return `
   <header class="fixed-top shadow-sm bg-white" dir="rtl" style="border-bottom: 3px solid var(--orange-accent);">
     <!-- Top Line (Logo, Search, Core Icons) -->
-    <div class="container py-2 py-lg-3 d-flex align-items-center justify-content-between">
+    <div class="container py-2 py-lg-3 d-flex flex-wrap flex-lg-nowrap align-items-center justify-content-between">
       
       <!-- Mobile View (Toggler, Logo, Quick Cart) -->
       <div class="d-flex align-items-center d-lg-none w-100 justify-content-between">
@@ -263,6 +263,16 @@ function renderNavbar(userData) {
               <span class="cart-counter-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none; font-size: 0.65rem;">0</span>
             </div>
           </a>
+      </div>
+
+      <!-- Mobile Permanent Search Bar (Below Logo) -->
+      <div class="d-lg-none w-100 mt-2 mb-1">
+        <form action="/products" method="GET">
+          <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1.5px solid var(--orange-accent);">
+            <input type="text" class="form-control border-0 px-3 py-2" name="search" placeholder="ما الذي تبحث عنه؟" style="box-shadow: none;">
+            <button class="btn border-0" type="submit" style="background-color: var(--orange-accent); color: var(--dark-charcoal);"><i class="bi bi-search fs-5"></i></button>
+          </div>
+        </form>
       </div>
 
       <!-- Desktop Logo -->
@@ -323,13 +333,7 @@ function renderNavbar(userData) {
           <div class="mt-3">
             ${userGreeting}
             
-            <!-- Mobile Search -->
-            <form class="mb-4" action="/products" method="GET">
-              <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1.5px solid var(--orange-accent);">
-                <input type="text" class="form-control border-0 px-3 py-2" name="search" placeholder="ما الذي تبحث عنه؟" style="box-shadow: none;">
-                <button class="btn border-0" type="submit" style="background-color: var(--orange-accent); color: var(--dark-charcoal);"><i class="bi bi-search fs-5"></i></button>
-              </div>
-            </form>
+
 
             <ul class="navbar-nav w-100 fw-medium">
               <li class="nav-item border-bottom">

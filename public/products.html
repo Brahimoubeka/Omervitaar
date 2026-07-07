@@ -55,7 +55,7 @@
   }
   </script>
   
-  <link rel="stylesheet" href="/js/chatbot-ui.css">
+
   <!-- Canonical tag for SEO -->
   <link rel="canonical" href="https://omervita.com/products">
   <!-- Bootstrap CSS CDN -->
@@ -446,45 +446,5 @@ src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1"
     </div>
   </div>
 
-  <!-- Chatbot -->
-  <div class="chatbot-container">
-    <div class="chatbot-window" id="chatbot-window">
-      <div class="chatbot-header" id="chatbot-header" style="position: relative; display: flex; align-items: center; justify-content: center; background: #ff7300; color: #fff; border-top-left-radius: 16px; border-top-right-radius: 16px; min-height: 48px;">
-        <h5 style="margin: 0; font-size: 1.1em; font-weight: 700; letter-spacing: 0.5px;">الآلي Omervita مساعد</h5>
-        <button id="close-chatbot" style="background: none; border: none; color: white; font-size: 24px; line-height: 1; cursor: pointer; position: absolute; left: 10px; top: 10px;">&times;</button>
-      </div>
-      <div id="new-chat-btn-container" style="position: absolute; top: 60px; right: 10px; z-index: 10;"></div>
-      <div class="chatbot-messages" id="chatbot-messages">
-        <div class="message bot-message arabic">
-          <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">
-            هذا روبوت ذكاء اصطناعي يساعدك في إيجاد حل لمشكلتك وقد يرتكب أخطاء. عندما يقترح عليك منتجًا، يرجى قراءة وصف المنتج في صفحة المنتج أو يمكنك التواصل معنا على واتساب للتحدث مع موظف حقيقي.
-          </p>
-          <p>مرحباً! كيف يمكنني مساعدتك اليوم؟</p>
-        </div>
-      </div>
-      <div class="chatbot-input">
-        <textarea id="chatbot-input" placeholder="كيف اساعدك" rows="1"></textarea>
-        <button id="send-message">إرسال</button>
-      </div>
-    </div>
-    <button class="chatbot-button" id="open-chatbot">
-      <i class="bi bi-chat-dots-fill"></i>
-    </button>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it@12.3.2/dist/markdown-it.min.js"></script>
-  <script src="/js/chatbot.js?v=1736152800"></script>
-  <script>
-    // Auto-resize textarea in chatbot
-    document.addEventListener('DOMContentLoaded', function() {
-      const textarea = document.getElementById('chatbot-input');
-      if (textarea) {
-        textarea.addEventListener('input', function() {
-          this.style.height = 'auto';
-          this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-        });
-      }
-    });
-  </script>
 </body>
 </html>
