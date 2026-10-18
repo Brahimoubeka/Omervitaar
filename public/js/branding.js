@@ -20,12 +20,29 @@ async function loadBrandingAssets() {
 
     if (carouselInner && slides.length > 0) {
       // Rebuild carousel items
-      carouselInner.innerHTML = slides.map((url, i) => `
-        <div class="carousel-item${i === 0 ? ' active' : ''}">
-          <img src="${url}" class="d-block w-100 hero-img" alt="سلايد ${i + 1}"
-               loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">
-        </div>
-      `).join('');
+      carouselInner.innerHTML = slides.map((slide, i) => {
+        const url = (typeof slide === 'object' && slide !== null) ? slide.url : slide;
+        const link = (typeof slide === 'object' && slide !== null && slide.link) ? slide.link : '';
+        const title = (typeof slide === 'object' && slide !== null && slide.title) ? slide.title : `سلايد ${i + 1}`;
+        const escapedTitle = title.replace(/"/g, '&quot;');
+        const imgHtml = `<img src="${url}" class="d-block w-100 hero-img" alt="${escapedTitle}"
+               loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">`;
+
+        const contentHtml = link
+          ? `<a href="${link}" class="slide-clickable-wrapper" title="${escapedTitle}" aria-label="${escapedTitle}">
+               ${imgHtml}
+               <span class="slide-action-tag">
+                 <i class="bi bi-arrow-left-circle-fill"></i> تسوق الآن
+               </span>
+             </a>`
+          : imgHtml;
+
+        return `
+          <div class="carousel-item${i === 0 ? ' active' : ''}">
+            ${contentHtml}
+          </div>
+        `;
+      }).join('');
 
       // Rebuild indicators
       if (carouselIndicators) {
@@ -40,8 +57,9 @@ async function loadBrandingAssets() {
     // Legacy: also support data-dynamic-cover="N" attributes (1-based)
     const legacySlides = settings.slides || [];
     for (let i = 0; i < legacySlides.length; i++) {
+      const url = (typeof legacySlides[i] === 'object' && legacySlides[i] !== null) ? legacySlides[i].url : legacySlides[i];
       document.querySelectorAll(`img[data-dynamic-cover="${i + 1}"]`).forEach(img => {
-        img.src = legacySlides[i];
+        img.src = url;
       });
     }
 

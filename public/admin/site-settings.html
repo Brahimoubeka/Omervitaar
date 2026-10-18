@@ -223,31 +223,98 @@
         <div id="add-slide-section">
           <hr>
           <form id="add-slide-form">
-            <label class="form-label fw-semibold"><i class="bi bi-plus-circle me-1"></i>إضافة سلايد جديد:</label>
-            <div class="d-flex gap-2 align-items-center flex-wrap">
-              <input type="file" id="new-slide-file" name="slide" accept="image/*" class="form-control" style="max-width:300px;" required>
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-plus-circle me-1"></i> إضافة سلايد
-              </button>
+            <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1"></i>إضافة سلايد جديد:</h6>
+            <div class="row g-3 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">صورة السلايد:</label>
+                <input type="file" id="new-slide-file" name="slide" accept="image/*" class="form-control" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">ربط السلايد بـ:</label>
+                <select id="new-slide-link-type" class="form-select" onchange="handleNewSlideTypeChange()">
+                  <option value="none">بدون رابط (صورة فقط)</option>
+                  <option value="product">منتج معين</option>
+                  <option value="category">مجموعة / تصنيف</option>
+                  <option value="custom">رابط مخصص</option>
+                </select>
+              </div>
+              <div class="col-md-3" id="new-slide-target-col" style="display:none;">
+                <label class="form-label small fw-semibold" id="new-slide-target-label">الهدف:</label>
+                <select id="new-slide-product-select" class="form-select" style="display:none;"></select>
+                <select id="new-slide-category-select" class="form-select" style="display:none;"></select>
+                <input type="text" id="new-slide-custom-input" class="form-control" placeholder="/products?search=... أو https://" style="display:none;">
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-plus-circle me-1"></i> إضافة
+                </button>
+              </div>
             </div>
           </form>
         </div>
 
         <!-- Replace slide modal trigger area -->
-        <div id="replace-slide-area" class="mt-3" style="display:none;">
+        <div id="replace-slide-area" class="mt-4 p-3 border rounded bg-light" style="display:none;">
           <form id="replace-slide-form">
             <input type="hidden" id="replace-slide-index" value="">
-            <label class="form-label fw-semibold" id="replace-slide-label">تغيير صورة السلايد:</label>
+            <label class="form-label fw-bold" id="replace-slide-label">تغيير صورة السلايد:</label>
             <div class="d-flex gap-2 align-items-center flex-wrap">
-              <input type="file" id="replace-slide-file" name="slide" accept="image/*" class="form-control" style="max-width:300px;" required>
+              <input type="file" id="replace-slide-file" name="slide" accept="image/*" class="form-control" style="max-width:320px;" required>
               <button type="submit" class="btn btn-primary">
-                <i class="bi bi-upload me-1"></i> تحديث
+                <i class="bi bi-upload me-1"></i> تحديث الصورة
               </button>
               <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('replace-slide-area').style.display='none'">
                 إلغاء
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Editing Slide Link -->
+    <div class="modal fade" id="slideLinkModal" tabindex="-1" aria-labelledby="slideLinkModalLabel" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+          <div class="modal-header" style="background:var(--military-green); color:#fff;">
+            <h5 class="modal-title" id="slideLinkModalLabel"><i class="bi bi-link-45deg me-1"></i> ربط السلايد بمنتج أو تصنيف</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          </div>
+          <div class="modal-body p-4">
+            <input type="hidden" id="edit-link-index" value="">
+            <div class="text-center mb-3">
+              <img id="edit-link-preview-img" src="" alt="Slide Preview" style="max-height:140px; border-radius:10px; object-fit:contain; border:1px solid #ddd; background:#f8f9fa;">
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label fw-bold">وجهة الرابط عند النقر على السلايد:</label>
+              <select id="edit-link-type" class="form-select" onchange="handleEditLinkTypeChange()">
+                <option value="none">بدون رابط (صورة فقط)</option>
+                <option value="product">منتج معين</option>
+                <option value="category">مجموعة منتجات / تصنيف</option>
+                <option value="custom">رابط مخصص</option>
+              </select>
+            </div>
+
+            <div class="mb-3" id="edit-link-product-wrap" style="display:none;">
+              <label class="form-label fw-semibold">اختر المنتج:</label>
+              <select id="edit-link-product-select" class="form-select"></select>
+            </div>
+
+            <div class="mb-3" id="edit-link-category-wrap" style="display:none;">
+              <label class="form-label fw-semibold">اختر التصنيف:</label>
+              <select id="edit-link-category-select" class="form-select"></select>
+            </div>
+
+            <div class="mb-3" id="edit-link-custom-wrap" style="display:none;">
+              <label class="form-label fw-semibold">الرابط المخصص:</label>
+              <input type="text" id="edit-link-custom-input" class="form-control" placeholder="/products?search=argan أو رابط كامل">
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" onclick="saveSlideLink()"><i class="bi bi-check2-circle me-1"></i> حفظ الرابط</button>
+          </div>
         </div>
       </div>
     </div>
@@ -396,6 +463,82 @@
       });
     }
 
+    // ====== PRODUCTS & CATEGORIES FOR SLIDE LINKING ======
+    let allProducts = [];
+    let allCategories = [];
+
+    async function loadProductsAndCategories() {
+      try {
+        const [pRes, cRes] = await Promise.all([
+          fetch('/api/products').then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch('/api/categories').then(r => r.ok ? r.json() : []).catch(() => [])
+        ]);
+        allProducts = Array.isArray(pRes) ? pRes : [];
+        allCategories = Array.isArray(cRes) ? cRes : [];
+        populateSelectOptions();
+      } catch (e) {
+        console.error('Error loading products/categories', e);
+      }
+    }
+
+    function populateSelectOptions() {
+      // Products select (Add form)
+      const newProdSel = document.getElementById('new-slide-product-select');
+      newProdSel.innerHTML = '<option value="">-- اختر المنتج --</option>' +
+        allProducts.map(p => `<option value="${p.id}" data-slug="${p.slug || ''}">${p.name}</option>`).join('');
+
+      // Products select (Edit modal)
+      const editProdSel = document.getElementById('edit-link-product-select');
+      editProdSel.innerHTML = '<option value="">-- اختر المنتج --</option>' +
+        allProducts.map(p => `<option value="${p.id}" data-slug="${p.slug || ''}">${p.name}</option>`).join('');
+
+      // Categories select (Add form)
+      const newCatSel = document.getElementById('new-slide-category-select');
+      newCatSel.innerHTML = '<option value="">-- اختر التصنيف --</option>' +
+        allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+      // Categories select (Edit modal)
+      const editCatSel = document.getElementById('edit-link-category-select');
+      editCatSel.innerHTML = '<option value="">-- اختر التصنيف --</option>' +
+        allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
+    function handleNewSlideTypeChange() {
+      const type = document.getElementById('new-slide-link-type').value;
+      const targetCol = document.getElementById('new-slide-target-col');
+      const prodSel = document.getElementById('new-slide-product-select');
+      const catSel = document.getElementById('new-slide-category-select');
+      const customInp = document.getElementById('new-slide-custom-input');
+      const label = document.getElementById('new-slide-target-label');
+
+      prodSel.style.display = 'none';
+      catSel.style.display = 'none';
+      customInp.style.display = 'none';
+
+      if (type === 'none') {
+        targetCol.style.display = 'none';
+      } else if (type === 'product') {
+        targetCol.style.display = 'block';
+        label.textContent = 'اختر المنتج:';
+        prodSel.style.display = 'block';
+      } else if (type === 'category') {
+        targetCol.style.display = 'block';
+        label.textContent = 'اختر التصنيف:';
+        catSel.style.display = 'block';
+      } else if (type === 'custom') {
+        targetCol.style.display = 'block';
+        label.textContent = 'الرابط المخصص:';
+        customInp.style.display = 'block';
+      }
+    }
+
+    function handleEditLinkTypeChange() {
+      const type = document.getElementById('edit-link-type').value;
+      document.getElementById('edit-link-product-wrap').style.display = type === 'product' ? 'block' : 'none';
+      document.getElementById('edit-link-category-wrap').style.display = type === 'category' ? 'block' : 'none';
+      document.getElementById('edit-link-custom-wrap').style.display = type === 'custom' ? 'block' : 'none';
+    }
+
     // ====== SLIDES ======
     function renderSlidesGrid(slides) {
       const grid = document.getElementById('slides-grid');
@@ -405,17 +548,37 @@
       if (slides.length === 0) {
         grid.innerHTML = '<div class="col-12 text-muted text-center py-3">لا توجد سلايدات بعد. أضف واحدة أدناه.</div>';
       } else {
-        slides.forEach((url, i) => {
+        slides.forEach((slide, i) => {
+          const url = (typeof slide === 'object' && slide !== null) ? slide.url : slide;
+          const link = (typeof slide === 'object' && slide !== null) ? (slide.link || '') : '';
+          const linkType = (typeof slide === 'object' && slide !== null) ? (slide.link_type || 'none') : 'none';
+          const title = (typeof slide === 'object' && slide !== null) ? (slide.title || '') : '';
+
+          let linkBadgeHtml = '<span class="badge bg-light text-muted border">بدون رابط</span>';
+          if (linkType === 'product') {
+            linkBadgeHtml = `<span class="badge bg-success text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${title}"><i class="bi bi-box-seam me-1"></i> ${title || 'منتج'}</span>`;
+          } else if (linkType === 'category') {
+            linkBadgeHtml = `<span class="badge bg-primary text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${title}"><i class="bi bi-folder2-open me-1"></i> ${title || 'تصنيف'}</span>`;
+          } else if (link) {
+            linkBadgeHtml = `<span class="badge bg-warning text-dark text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${link}"><i class="bi bi-link-45deg me-1"></i> ${link}</span>`;
+          }
+
           const col = document.createElement('div');
           col.className = 'col-6 col-md-3';
           col.innerHTML = `
-            <div class="slide-preview-item">
-              <img src="${url}" alt="Slide ${i+1}">
-              <div class="slide-actions">
-                <button class="btn btn-sm btn-warning" onclick="showReplaceSlide(${i})" title="تغيير"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-danger" onclick="deleteSlide(${i})" title="حذف"><i class="bi bi-trash"></i></button>
+            <div class="slide-preview-item" style="background:#fff; border-radius:14px; overflow:hidden; border:2px solid #e0e0e0; transition:all 0.2s;">
+              <div style="position:relative;">
+                <img src="${url}" alt="Slide ${i+1}" style="width:100%; height:140px; object-fit:cover; display:block;">
+                <div class="slide-actions">
+                  <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showEditLinkModal(${i})" title="ربط بمنتج أو تصنيف"><i class="bi bi-link-45deg"></i></button>
+                  <button class="btn btn-sm btn-warning shadow-sm" onclick="showReplaceSlide(${i})" title="تغيير الصورة"><i class="bi bi-pencil"></i></button>
+                  <button class="btn btn-sm btn-danger shadow-sm" onclick="deleteSlide(${i})" title="حذف"><i class="bi bi-trash"></i></button>
+                </div>
+                <span class="slide-number-badge">سلايد ${i + 1}</span>
               </div>
-              <span class="slide-number-badge">سلايد ${i + 1}</span>
+              <div class="p-2 border-top bg-light text-center">
+                ${linkBadgeHtml}
+              </div>
             </div>
           `;
           grid.appendChild(col);
@@ -427,6 +590,96 @@
         addSection.style.display = 'none';
       } else {
         addSection.style.display = 'block';
+      }
+    }
+
+    // Show edit link modal
+    let slideLinkModalInstance = null;
+    function showEditLinkModal(index) {
+      const slide = currentSettings.slides[index];
+      if (!slide) return;
+      const url = (typeof slide === 'object') ? slide.url : slide;
+      const link = (typeof slide === 'object') ? (slide.link || '') : '';
+      const linkType = (typeof slide === 'object') ? (slide.link_type || (link ? 'custom' : 'none')) : 'none';
+      const targetId = (typeof slide === 'object') ? (slide.target_id || '') : '';
+
+      document.getElementById('edit-link-index').value = index;
+      document.getElementById('edit-link-preview-img').src = url;
+      document.getElementById('edit-link-type').value = linkType;
+      handleEditLinkTypeChange();
+
+      if (linkType === 'product') {
+        document.getElementById('edit-link-product-select').value = targetId;
+      } else if (linkType === 'category') {
+        document.getElementById('edit-link-category-select').value = targetId;
+      } else if (linkType === 'custom') {
+        document.getElementById('edit-link-custom-input').value = link;
+      }
+
+      const modalEl = document.getElementById('slideLinkModal');
+      if (window.bootstrap && bootstrap.Modal) {
+        slideLinkModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        slideLinkModalInstance.show();
+      }
+    }
+
+    async function saveSlideLink() {
+      const index = parseInt(document.getElementById('edit-link-index').value, 10);
+      const linkType = document.getElementById('edit-link-type').value;
+
+      let link = '';
+      let target_id = '';
+      let title = '';
+
+      if (linkType === 'product') {
+        const prodId = document.getElementById('edit-link-product-select').value;
+        const prod = allProducts.find(p => String(p.id) === String(prodId));
+        if (!prod) {
+          showToast('يرجى اختيار منتج', 'error');
+          return;
+        }
+        link = `/products/${prod.slug || prod.id}`;
+        target_id = prod.id;
+        title = prod.name;
+      } else if (linkType === 'category') {
+        const catId = document.getElementById('edit-link-category-select').value;
+        const cat = allCategories.find(c => String(c.id) === String(catId));
+        if (!cat) {
+          showToast('يرجى اختيار تصنيف', 'error');
+          return;
+        }
+        link = `/products?category=${cat.id}`;
+        target_id = cat.id;
+        title = cat.name;
+      } else if (linkType === 'custom') {
+        link = (document.getElementById('edit-link-custom-input').value || '').trim();
+        if (!link) {
+          showToast('يرجى إدخال الرابط', 'error');
+          return;
+        }
+        title = link;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/site-settings/slide/${index}/link`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ link, link_type: linkType, target_id, title })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'خطأ في تحديث الرابط', 'error');
+          return;
+        }
+        currentSettings.slides = data.slides;
+        renderSlidesGrid(data.slides);
+        if (slideLinkModalInstance) slideLinkModalInstance.hide();
+        showToast('تم تحديث رابط السلايد بنجاح!');
+      } catch (e) {
+        showToast('خطأ في حفظ الرابط', 'error');
       }
     }
 
@@ -460,9 +713,40 @@
       e.preventDefault();
       const fileInput = document.getElementById('new-slide-file');
       if (!fileInput.files[0]) { showToast('اختر صورة أولاً', 'error'); return; }
+
+      const linkType = document.getElementById('new-slide-link-type').value;
+      let link = '';
+      let target_id = '';
+      let title = '';
+
+      if (linkType === 'product') {
+        const prodId = document.getElementById('new-slide-product-select').value;
+        const prod = allProducts.find(p => String(p.id) === String(prodId));
+        if (prod) {
+          link = `/products/${prod.slug || prod.id}`;
+          target_id = prod.id;
+          title = prod.name;
+        }
+      } else if (linkType === 'category') {
+        const catId = document.getElementById('new-slide-category-select').value;
+        const cat = allCategories.find(c => String(c.id) === String(catId));
+        if (cat) {
+          link = `/products?category=${cat.id}`;
+          target_id = cat.id;
+          title = cat.name;
+        }
+      } else if (linkType === 'custom') {
+        link = (document.getElementById('new-slide-custom-input').value || '').trim();
+        title = link;
+      }
+
       const formData = new FormData();
       formData.append('slide', fileInput.files[0]);
-      // No index = append
+      formData.append('link', link);
+      formData.append('link_type', linkType);
+      formData.append('target_id', target_id);
+      formData.append('title', title);
+
       try {
         const res = await fetch('/api/admin/site-settings/slide', {
           method: 'POST',
@@ -474,6 +758,8 @@
         currentSettings.slides = data.slides;
         renderSlidesGrid(data.slides);
         fileInput.value = '';
+        document.getElementById('new-slide-link-type').value = 'none';
+        handleNewSlideTypeChange();
         showToast('تم إضافة السلايد بنجاح');
       } catch (e) {
         showToast('خطأ في الإضافة', 'error');
@@ -500,7 +786,7 @@
         currentSettings.slides = data.slides;
         renderSlidesGrid(data.slides);
         document.getElementById('replace-slide-area').style.display = 'none';
-        showToast(`تم تحديث السلايد ${index + 1} بنجاح`);
+        showToast(`تم تحديث صورة السلايد ${index + 1} بنجاح`);
       } catch (e) {
         showToast('خطأ في التحديث', 'error');
       }
@@ -627,7 +913,11 @@
     }
 
     // Initialize
-    document.addEventListener('DOMContentLoaded', loadSettings);
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      loadProductsAndCategories();
+    });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

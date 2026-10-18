@@ -248,7 +248,7 @@ async function loadProductDetail() {
       try {
         if (token) {
           // Use parseJwt if available (from header.js) or decode manually
-          const parseJwt = window.parseJwt || function(t) {
+          const parseJwt = window.parseJwt || function (t) {
             const base64Url = t.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             return JSON.parse(window.atob(base64));
@@ -259,7 +259,7 @@ async function loadProductDetail() {
       } catch (e) {
         console.error('Error parsing token for admin check:', e);
       }
-      
+
       if (!isAdmin) {
         hideGlobalLoadingSpinner();
         const container = document.getElementById('product-detail-container');
@@ -1485,19 +1485,19 @@ function showManualCopyDialog(text) {
   setTimeout(() => modal.remove(), 10000);
 }
 
-  function showShareToast(message) {
-    const toastEl = document.getElementById('share-toast');
-    if (message) {
-      toastEl.querySelector('.toast-body').innerHTML =
-        `<i class="bi bi-clipboard-check me-2"></i> ${message}`;
-    } else {
-      toastEl.querySelector('.toast-body').innerHTML =
-        `<i class="bi bi-clipboard-check me-2"></i> تم نسخ رابط المنتج!`;
-    }
-    toastEl.style.display = 'block';
-    const toast = new bootstrap.Toast(toastEl);
-    toast.show();
+function showShareToast(message) {
+  const toastEl = document.getElementById('share-toast');
+  if (message) {
+    toastEl.querySelector('.toast-body').innerHTML =
+      `<i class="bi bi-clipboard-check me-2"></i> ${message}`;
+  } else {
+    toastEl.querySelector('.toast-body').innerHTML =
+      `<i class="bi bi-clipboard-check me-2"></i> تم نسخ رابط المنتج!`;
   }
+  toastEl.style.display = 'block';
+  const toast = new bootstrap.Toast(toastEl);
+  toast.show();
+}
 
 // Function to open image modal at specific slide
 function openImageModal(startIndex = 0) {

@@ -614,9 +614,23 @@ async function getSiteSettings() {
     .single();
   if (error && error.code !== 'PGRST116') throw error;
   const row = data || { phones: [], emails: [], social_links: {}, logo: null, slides: [] };
-  // Normalize slides: support both [{id,url}] objects and plain URL strings
+  // Normalize slides: support both [{url, link, ...}] objects and plain URL strings
   if (Array.isArray(row.slides)) {
-    row.slides = row.slides.map(s => (typeof s === 'object' && s !== null && s.url) ? s.url : s).filter(Boolean);
+    row.slides = row.slides.map(s => {
+      if (typeof s === 'string') {
+        return { url: s, link: '', link_type: 'none', target_id: '', title: '' };
+      }
+      if (typeof s === 'object' && s !== null && s.url) {
+        return {
+          url: s.url,
+          link: s.link || '',
+          link_type: s.link_type || (s.link ? 'custom' : 'none'),
+          target_id: s.target_id || '',
+          title: s.title || ''
+        };
+      }
+      return null;
+    }).filter(Boolean);
   } else {
     row.slides = [];
   }
@@ -693,9 +707,9 @@ app.get('/api/branding', async (req, res) => {
       whatsapp: sl.whatsapp || null,
       phone: phones[0] || null,
       email: emails[0] || null,
-      cover1: slides[0] || null,
-      cover2: slides[1] || null,
-      cover3: slides[2] || null,
+      cover1: (slides[0] && (slides[0].url || slides[0])) || null,
+      cover2: (slides[1] && (slides[1].url || slides[1])) || null,
+      cover3: (slides[2] && (slides[2].url || slides[2])) || null,
       // Extra: expose full arrays for new code
       phones,
       emails,
@@ -789,6 +803,15 @@ app.post('/api/admin/site-settings/logo', async (req, res) => {
   }
 });
 
+// Helper to sanitize slide link URLs
+function sanitizeSlideLink(rawLink) {
+  if (!rawLink || typeof rawLink !== 'string') return '';
+  const trimmed = rawLink.trim();
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return '';
+}
+
 // --- API: /api/admin/site-settings/slide (POST) — add or replace a slide ---
 app.post('/api/admin/site-settings/slide', async (req, res) => {
   const authHeader = req.headers['authorization'];
@@ -806,6 +829,16 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
         let index = fields.index;
         if (Array.isArray(index)) index = index[0];
         index = parseInt(index, 10);
+
+        let link = fields.link;
+        if (Array.isArray(link)) link = link[0];
+        let link_type = fields.link_type;
+        if (Array.isArray(link_type)) link_type = link_type[0];
+        let target_id = fields.target_id;
+        if (Array.isArray(target_id)) target_id = target_id[0];
+        let title = fields.title;
+        if (Array.isArray(title)) title = title[0];
+
         if (err || !file || !file.filepath) return res.status(400).json({ error: 'لم يتم تحميل صورة السلايد.' });
         const settings = await getSiteSettings();
         const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
@@ -813,7 +846,8 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
           return res.status(400).json({ error: 'الحد الأقصى للسلايدات هو 7.' });
         }
         if (!isNaN(index) && slides[index]) {
-          await removeFromSupabaseBranding(slides[index]);
+          const oldUrl = typeof slides[index] === 'object' ? slides[index].url : slides[index];
+          if (oldUrl) await removeFromSupabaseBranding(oldUrl);
         }
         const fsPromises = require('fs').promises;
         const fileBuffer = await fsPromises.readFile(file.filepath);
@@ -821,10 +855,21 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
         const slideIdx = !isNaN(index) ? index : slides.length;
         const fileName = `slide_${slideIdx}_${Date.now()}.${ext}`;
         const publicUrl = await uploadToSupabaseBranding(fileBuffer, fileName, file.mimetype || 'image/png');
+
+        const safeLink = sanitizeSlideLink(link);
+        const existingSlide = !isNaN(index) && slides[index] && typeof slides[index] === 'object' ? slides[index] : null;
+        const newSlide = {
+          url: publicUrl,
+          link: safeLink || (existingSlide ? existingSlide.link : ''),
+          link_type: link_type || (existingSlide ? existingSlide.link_type : (safeLink ? 'custom' : 'none')),
+          target_id: target_id || (existingSlide ? existingSlide.target_id : ''),
+          title: title || (existingSlide ? existingSlide.title : '')
+        };
+
         if (!isNaN(index)) {
-          slides[index] = publicUrl;
+          slides[index] = newSlide;
         } else {
-          slides.push(publicUrl);
+          slides.push(newSlide);
         }
         await updateSiteSettings({ slides });
         res.json({ message: 'تم تحديث السلايد بنجاح!', slides, url: publicUrl });
@@ -836,6 +881,36 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
   } catch (e) {
     console.error('[slide upload outer]', e.message);
     res.status(500).json({ error: 'خطأ أثناء تحديث السلايد', details: e.message });
+  }
+});
+
+// --- API: /api/admin/site-settings/slide/:index/link (PUT) — update slide link/target without reuploading ---
+app.put('/api/admin/site-settings/slide/:index/link', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  if (!token) return res.status(401).json({ error: 'غير مصرح' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
+    const index = parseInt(req.params.index, 10);
+    const settings = await getSiteSettings();
+    const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
+    if (isNaN(index) || index < 0 || index >= slides.length) {
+      return res.status(400).json({ error: 'رقم السلايد غير صالح.' });
+    }
+    const current = typeof slides[index] === 'object' ? slides[index] : { url: slides[index] };
+    const safeLink = sanitizeSlideLink(req.body.link);
+    slides[index] = {
+      ...current,
+      link: safeLink,
+      link_type: req.body.link_type || (safeLink ? 'custom' : 'none'),
+      target_id: req.body.target_id ? String(req.body.target_id) : '',
+      title: req.body.title || ''
+    };
+    await updateSiteSettings({ slides });
+    res.json({ message: 'تم تحديث رابط السلايد بنجاح!', slides });
+  } catch (e) {
+    res.status(500).json({ error: 'خطأ أثناء تحديث رابط السلايد', details: e.message });
   }
 });
 
@@ -854,7 +929,9 @@ app.delete('/api/admin/site-settings/slide/:index', async (req, res) => {
     if (slides.length <= 1) return res.status(400).json({ error: 'يجب أن يكون هناك سلايد واحد على الأقل.' });
     if (isNaN(index) || index < 0 || index >= slides.length) return res.status(400).json({ error: 'رقم السلايد غير صالح.' });
     // Remove from storage
-    await removeFromSupabaseBranding(slides[index]);
+    const targetSlide = slides[index];
+    const targetUrl = typeof targetSlide === 'object' ? targetSlide.url : targetSlide;
+    if (targetUrl) await removeFromSupabaseBranding(targetUrl);
     slides.splice(index, 1);
     await updateSiteSettings({ slides });
     res.json({ message: 'تم حذف السلايد بنجاح!', slides });
