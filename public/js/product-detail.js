@@ -25,77 +25,31 @@ function getQueryParams() {
   return params;
 }
 
-// Helper function to render product description with expandable functionality
+// Helper function to render product description cleanly (no box, no margin, edge to edge)
 function renderProductDescription(description, container) {
+  if (!container) return;
   if (!description || description.trim() === '') {
-    container.innerHTML = '<p class="text-muted mt-2 mb-3 fs-6"><i class="bi bi-info-circle me-1"></i> لا يوجد وصف.</p>';
+    container.innerHTML = '';
     return;
   }
 
-  // Check if description is longer than 30 characters
-  const isLongDescription = description.length > 30;
-  const shortDescription = isLongDescription ? description.substring(0, 220) + '...' : description;
-
-  // Create description container
+  // Create description container with no box, no border, and zero side margins
   const descriptionContainer = document.createElement('div');
-  descriptionContainer.className = 'product-description-container mt-2 mb-3';
+  descriptionContainer.className = 'product-description-container w-100 my-3';
 
-  // Create the description text element
+  // Create the description text element spanning full width
   const descriptionText = document.createElement('div');
   descriptionText.id = 'product-description-content';
-  descriptionText.className = 'product-description-text ' + (isLongDescription ? 'collapsed' : 'expanded');
-  descriptionText.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${isLongDescription ? shortDescription : description}`;
+  descriptionText.className = 'product-description-text w-100';
 
-  // Create toggle button container
-  const toggleContainer = document.createElement('div');
-  toggleContainer.className = 'description-toggle-container mt-2';
-  toggleContainer.id = 'description-toggle-container';
-
-  if (isLongDescription) {
-    let isExpanded = false;
-
-    function updateToggleButton() {
-      toggleContainer.innerHTML = `
-        <button id="description-toggle-btn" class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-chevron-double-${isExpanded ? 'up' : 'down'}"></i> 
-          ${isExpanded ? 'عرض أقل' : 'اقرأ المزيد'}
-        </button>
-      `;
-
-      // Use setTimeout to ensure DOM is updated before adding event listener
-      setTimeout(() => {
-        const toggleBtn = document.getElementById('description-toggle-btn');
-        if (toggleBtn) {
-          toggleBtn.addEventListener('click', () => {
-            isExpanded = !isExpanded;
-            const content = document.getElementById('product-description-content');
-
-            if (content) {
-              if (isExpanded) {
-                content.classList.remove('collapsed');
-                content.classList.add('expanded');
-                content.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${description}`;
-              } else {
-                content.classList.remove('expanded');
-                content.classList.add('collapsed');
-                content.innerHTML = `<i class="bi bi-info-circle me-1"></i> ${shortDescription}`;
-              }
-            }
-
-            updateToggleButton();
-          });
-        }
-      }, 0);
-    }
-
-    updateToggleButton();
-  }
+  // Format line breaks safely if plain text
+  const formattedDesc = description.includes('<') && description.includes('>')
+    ? description
+    : description.replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
+  descriptionText.innerHTML = formattedDesc;
 
   descriptionContainer.appendChild(descriptionText);
-  if (isLongDescription) {
-    descriptionContainer.appendChild(toggleContainer);
-  }
-
+  container.innerHTML = '';
   container.appendChild(descriptionContainer);
 }
 
@@ -369,44 +323,52 @@ async function loadProductDetail() {
     imgCol.innerHTML = `
       ${mainMediaHtml}
 
-      <!-- Image Modal -->
-      <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-          <div class="modal-content bg-dark">
-            <div class="modal-header border-0">
-              <h5 class="modal-title text-white" id="imageModalLabel">
-                <i class="bi bi-images me-2"></i>صور المنتج
-              </h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      <!-- Image Modal (Lightbox Mode: Attractive frame, direct close button & click-out) -->
+      <div class="modal fade lightbox-modal" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen m-0 p-0">
+          <div class="modal-content border-0 rounded-0 shadow-none position-relative w-100 h-100 overflow-hidden">
+            <!-- Top corner close button -->
+            <button type="button" class="btn-close-lightbox" data-bs-dismiss="modal" aria-label="إغلاق" title="إغلاق">
+              <i class="bi bi-x-lg"></i>
+            </button>
+
+            <!-- Floating hint pill -->
+            <div class="image-zoom-hint">
+              <i class="bi bi-arrows-fullscreen me-1"></i>
+              <span>يمكنك التكبير بعجلة الفأرة والتحريك بالسحب</span>
             </div>
-            <div class="modal-body p-0">
-              <div id="modalCarousel" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner">
+
+            <div class="modal-body p-0 w-100 h-100 d-flex align-items-center justify-content-center position-relative">
+              <div id="modalCarousel" class="carousel slide w-100 h-100" data-bs-ride="false" data-bs-interval="false">
+                <div class="carousel-inner w-100 h-100">
                   ${images.map((src, idx) => `
-                    <div class="carousel-item${idx === 0 ? ' active' : ''}">
-                      <div class="d-flex justify-content-center align-items-center" style="height: 70vh;">
-                        <img src="${src}" class="img-fluid" alt="صورة المنتج ${idx + 1}" loading="lazy" 
-                             style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                    <div class="carousel-item w-100 h-100${idx === 0 ? ' active' : ''}">
+                      <div class="lightbox-img-wrapper w-100 h-100 d-flex flex-column justify-content-center align-items-center">
+                        <div class="lightbox-stage d-inline-flex flex-column align-items-center position-relative">
+                          <!-- Close button directly above the image -->
+                          <div class="lightbox-header-bar w-100 d-flex justify-content-between align-items-center mb-2">
+                            <span class="lightbox-tip-badge d-none d-sm-inline-flex align-items-center">
+                              <i class="bi bi-cursor me-1"></i>انقر خارج الصورة للإغلاق
+                            </span>
+                            <button type="button" class="btn-close-above-image" data-bs-dismiss="modal" aria-label="إغلاق" title="إغلاق">
+                              <i class="bi bi-x-lg me-1"></i>
+                              <span>إغلاق</span>
+                            </button>
+                          </div>
+                          <img src="${src}" class="img-fluid lightbox-zoom-img" alt="صورة المنتج ${idx + 1}" loading="lazy">
+                        </div>
                       </div>
                     </div>
                   `).join('')}
                 </div>
                 ${images.length > 1 ? `
-                <button class="carousel-control-prev" type="button" data-bs-target="#modalCarousel" data-bs-slide="prev">
+                <button class="carousel-control-prev lightbox-arrow" type="button" data-bs-target="#modalCarousel" data-bs-slide="prev" aria-label="السابق">
                   <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                  <span class="visually-hidden">Previous</span>
                 </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#modalCarousel" data-bs-slide="next">
+                <button class="carousel-control-next lightbox-arrow" type="button" data-bs-target="#modalCarousel" data-bs-slide="next" aria-label="التالي">
                   <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                  <span class="visually-hidden">Next</span>
                 </button>
                 ` : ''}
-              </div>
-            </div>
-            <div class="modal-footer border-0 justify-content-center">
-              <div class="d-flex align-items-center text-white">
-                <i class="bi bi-info-circle me-2"></i>
-                <span>يمكنك التكبير بعجلة الفأرة والتحريك بالسحب</span>
               </div>
             </div>
           </div>
@@ -603,8 +565,9 @@ async function loadProductDetail() {
       detailsCol.appendChild(outOfStock);
     }
 
-    // Description with expandable functionality
-    renderProductDescription(product.description || '', detailsCol);
+    // Product Details Text: full width across page from right to left corner (no box, no margin)
+    const fullDescCol = document.getElementById('product-description-full-col');
+    renderProductDescription(product.description || '', fullDescCol || detailsCol);
 
     // Quick order buttons row
     const buttonsRow = document.createElement('div');
@@ -874,8 +837,7 @@ async function loadProductDetail() {
       if (product.paragraphs && Array.isArray(product.paragraphs) && product.paragraphs.length > 0) {
         product.paragraphs.forEach(p => {
           const itemDiv = document.createElement('div');
-          itemDiv.className = "col-12 mt-2 p-3 rounded shadow-sm bg-white";
-          itemDiv.style.borderRight = `4px solid ${p.color || '#ffbf00'}`;
+          itemDiv.className = "col-12 mt-3 p-0 bg-transparent border-0 shadow-none";
 
           if (p.title) {
             const titleEl = document.createElement('h6');
@@ -1266,27 +1228,9 @@ function showCartMessage(message, type = 'success', product = null) {
 document.addEventListener('DOMContentLoaded', () => {
   loadProductDetail();
 
-  const stars = document.querySelectorAll('.star-rating label');
-  const radios = document.querySelectorAll('.star-rating input[type="radio"]');
-  function updateSelectedStars(selectedValue) {
-    stars.forEach(label => {
-      const val = label.htmlFor.replace('star', '');
-      if (parseInt(val) <= selectedValue) {
-        label.classList.add('selected');
-      } else {
-        label.classList.remove('selected');
-      }
-    });
-  }
-  radios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      const selectedValue = parseInt(e.target.value);
-      updateSelectedStars(selectedValue);
-    });
-  });
-  const checkedRadio = document.querySelector('.star-rating input[type="radio"]:checked');
-  if (checkedRadio) {
-    updateSelectedStars(parseInt(checkedRadio.value));
+  // Initialize or re-sync star rating
+  if (typeof initStarRating === 'function') {
+    initStarRating();
   }
 });
 //add review
@@ -1332,9 +1276,8 @@ document.getElementById('review-form').addEventListener('submit', async (e) => {
     }
     reviewMessageDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
     e.target.reset();
-    const checkedRadio = document.querySelector('.star-rating input[type="radio"]:checked');
-    if (!checkedRadio) {
-      document.querySelectorAll('.star-rating label').forEach(label => label.classList.remove('selected'));
+    if (typeof initStarRating === 'function') {
+      initStarRating();
     }
     loadReviews(productId);
     setTimeout(() => {
@@ -1499,16 +1442,249 @@ function showShareToast(message) {
   toast.show();
 }
 
+// Setup interactive mouse wheel zoom, drag pan, and click-outside-to-close
+let zoomPanInitialized = false;
+function setupImageModalZoomPan() {
+  const modalEl = document.getElementById('imageModal');
+  if (!modalEl || modalEl._zoomPanSetup) return;
+  modalEl._zoomPanSetup = true;
+
+  let scale = 1;
+  let pointX = 0;
+  let pointY = 0;
+  let startX = 0;
+  let startY = 0;
+  let isPanning = false;
+  let hasDragged = false;
+  let dragOriginX = 0;
+  let dragOriginY = 0;
+
+  function getActiveImage() {
+    const activeItem = modalEl.querySelector('.carousel-item.active');
+    return activeItem ? activeItem.querySelector('img') : modalEl.querySelector('img');
+  }
+
+  function updateTransform(img) {
+    if (!img) return;
+    img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    img.style.cursor = scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'zoom-in';
+  }
+
+  function resetZoom() {
+    scale = 1;
+    pointX = 0;
+    pointY = 0;
+    isPanning = false;
+    hasDragged = false;
+    modalEl.querySelectorAll('.carousel-item img').forEach(img => {
+      img.style.transform = 'translate(0px, 0px) scale(1)';
+      img.style.cursor = 'zoom-in';
+      img.style.transition = 'transform 0.2s ease-out';
+    });
+  }
+
+  modalEl.addEventListener('show.bs.modal', resetZoom);
+  modalEl.addEventListener('hidden.bs.modal', resetZoom);
+
+  const carouselEl = modalEl.querySelector('#modalCarousel');
+  if (carouselEl) {
+    carouselEl.addEventListener('slide.bs.carousel', resetZoom);
+  }
+
+  // Click on any empty place outside the image closes the modal
+  modalEl.addEventListener('click', (e) => {
+    if (hasDragged) {
+      hasDragged = false;
+      return;
+    }
+    // Don't close if clicked on the image itself or interactive controls
+    if (e.target.closest('img') || 
+        e.target.closest('.btn-close-above-image') || 
+        e.target.closest('.btn-close-lightbox') || 
+        e.target.closest('.carousel-control-prev') || 
+        e.target.closest('.carousel-control-next') || 
+        e.target.closest('.image-zoom-hint')) {
+      return;
+    }
+    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) {
+      modalInstance.hide();
+    }
+  });
+
+  const modalBody = modalEl.querySelector('.modal-body');
+  if (modalBody) {
+    // Mouse wheel zoom
+    modalBody.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const img = getActiveImage();
+      if (!img) return;
+
+      img.style.transition = 'transform 0.08s ease-out';
+      const zoomFactor = 0.25;
+      if (e.deltaY < 0) {
+        scale = Math.min(scale + zoomFactor, 4);
+      } else {
+        scale = Math.max(scale - zoomFactor, 1);
+      }
+      if (scale === 1) {
+        pointX = 0;
+        pointY = 0;
+      }
+      updateTransform(img);
+    }, { passive: false });
+
+    // Drag to pan
+    modalBody.addEventListener('mousedown', (e) => {
+      dragOriginX = e.clientX;
+      dragOriginY = e.clientY;
+      hasDragged = false;
+      if (e.button !== 0) return;
+      const img = getActiveImage();
+      if (!img || scale <= 1) return;
+
+      e.preventDefault();
+      isPanning = true;
+      startX = e.clientX - pointX;
+      startY = e.clientY - pointY;
+      img.style.transition = 'none';
+      updateTransform(img);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (Math.hypot(e.clientX - dragOriginX, e.clientY - dragOriginY) > 6) {
+        hasDragged = true;
+      }
+      if (!isPanning) return;
+      const img = getActiveImage();
+      if (!img) return;
+
+      pointX = e.clientX - startX;
+      pointY = e.clientY - startY;
+      updateTransform(img);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isPanning) return;
+      isPanning = false;
+      const img = getActiveImage();
+      if (img) {
+        img.style.transition = 'transform 0.2s ease-out';
+        updateTransform(img);
+      }
+    });
+
+    // Double click to toggle zoom
+    modalBody.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      const img = getActiveImage();
+      if (!img) return;
+
+      img.style.transition = 'transform 0.25s ease-out';
+      if (scale > 1) {
+        scale = 1;
+        pointX = 0;
+        pointY = 0;
+      } else {
+        scale = 2.5;
+      }
+      updateTransform(img);
+    });
+
+    // Touch support (pinch zoom, drag & tap outside to close)
+    let initialTouchDist = 0;
+    let initialScale = 1;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchOriginX = 0;
+    let touchOriginY = 0;
+
+    modalBody.addEventListener('touchstart', (e) => {
+      const img = getActiveImage();
+      if (!img) return;
+
+      if (e.touches.length === 2) {
+        initialTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialScale = scale;
+      } else if (e.touches.length === 1) {
+        touchOriginX = e.touches[0].clientX;
+        touchOriginY = e.touches[0].clientY;
+        hasDragged = false;
+        if (scale > 1) {
+          isPanning = true;
+          touchStartX = e.touches[0].clientX - pointX;
+          touchStartY = e.touches[0].clientY - pointY;
+          img.style.transition = 'none';
+        }
+      }
+    }, { passive: true });
+
+    modalBody.addEventListener('touchmove', (e) => {
+      const img = getActiveImage();
+      if (!img) return;
+
+      if (e.touches.length === 2 && initialTouchDist > 0) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        scale = Math.min(Math.max((dist / initialTouchDist) * initialScale, 1), 4);
+        if (scale === 1) {
+          pointX = 0;
+          pointY = 0;
+        }
+        updateTransform(img);
+      } else if (e.touches.length === 1) {
+        if (Math.hypot(e.touches[0].clientX - touchOriginX, e.touches[0].clientY - touchOriginY) > 8) {
+          hasDragged = true;
+        }
+        if (isPanning) {
+          pointX = e.touches[0].clientX - touchStartX;
+          pointY = e.touches[0].clientY - touchStartY;
+          updateTransform(img);
+        }
+      }
+    }, { passive: false });
+
+    modalBody.addEventListener('touchend', (e) => {
+      if (isPanning) {
+        isPanning = false;
+        const img = getActiveImage();
+        if (img) {
+          img.style.transition = 'transform 0.2s ease-out';
+          updateTransform(img);
+        }
+      }
+      // Simple tap outside image closes on touch
+      if (!hasDragged && e.changedTouches && e.changedTouches.length === 1) {
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && !target.closest('img') && !target.closest('button') && !target.closest('.image-zoom-hint')) {
+          const modalInstance = bootstrap.Modal.getInstance(modalEl);
+          if (modalInstance) {
+            modalInstance.hide();
+          }
+        }
+      }
+    });
+  }
+}
+
 // Function to open image modal at specific slide
 function openImageModal(startIndex = 0) {
-  const modal = new bootstrap.Modal(document.getElementById('imageModal'));
-  // Set the modal carousel to the clicked image
+  const modalEl = document.getElementById('imageModal');
+  if (!modalEl) return;
+  setupImageModalZoomPan();
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   const modalCarousel = document.getElementById('modalCarousel');
-  // Initialize the modal carousel with interval: false to disable auto-slide
-  const carousel = new bootstrap.Carousel(modalCarousel, { interval: false, ride: false });
-  // Go to the specific slide
-  carousel.to(startIndex);
-  // Show the modal
+  if (modalCarousel) {
+    const carousel = bootstrap.Carousel.getOrCreateInstance(modalCarousel, { interval: false, ride: false });
+    carousel.to(startIndex);
+  }
   modal.show();
 }
 

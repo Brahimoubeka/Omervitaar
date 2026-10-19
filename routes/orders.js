@@ -40,7 +40,7 @@ router.get('/orders', verifyToken, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('Orders')
-            .select('id, order_group, product_id, quantity, order_date, status, products_price, delivery_price, total_price, Products(name, price)') // join Products
+            .select('id, order_group, product_id, quantity, order_date, status, products_price, delivery_price, total_price, promo_code, discount_amount, Products(name, price)') // join Products
             .eq('user_id', userId)
             .or('archive_status_user.is.null,archive_status_user.neq.archived')
             .order('order_date', { ascending: false });
@@ -56,6 +56,8 @@ router.get('/orders', verifyToken, async (req, res) => {
             products_price: o.products_price,
             delivery_price: o.delivery_price,
             total_price: o.total_price,
+            promo_code: o.promo_code,
+            discount_amount: o.discount_amount || 0,
             productName: o.Products?.name,
             price: o.Products?.price
         }));
@@ -74,7 +76,7 @@ router.get('/admin/orders', verifyToken, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('Orders')
-            .select('order_group, id, quantity, order_date, status, shipping_name, shipping_address, city, province, street, department, postal_code, first_name, last_name, products_price, delivery_price, total_price, Users(name, email), Products(name, price)')
+            .select('order_group, id, quantity, order_date, status, shipping_name, shipping_address, city, province, street, department, postal_code, first_name, last_name, products_price, delivery_price, total_price, promo_code, discount_amount, Users(name, email), Products(name, price)')
             .or('archive_status.is.null,archive_status.neq.archived')
             .order('order_group', { ascending: false })
             .order('order_date', { ascending: false });
@@ -98,10 +100,12 @@ router.get('/admin/orders', verifyToken, async (req, res) => {
             products_price: o.products_price,
             delivery_price: o.delivery_price,
             total_price: o.total_price,
+            promo_code: o.promo_code,
+            discount_amount: o.discount_amount || 0,
             userName: o.Users?.name,
             userEmail: o.Users?.email,
-            productName: o.Products?.name,
-            price: o.Products?.price
+            productName: o.Products?.name || (o.shipping_address && o.shipping_address.includes('[') ? o.shipping_address.match(/\[(.*?)\]/)?.[1] : null) || 'طلب مباشر (صفحة الهبوط)',
+            price: o.Products?.price || o.products_price
         }));
         res.json(rows);
     } catch (err) {
@@ -129,7 +133,8 @@ router.post('/orders', [
 
     const {
         shippingName, shippingAddress, city, firstName, lastName, 
-        items, cartTotal, deliveryCost, finalTotal
+        items, cartTotal, deliveryCost, finalTotal, deliveryType,
+        deliveryCompanyId, deliveryCompanyName, promoCode, promo_code
     } = req.body;
 
     if (!shippingName || !items || !items.length || !city || !firstName || !lastName || 
@@ -140,6 +145,17 @@ router.post('/orders', [
     }
 
     try {
+        // Tag company and stopdesk if selected
+        let finalShippingAddress = (shippingAddress || '').trim();
+        const companyTag = deliveryCompanyName ? `[شركة: ${deliveryCompanyName}]` : '';
+        const deskTag = deliveryType === 'desk' ? '[استلام من المكتب - Stopdesk]' : '';
+        if (companyTag && !finalShippingAddress.includes('شركة')) {
+            finalShippingAddress = `${companyTag} ${finalShippingAddress}`.trim();
+        }
+        if (deskTag && !finalShippingAddress.includes('Stopdesk')) {
+            finalShippingAddress = `${deskTag} ${finalShippingAddress}`.trim();
+        }
+
         // Get user email from token
         const userId = req.user.userId;
         const { data: userData, error: userError } = await supabase
@@ -154,7 +170,7 @@ router.post('/orders', [
         await OrderService.validateStock(items);
         
         // Validate delivery cost
-        await OrderService.validateDeliveryCost(city, deliveryCost);
+        await OrderService.validateDeliveryCost(city, deliveryCost, deliveryCompanyId);
 
         // Generate unique order reference
         const orderRef = Date.now().toString();
@@ -163,7 +179,7 @@ router.post('/orders', [
         const result = await OrderService.createUserOrder({
             userId,
             shippingName,
-            shippingAddress,
+            shippingAddress: finalShippingAddress,
             city,
             firstName,
             lastName,
@@ -171,38 +187,42 @@ router.post('/orders', [
             cartTotal,
             deliveryCost,
             finalTotal,
-            orderRef
+            orderRef,
+            promoCode: (promoCode || promo_code || '').trim()
         });
 
         // Send order confirmation email
         try {
-            let orderDetails = `<div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 24px; border-radius: 12px; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #715100; font-weight: bold;">تفاصيل الطلب من Omervita</h2>
-                <p style="color: #333; font-size: 1.1em;"><b>نشكرك على ثقتك بمنتجاتنا</b></p>
-                <hr style='border:1px solid #ffbf00;'>
-                <p><b style='color:#715100;'>رقم الهاتف:</b> ${shippingName}</p>
-                <p><b style='color:#715100;'>العنوان:</b> ${shippingAddress || ''}, ${city}</p>
-                <p><b style='color:#715100;'>الاسم الكامل:</b> ${firstName} ${lastName}</p>
-                <p><b style='color:#715100;'>تاريخ الطلب:</b> ${new Date().toLocaleDateString('ar-DZ')}</p>
-                <p><b style='color:#715100;'>رقم الطلب:</b> #${orderRef}</p>
-                <ul style='color:#2c2c2c;'>`;
-            for (const item of items) {
-                orderDetails += `<li><b>${item.name}</b> x <b>${item.quantity}</b></li>`;
-            }
-            orderDetails += `</ul>
-                <p><b style='color:#715100;'>مجموع المنتج:</b> <span style='color:#ffbf00;'>${cartTotal} دج</span></p>
-                <p><b style='color:#715100;'>التوصيل:</b> <span style='color:#ffbf00;'>${deliveryCost} دج</span></p>
-                <p><b style='color:#715100;'>مجموع الطلبية:</b> <span style='color:#ffbf00;'>${finalTotal} دج</span></p>
-                <hr style='border:1px solid #ffbf00;'>
-                <p style='color:#888; font-size:0.95em;'>يمكنك متابعة طلبك من خلال صفحة <a href="${process.env.SITE_URL}/orders" style="color:#ffbf00;">الطلبات</a></p>
-                <p style='color:#888; font-size:0.95em;'>فريق Omervita يتمنى لك يوماً سعيداً!</p>
-            </div>`;
+            const { generateOrderEmailHtml } = require('../utils/order-receipt');
+            const effectiveDelivery = result.calculatedDeliveryCost !== undefined ? result.calculatedDeliveryCost : deliveryCost;
+            const effectiveDiscount = result.discountAmount !== undefined ? result.discountAmount : 0;
+            const effectiveFinal = result.calculatedFinalTotal !== undefined ? result.calculatedFinalTotal : finalTotal;
+            const effectivePromo = result.appliedPromo ? result.appliedPromo.code : ((promoCode || promo_code || '').trim() || null);
+
+            const orderDetails = generateOrderEmailHtml({
+                orderRef,
+                date: new Date(),
+                firstName,
+                lastName,
+                shippingName,
+                city,
+                deliveryCompanyName,
+                deliveryType,
+                shippingAddress: finalShippingAddress,
+                items,
+                cartTotal,
+                deliveryCost: effectiveDelivery,
+                discountAmount: effectiveDiscount,
+                promoCode: effectivePromo,
+                finalTotal: effectiveFinal,
+                isGuest: false
+            });
 
             // Send to customer
             if (userData.email) {
                 await sendOrderEmail(
                     userData.email,
-                    'تم استلام طلبك بنجاح - Omervita',
+                    `تم استلام طلبك بنجاح #${orderRef} - Omervita`,
                     orderDetails
                 );
             }
@@ -212,7 +232,7 @@ router.post('/orders', [
             if (adminEmail) {
                 await sendOrderEmail(
                     adminEmail,
-                    'طلبية جديدة - Omervita',
+                    `طلبية جديدة #${orderRef} - Omervita`,
                     orderDetails
                 );
             }

@@ -62,7 +62,9 @@ async function loadOrders() {
                     order_date: order.order_date,
                     products_price: order.products_price,
                     delivery_price: order.delivery_price,
-                    total_price: order.total_price
+                    total_price: order.total_price,
+                    promo_code: order.promo_code,
+                    discount_amount: order.discount_amount || 0
                 };
             }
             acc[order.order_group].items.push(order);
@@ -102,9 +104,11 @@ function createOrderCard(group) {
     const currentTotal = group.total_price || 0;
     const productsTotal = group.products_price || 0;
     const deliveryPrice = group.delivery_price || 0;
+    const discountAmount = group.discount_amount || 0;
+    const promoCode = group.promo_code;
 
     const productsHtml = group.items.map(item => `
-        <li class="d-flex justify-content-between">
+        <li class="d-flex justify-content-between align-items-center mb-1">
             <span>${item.productName} (x${item.quantity})</span>
             ${getStatusBadge(item.status)}
         </li>
@@ -113,7 +117,7 @@ function createOrderCard(group) {
     card.innerHTML = `
         <div class="order-header">
             <span class="order-id"><i class="bi bi-hash me-1"></i>مجموعة الطلب: ${group.order_group}</span>
-            <span class="order-date"><i class="bi bi-calendar-event me-1"></i>${new Date(group.order_date).toLocaleDateString()}</span>
+            <span class="order-date"><i class="bi bi-calendar-event me-1"></i>${new Date(group.order_date).toLocaleDateString('ar-DZ')}</span>
         </div>
         <div class="order-products">
             <ul class="list-unstyled ps-0 mb-2">
@@ -121,15 +125,26 @@ function createOrderCard(group) {
             </ul>
         </div>
         <div class="order-footer">
-             <div class="price-info">
-                <span>المنتجات: <strong>دج${productsTotal.toFixed(2)}</strong></span>
-                <span>الشحن: <strong>دج${deliveryPrice.toFixed(2)}</strong></span>
+             <div class="price-info d-flex flex-column gap-1 mb-2">
+                <div class="d-flex justify-content-between">
+                    <span>مجموع المنتجات:</span>
+                    <strong>دج${productsTotal.toFixed(2)}</strong>
+                </div>
+                ${discountAmount > 0 ? `
+                <div class="d-flex justify-content-between text-success fw-bold">
+                    <span><i class="bi bi-ticket-perforated me-1"></i>خصم الكوبون (${promoCode || 'PROMO'}):</span>
+                    <span>-دج${discountAmount.toFixed(2)}</span>
+                </div>` : ''}
+                <div class="d-flex justify-content-between">
+                    <span>تكلفة الشحن:</span>
+                    <strong>${deliveryPrice === 0 ? '<span class="text-success">مجاني 🚚</span>' : `دج${deliveryPrice.toFixed(2)}`}</strong>
+                </div>
             </div>
-            <div class="total-price mb-2">
-                <span>الإجمالي الحالي:</span>
-                <span class="price">دج${currentTotal.toFixed(2)}</span>
+            <div class="total-price mb-2 d-flex justify-content-between align-items-center border-top pt-2">
+                <span class="fw-bold">المجموع الكلي:</span>
+                <span class="price fw-bold text-primary fs-5">دج${currentTotal.toFixed(2)}</span>
             </div>
-            <div class="text-end">
+            <div class="text-end mt-2">
                 <button class="btn btn-sm btn-outline-secondary archive-order-btn" 
                         onclick="archiveOrderGroup('${group.order_group}', this)">
                     <i class="bi bi-archive me-1"></i>أرشفة الطلب

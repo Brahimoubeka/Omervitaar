@@ -214,7 +214,23 @@
   <div id="global-navbar"></div>
 
   <main class="container my-5 animate-fade-in">
-    <h1 class="mb-4"><i class="bi bi-envelope me-2"></i>رسائل المستخدمين</h1>
+    <h1 class="mb-4 text-center"><i class="bi bi-envelope-paper-fill me-2 text-primary"></i>رسائل المستخدمين والزوار</h1>
+
+    <!-- Admin Actions Toolbar -->
+    <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center mb-4">
+      <a href="/admin-funnels" class="btn btn-outline-success rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center">
+        <i class="bi bi-diagram-3-fill me-1"></i> صفحات الهبوط
+      </a>
+      <a href="/admin-products" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center">
+        <i class="bi bi-box-seam me-1"></i> المنتجات
+      </a>
+      <a href="/admin-orders" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center">
+        <i class="bi bi-truck me-1"></i> الطلبات
+      </a>
+      <a href="/admin-settings" class="btn btn-primary">
+        <i class="bi bi-gear-fill me-1"></i> إعدادات الموقع
+      </a>
+    </div>
     <!-- Messages container -->
     <div id="messages-container" class="list-group">
       <!-- Messages will be dynamically loaded here -->

@@ -50,11 +50,7 @@ const validateOrderInputs = [
 
     body('finalTotal')
         .isNumeric().withMessage('المجموع النهائي غير صالح')
-        .custom((value) => value >= 0).withMessage('المجموع النهائي يجب أن يكون أكبر من 0')
-        .custom((value, { req }) => {
-            const total = parseFloat(req.body.cartTotal) + parseFloat(req.body.deliveryCost);
-            return Math.abs(parseFloat(value) - total) < 0.01; // Allow for small floating point differences
-        }).withMessage('المجموع النهائي غير صحيح'),
+        .custom((value) => value >= 0).withMessage('المجموع النهائي يجب أن يكون أكبر من أو يساوي 0'),
 
     // Optional fields
     body('shippingAddress').trim().optional(),

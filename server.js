@@ -7,6 +7,25 @@ const fs = require('fs');
 require('dotenv').config();
 const supabase = require('./supabase');
 const jwt = require('jsonwebtoken');
+const { router: trackingRoutes, getCompiledTrackingScripts } = require('./routes/tracking');
+
+// Helper to inject custom tracking scripts before </head> and </body>
+async function injectTrackingIntoHtml(html) {
+  try {
+    const { headScripts, bodyScripts } = await getCompiledTrackingScripts();
+    let result = html;
+    if (headScripts && headScripts.trim()) {
+      result = result.replace('</head>', `\n<!-- [Custom Tracking Scripts Head] -->\n${headScripts}\n</head>`);
+    }
+    if (bodyScripts && bodyScripts.trim()) {
+      result = result.replace('</body>', `\n<!-- [Custom Tracking Scripts Body] -->\n${bodyScripts}\n</body>`);
+    }
+    return result;
+  } catch (err) {
+    console.error('Error injecting tracking scripts:', err);
+    return html;
+  }
+}
 
 // Prevent unhandled promise rejections from crashing the server
 process.on('unhandledRejection', (reason, promise) => {
@@ -24,15 +43,11 @@ const BRANDING_PATH = path.join(__dirname, 'branding.json');
 app.get('/product-detail.html', async (req, res) => {
   const productId = req.query.id;
   
-  if (!productId) {
-    return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
-  }
-  
   // Check if this is a request from a social media crawler
   const userAgent = req.headers['user-agent'] || '';
   const isCrawler = /facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|skypeuripreview|slackbot|discordbot|googlebot|bingbot|bot|crawler|spider|scraper/i.test(userAgent);
   
-  if (isCrawler) {
+  if (productId && isCrawler) {
     try {
       const html = await renderProductDetailHTML(parseInt(productId, 10));
       return res.send(html);
@@ -41,8 +56,17 @@ app.get('/product-detail.html', async (req, res) => {
       return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
     }
   } else {
-    // Regular users get the normal SPA experience
-    return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+    // Regular users get the page with tracking injected
+    try {
+      const htmlPath = path.join(__dirname, 'public', 'product-detail.html');
+      const content = await fs.promises.readFile(htmlPath, 'utf-8');
+      const injected = await injectTrackingIntoHtml(content);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.send(injected);
+    } catch (err) {
+      return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+    }
   }
 });
 
@@ -89,6 +113,22 @@ app.get('/products/:id', async (req, res) => {
     return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
   }
 });
+
+// Clean URLs for Landing Pages and Funnel Sections
+app.get(['/solutions/:slug', '/landing/:slug', '/landing.html'], async (req, res) => {
+  try {
+    const htmlPath = path.join(__dirname, 'public', 'landing.html');
+    const content = await fs.promises.readFile(htmlPath, 'utf-8');
+    const injected = await injectTrackingIntoHtml(content);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(injected);
+  } catch (err) {
+    return res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+  }
+});
+
+// Helper functions for product meta tags (must be defined before routes)
 
 // Helper functions for product meta tags (must be defined before routes)
 function escapeHtmlAttribute(str) {
@@ -250,6 +290,8 @@ async function renderProductDetailHTML(productId) {
       html = html.replace(originalTwitterImage, newTwitterImage);
     }
     
+    // Inject tracking scripts into rendered SSR HTML
+    html = await injectTrackingIntoHtml(html);
     return html;
     
   } catch (error) {
@@ -543,6 +585,13 @@ app.use(async (req, res, next) => {
       next();
     });
   }
+  else if (url === '/admin-funnels' || url === '/admin/funnels' || url === '/admin/funnels.html') {
+    // Verify admin access before redirecting to funnels & landing pages builder
+    return verifyAdminAccess(req, res, () => {
+      req.url = '/admin/funnels.html';
+      next();
+    });
+  }
   else if (url === '/logout') {
     req.url = '/logout.html';
   }
@@ -550,6 +599,40 @@ app.use(async (req, res, next) => {
     req.url = '/reset-password.html';
   }
   
+  next();
+});
+
+// Middleware to serve HTML pages with dynamic tracking scripts injected
+app.use(async (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+
+  const urlPath = req.path;
+
+  // Don't intercept admin pages or API routes
+  if (urlPath.startsWith('/admin') || urlPath.startsWith('/api')) {
+    return next();
+  }
+
+  let targetFile = null;
+  if (urlPath === '/' || urlPath === '/index.html') {
+    targetFile = 'index.html';
+  } else if (urlPath.endsWith('.html')) {
+    targetFile = urlPath.replace(/^\//, '');
+  }
+
+  if (targetFile) {
+    try {
+      const filePath = path.join(__dirname, 'public', targetFile);
+      const content = await fs.promises.readFile(filePath, 'utf8');
+      const injected = await injectTrackingIntoHtml(content);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.send(injected);
+    } catch (err) {
+      return next();
+    }
+  }
+
   next();
 });
 
@@ -600,6 +683,17 @@ app.use('/api', reviewsRoutes);
 
 const analyticsRoutes = require('./routes/analytics');
 app.use('/api', analyticsRoutes);
+
+const deliveryRoutes = require('./routes/delivery');
+app.use('/api', deliveryRoutes);
+
+app.use('/api', trackingRoutes);
+
+const { router: promosRoutes } = require('./routes/promos');
+app.use('/api', promosRoutes);
+
+const { router: funnelsRoutes } = require('./routes/funnels');
+app.use('/api', funnelsRoutes);
 
 
 
@@ -722,13 +816,7 @@ app.get('/api/branding', async (req, res) => {
   }
 });
 
-// --- API: /api/delivery-costs (GET) ---
-app.get('/api/delivery-costs', async (req, res) => {
-  // You can load this from a DB or file if you want, here is a static fallback
-  res.json({
-    "Adrar": 400, "Chlef": 350, "Laghouat": 420, "Oum El Bouaghi": 390, "Batna": 410, "Béjaïa": 370, "Biskra": 430, "Béchar": 450, "Blida": 320, "Bouira": 360, "Tamanrasset": 600, "Tébessa": 440, "Tlemcen": 380, "Tiaret": 370, "Tizi Ouzou": 340, "Algiers": 300, "Djelfa": 410, "Jijel": 370, "Sétif": 360, "Saïda": 390, "Skikda": 380, "Sidi Bel Abbès": 370, "Annaba": 400, "Guelma": 390, "Constantine": 350, "Médéa": 330, "Mostaganem": 340, "M'Sila": 400, "Mascara": 370, "Ouargla": 500, "Oran": 350, "El Bayadh": 470, "Illizi": 650, "Bordj Bou Arréridj": 360, "Boumerdès": 320, "El Tarf": 420, "Tindouf": 700, "Tissemsilt": 390, "El Oued": 520, "Khenchela": 430, "Souk Ahras": 410, "Tipaza": 310, "Mila": 380, "Aïn Defla": 340, "Naâma": 480, "Aïn Témouchent": 370, "Ghardaïa": 530, "Relizane": 350, "Timimoun": 600, "Bordj Badji Mokhtar": 750, "Ouled Djellal": 480, "Béni Abbès": 650, "In Salah": 700, "In Guezzam": 800, "Touggourt": 550, "Djanet": 750, "El M'Ghair": 540, "El Menia": 600
-  });
-});
+
 
 // --- API: /api/admin/site-settings (GET) — admin only ---
 app.get('/api/admin/site-settings', async (req, res) => {

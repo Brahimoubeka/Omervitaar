@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
+const pool = require('../db');
+const SlugUtil = require('../utils/slug-util');
 const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const secret = process.env.JWT_SECRET;
@@ -22,10 +24,7 @@ async function uploadToSupabaseStorage(bucket, fileName, buffer, mimetype) {
 // Middleware to verify admin access
 function verifyAdmin(req, res, next) {
     const authHeader = req.headers['authorization'];
-    if (!authHeader) {
-        return res.status(401).json({ error: 'Token bulunamadı.' });
-    }
-    const token = authHeader.split(' ')[1];
+    const token = req.cookies?.token || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader);
     if (!token) {
         return res.status(401).json({ error: 'Token bulunamadı.' });
     }
@@ -53,14 +52,162 @@ async function getCategoriesForProduct(productId) {
     return (data || []).filter(row => row.Categories).map(row => ({ id: row.Categories.id, name: row.Categories.name }));
 }
 
-// Route: Get all categories (for frontend picker)
+// Route: Get all categories (with product count, active status, order, icons)
 router.get('/admin/categories', verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase.from('Categories').select('*');
-        if (error) throw error;
-        res.json(data);
+        const query = `
+            SELECT c.id, c.name, c.icon, c.color, c.display_order, c.is_active,
+                   COUNT(pc.product_id)::int AS products_count
+            FROM public."Categories" c
+            LEFT JOIN public."ProductCategories" pc ON pc.category_id = c.id
+            GROUP BY c.id, c.name, c.icon, c.color, c.display_order, c.is_active
+            ORDER BY c.display_order ASC, c.id ASC
+        `;
+        const { rows } = await pool.query(query);
+        const categoriesWithSlugs = rows.map(cat => ({
+            ...cat,
+            icon: cat.icon || 'bi-tag',
+            color: cat.color || 'orange',
+            slug: SlugUtil.generateCategorySlug(cat)
+        }));
+        res.json(categoriesWithSlugs);
     } catch (err) {
-        res.status(500).json({ error: 'خطأ في الخادم', details: err.message });
+        console.error('Error fetching admin categories:', err);
+        res.status(500).json({ error: 'خطأ في جلب الفئات', details: err.message });
+    }
+});
+
+// Route: Add a new category
+router.post('/admin/categories', verifyAdmin, async (req, res) => {
+    try {
+        const { name, icon, color, display_order, is_active } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'اسم الفئة مطلوب' });
+        }
+
+        const catName = name.trim();
+        const catIcon = (icon && icon.trim()) || 'bi-tag';
+        const catColor = (color && color.trim()) || 'orange';
+        const orderNum = parseInt(display_order, 10) || 0;
+        const activeState = is_active === false ? false : true;
+
+        const query = `
+            INSERT INTO public."Categories" (name, icon, color, display_order, is_active)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *
+        `;
+        const { rows } = await pool.query(query, [catName, catIcon, catColor, orderNum, activeState]);
+        const created = rows[0];
+        created.slug = SlugUtil.generateCategorySlug(created);
+        created.products_count = 0;
+
+        res.status(201).json({
+            message: 'تم إنشاء الفئة بنجاح',
+            category: created
+        });
+    } catch (err) {
+        console.error('Error creating category:', err);
+        res.status(500).json({ error: 'خطأ في إنشاء الفئة', details: err.message });
+    }
+});
+
+// Route: Update an existing category
+router.put('/admin/categories/:id', verifyAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!id || isNaN(id)) {
+            return res.status(400).json({ error: 'معرف الفئة غير صالح' });
+        }
+
+        const { name, icon, color, display_order, is_active } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'اسم الفئة مطلوب' });
+        }
+
+        const catName = name.trim();
+        const catIcon = (icon && icon.trim()) || 'bi-tag';
+        const catColor = (color && color.trim()) || 'orange';
+        const orderNum = parseInt(display_order, 10) || 0;
+        const activeState = is_active === false ? false : true;
+
+        const query = `
+            UPDATE public."Categories"
+            SET name = $1, icon = $2, color = $3, display_order = $4, is_active = $5
+            WHERE id = $6
+            RETURNING *
+        `;
+        const { rows } = await pool.query(query, [catName, catIcon, catColor, orderNum, activeState, id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'الفئة غير موجودة' });
+        }
+
+        const updated = rows[0];
+        updated.slug = SlugUtil.generateCategorySlug(updated);
+
+        res.json({
+            message: 'تم تحديث الفئة بنجاح',
+            category: updated
+        });
+    } catch (err) {
+        console.error('Error updating category:', err);
+        res.status(500).json({ error: 'خطأ في تحديث الفئة', details: err.message });
+    }
+});
+
+// Route: Toggle category active state
+router.put('/admin/categories/:id/toggle', verifyAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!id || isNaN(id)) {
+            return res.status(400).json({ error: 'معرف الفئة غير صالح' });
+        }
+
+        const explicitActive = req.body.is_active;
+        const query = `
+            UPDATE public."Categories"
+            SET is_active = CASE 
+                WHEN $1::boolean IS NOT NULL THEN $1::boolean 
+                ELSE NOT is_active 
+            END
+            WHERE id = $2
+            RETURNING *
+        `;
+        const { rows } = await pool.query(query, [explicitActive !== undefined ? explicitActive : null, id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'الفئة غير موجودة' });
+        }
+
+        res.json({
+            message: 'تم تغيير حالة الفئة بنجاح',
+            category: rows[0]
+        });
+    } catch (err) {
+        console.error('Error toggling category active status:', err);
+        res.status(500).json({ error: 'خطأ في تغيير حالة الفئة', details: err.message });
+    }
+});
+
+// Route: Delete a category (removes product links first, then category)
+router.delete('/admin/categories/:id', verifyAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!id || isNaN(id)) {
+            return res.status(400).json({ error: 'معرف الفئة غير صالح' });
+        }
+
+        // 1. Remove association from ProductCategories first to avoid FK constraint error
+        await pool.query('DELETE FROM public."ProductCategories" WHERE category_id = $1', [id]);
+
+        // 2. Delete category
+        const { rowCount } = await pool.query('DELETE FROM public."Categories" WHERE id = $1', [id]);
+        if (rowCount === 0) {
+            return res.status(404).json({ error: 'الفئة غير موجودة' });
+        }
+
+        res.json({ message: 'تم حذف الفئة بنجاح' });
+    } catch (err) {
+        console.error('Error deleting category:', err);
+        res.status(500).json({ error: 'خطأ في حذف الفئة', details: err.message });
     }
 });
 

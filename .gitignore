@@ -12,6 +12,7 @@ test-*.html
 desktop.ini
 .vs/
 .vscode/
+scratch/
 
 # Local database and config files (using Supabase instead)
 database.sqlite

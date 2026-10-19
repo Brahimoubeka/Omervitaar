@@ -1,5 +1,44 @@
+// Fetch and render dynamic category shortcuts on the homepage
+async function loadHomeCategories() {
+  const container = document.getElementById('homepage-category-shortcuts');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/categories');
+    if (!res.ok) return;
+    const categories = await res.json();
+    if (!categories || categories.length === 0) return;
+
+    container.innerHTML = categories.map(cat => {
+      const icon = cat.icon || 'bi-tag';
+      const color = cat.color || 'orange';
+      const slug = cat.slug || cat.id;
+
+      return `
+        <a href="/categories/${slug}" class="cat-shortcut-link text-decoration-none"
+          style="flex: 0 0 auto; width: 120px;">
+          <div class="cat-shortcut-card shadow-sm"
+            style="padding: 20px 10px 16px 10px; min-height: 120px; display: flex; flex-direction: column; align-items: center;">
+            <div class="cat-shortcut-icon bg-${color}" style="width: 50px; height: 50px; font-size: 1.4rem;">
+              <i class="bi ${icon}"></i>
+            </div>
+            <div class="cat-shortcut-title" style="font-size: 0.95rem; margin-top: 10px; text-align: center;">
+              ${cat.name}
+            </div>
+          </div>
+        </a>
+      `;
+    }).join('');
+  } catch (err) {
+    console.warn('Error loading dynamic categories:', err);
+  }
+}
+
 // Fetch and render featured products for the homepage
 document.addEventListener('DOMContentLoaded', async () => {
+  // Load categories dynamically
+  loadHomeCategories();
+
   const container = document.getElementById('featured-products-container');
   if (!container) return;
 

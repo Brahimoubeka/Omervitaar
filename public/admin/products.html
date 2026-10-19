@@ -290,13 +290,24 @@
   <main class="container my-5 animate-fade-in">
     <h1 class="mb-4 text-center"><i class="bi bi-bag me-2"></i>إدارة المنتجات</h1>
 
-    <!-- Add Product Button -->
-    <button id="add-product-button" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">إضافة منتج</button>
-
-    <!-- Link to Site Settings Page -->
-    <a href="/admin-settings" class="btn btn-primary ms-2">
-      <i class="bi bi-gear-fill"></i> إعدادات الموقع (شعار، سلايد، روابط...)
-    </a>
+    <!-- Admin Actions Toolbar -->
+    <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center mb-4">
+      <button id="add-product-button" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <i class="bi bi-plus-circle me-1"></i> إضافة منتج
+      </button>
+      <a href="/admin-funnels" class="btn btn-outline-success rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center">
+        <i class="bi bi-diagram-3-fill me-1"></i> صفحات الهبوط
+      </a>
+      <a href="/admin-messages" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center">
+        <i class="bi bi-envelope-paper-fill me-1"></i> رسائل الزوار
+      </a>
+      <a href="/admin-orders" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center">
+        <i class="bi bi-truck me-1"></i> الطلبات
+      </a>
+      <a href="/admin-settings" class="btn btn-primary">
+        <i class="bi bi-gear-fill me-1"></i> إعدادات الموقع
+      </a>
+    </div>
 
     <!-- Modal -->
     <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">

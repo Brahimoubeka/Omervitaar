@@ -3,15 +3,7 @@
 
 <head>
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-WZM00X5FSE"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-WZM00X5FSE');
-  </script>
+  
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -124,6 +116,8 @@
   <link rel="stylesheet" href="/css/image-optimization.css?v=1736152800">
   <!-- Global UI CSS -->
   <link rel="stylesheet" href="/css/global-ui.css">
+  <!-- Home Featured Funnels CSS -->
+  <link rel="stylesheet" href="/css/home-funnels.css">
 
   <!-- PWA Manifest removed - offline functionality disabled -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -137,6 +131,18 @@
   <meta name="msapplication-TileColor" content="#715100">
 
   <style>
+    /* Critical constraint to prevent section cards flash on reload */
+    .home-funnels-section { width: 100%; overflow: hidden; }
+    .home-funnels-grid { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 16px; }
+    @media (max-width: 576px) { .home-funnels-grid { gap: 10px !important; } }
+    .home-funnel-card { display: flex !important; flex-direction: column !important; overflow: hidden !important; contain: paint layout; }
+    .home-funnel-img-wrap { width: 100% !important; height: 180px !important; max-height: 180px !important; aspect-ratio: 16/9; overflow: hidden !important; position: relative !important; }
+    .home-funnel-img { width: 100% !important; height: 180px !important; max-width: 100% !important; max-height: 180px !important; aspect-ratio: 16/9; object-fit: cover !important; display: block !important; }
+    @media (max-width: 576px) {
+      .home-funnel-img-wrap { height: 125px !important; max-height: 125px !important; }
+      .home-funnel-img { height: 125px !important; max-height: 125px !important; }
+    }
+
     :root {
       --military-green: #5a6344;
       --light-military: #7c875d;
@@ -1011,25 +1017,7 @@
     }
   </style>
 
-  <!-- Meta Pixel Code -->
-  <script>
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
-        n.callMethod ?
-          n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-      };
-      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-      n.queue = []; t = b.createElement(e); t.async = !0;
-      t.src = v; s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s)
-    }(window, document, 'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1085677903485810');
-    fbq('track', 'PageView');
-  </script>
-  <noscript><img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1085677903485810&ev=PageView&noscript=1" /></noscript>
-  <!-- End Meta Pixel Code -->
+  
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 
@@ -1037,6 +1025,9 @@
   <!-- Global Navbar -->
   <div id="global-navbar"></div>
   <main dir="rtl">
+    <!-- Featured Funnels Solutions Section (Admin Controlled) -->
+    <div id="home-featured-funnels-root"></div>
+
     <!-- Category Shortcuts Section -->
     <section class="category-shortcuts-section py-4 mt-4" style="background:var(--light-gray); position: relative;">
       <div class="container">
@@ -1045,7 +1036,7 @@
           <p class="d-block d-md-none text-muted small mb-0" style="font-size: 0.85rem;"><i
               class="bi bi-arrow-left-right me-1"></i> اسحب للتصفح</p>
         </div>
-        <div class="category-shortcuts-scroll"
+        <div class="category-shortcuts-scroll" id="homepage-category-shortcuts"
           style="display: flex; flex-direction: row; overflow-x: auto; gap: 15px; padding-bottom: 12px; scrollbar-width: thin; scrollbar-color: var(--orange-accent) var(--light-gray); -webkit-overflow-scrolling: touch;">
           <a href="/categories/alanayh-alshrh-2" class="cat-shortcut-link text-decoration-none"
             style="flex: 0 0 auto; width: 120px;">
@@ -1519,6 +1510,7 @@
     console.log('Carousel images loaded dynamically from site_settings.');
   </script>
   <script src="/js/home-products.js"></script>
+  <script src="/js/home-funnels.js"></script>
 </body>
 
 </html>

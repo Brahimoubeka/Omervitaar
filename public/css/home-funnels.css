@@ -1,0 +1,214 @@
+/* Home Featured Funnel Solutions Section */
+.home-funnels-section {
+  position: relative;
+  padding: 1.5rem 0 1.25rem 0;
+  background: linear-gradient(180deg, rgba(90, 99, 68, 0.04) 0%, rgba(214, 168, 72, 0.03) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* 2 Cards per line on BOTH Mobile and Desktop */
+.home-funnels-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 16px;
+}
+
+@media (max-width: 576px) {
+  .home-funnels-grid {
+    gap: 10px;
+  }
+}
+
+.home-funnel-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(90, 99, 68, 0.15);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Zero zoom or translateY on hover */
+.home-funnel-card:hover {
+  transform: none !important;
+  box-shadow: 0 6px 20px rgba(90, 99, 68, 0.14);
+  border-color: rgba(90, 99, 68, 0.35);
+}
+
+.home-funnel-img-wrap {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 180px;
+  max-height: 180px;
+  aspect-ratio: 16 / 9;
+  background: #f2f4ee;
+}
+
+@media (max-width: 576px) {
+  .home-funnel-img-wrap {
+    height: 125px !important;
+    max-height: 125px !important;
+  }
+}
+
+.home-funnel-img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 576px) {
+  .home-funnel-img {
+    height: 125px !important;
+    max-height: 125px !important;
+  }
+}
+
+/* No zoom on image hover */
+.home-funnel-card:hover .home-funnel-img {
+  transform: none !important;
+}
+
+.home-funnel-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
+  color: #5a6344;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(90, 99, 68, 0.18);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-funnel-content {
+  padding: 1rem 0.95rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 576px) {
+  .home-funnel-content {
+    padding: 0.65rem 0.5rem;
+  }
+}
+
+.home-funnel-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #222222;
+  margin-bottom: 0.35rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 576px) {
+  .home-funnel-title {
+    font-size: 0.92rem;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.home-funnel-subtitle {
+  font-size: 0.85rem;
+  color: #666666;
+  line-height: 1.5;
+  margin-bottom: 0.65rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 576px) {
+  .home-funnel-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Sub-sections Pills */
+.home-funnel-subs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 0.65rem;
+}
+
+.home-funnel-sub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #f4f6f1;
+  color: #5a6344;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  text-decoration: none;
+  border: 1px solid rgba(90, 99, 68, 0.16);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.home-funnel-sub-pill:hover {
+  background: #5a6344;
+  color: #ffffff;
+  border-color: #5a6344;
+  transform: none !important;
+}
+
+.home-funnel-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #5a6344 0%, #3e442f 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 7px 16px;
+  border-radius: 30px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(90, 99, 68, 0.25);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+@media (max-width: 576px) {
+  .home-funnel-cta-btn {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+}
+
+.home-funnel-cta-btn:hover {
+  background: linear-gradient(135deg, #d6a848 0%, #ba8e34 100%);
+  box-shadow: 0 5px 15px rgba(214, 168, 72, 0.35);
+  transform: none !important;
+}
+
+.home-funnel-cta-btn i {
+  transition: none;
+}
+
+.home-funnel-cta-btn:hover i {
+  transform: none !important;
+}

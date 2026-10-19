@@ -1,23 +1,366 @@
-// cart.js
+// cart.js - Dynamic Delivery Companies, Wilayas & Cart Management
 
-// Delivery costs by city (Algerian wilayas)
-const deliveryCosts = {
-  "Adrar": 1200, "Chlef": 800, "Laghouat": 1100, "Oum El Bouaghi": 800, "Batna": 800, "Béjaïa": 800,
-  "Biskra": 1100, "Béchar": 1200, "Blida": 600, "Bouira": 800, "Tamanrasset": 1950, "Tébessa": 1100,
-  "Tlemcen": 800, "Tiaret": 800, "Tizi Ouzou": 800, "Algiers": 500, "Djelfa": 1100, "Jijel": 800,
-  "Sétif": 800, "Saïda": 900, "Skikda": 900, "Sidi Bel Abbès": 800, "Annaba": 800, "Guelma": 900,
-  "Constantine": 800, "Médéa": 800, "Mostaganem": 800, "M'Sila": 800, "Mascara": 800, "Ouargla": 1100,
-  "Oran": 800, "El Bayadh": 1200, "Illizi": 2000, "Bordj Bou Arréridj": 800, "Boumerdès": 600,
-  "El Tarf": 900, "Tindouf": 1950, "Tissemsilt": 900, "El Oued": 1100, "Khenchela": 900,
-  "Souk Ahras": 900, "Tipaza": 600, "Mila": 800, "Aïn Defla": 800, "Naâma": 1200, "Aïn Témouchent": 800,
-  "Ghardaïa": 1100, "Relizane": 800, "Timimoun": 1200, "Bordj Badji Mokhtar": 2000, "Ouled Djellal": 1100,
-  "Béni Abbès": 1200, "In Salah": 1950, "In Guezzam": 1950, "Touggourt": 1100, "Djanet": 1950,
-  "El M'Ghair": 1100, "El Menia": 1100
+// Default delivery costs by city (Algerian wilayas) with home & desk rates
+const defaultDeliveryRates = {
+  "Adrar": { home: 1200, desk: 800 },
+  "Chlef": { home: 800, desk: 500 },
+  "Laghouat": { home: 1100, desk: 700 },
+  "Oum El Bouaghi": { home: 800, desk: 500 },
+  "Batna": { home: 800, desk: 500 },
+  "Béjaïa": { home: 800, desk: 500 },
+  "Biskra": { home: 1100, desk: 700 },
+  "Béchar": { home: 1200, desk: 800 },
+  "Blida": { home: 600, desk: 400 },
+  "Bouira": { home: 800, desk: 500 },
+  "Tamanrasset": { home: 1950, desk: 1400 },
+  "Tébessa": { home: 1100, desk: 700 },
+  "Tlemcen": { home: 800, desk: 500 },
+  "Tiaret": { home: 800, desk: 500 },
+  "Tizi Ouzou": { home: 800, desk: 500 },
+  "Algiers": { home: 500, desk: 350 },
+  "Djelfa": { home: 1100, desk: 700 },
+  "Jijel": { home: 800, desk: 500 },
+  "Sétif": { home: 800, desk: 500 },
+  "Saïda": { home: 900, desk: 600 },
+  "Skikda": { home: 900, desk: 600 },
+  "Sidi Bel Abbès": { home: 800, desk: 500 },
+  "Annaba": { home: 800, desk: 500 },
+  "Guelma": { home: 900, desk: 600 },
+  "Constantine": { home: 800, desk: 500 },
+  "Médéa": { home: 800, desk: 500 },
+  "Mostaganem": { home: 800, desk: 500 },
+  "M'Sila": { home: 800, desk: 500 },
+  "Mascara": { home: 800, desk: 500 },
+  "Ouargla": { home: 1100, desk: 700 },
+  "Oran": { home: 800, desk: 500 },
+  "El Bayadh": { home: 1200, desk: 800 },
+  "Illizi": { home: 2000, desk: 1500 },
+  "Bordj Bou Arréridj": { home: 800, desk: 500 },
+  "Boumerdès": { home: 600, desk: 400 },
+  "El Tarf": { home: 900, desk: 600 },
+  "Tindouf": { home: 1950, desk: 1400 },
+  "Tissemsilt": { home: 900, desk: 600 },
+  "El Oued": { home: 1100, desk: 700 },
+  "Khenchela": { home: 900, desk: 600 },
+  "Souk Ahras": { home: 900, desk: 600 },
+  "Tipaza": { home: 600, desk: 400 },
+  "Mila": { home: 800, desk: 500 },
+  "Aïn Defla": { home: 800, desk: 500 },
+  "Naâma": { home: 1200, desk: 800 },
+  "Aïn Témouchent": { home: 800, desk: 500 },
+  "Ghardaïa": { home: 1100, desk: 700 },
+  "Relizane": { home: 800, desk: 500 },
+  "Timimoun": { home: 1200, desk: 800 },
+  "Bordj Badji Mokhtar": { home: 2000, desk: 1500 },
+  "Ouled Djellal": { home: 1100, desk: 700 },
+  "Béni Abbès": { home: 1200, desk: 800 },
+  "In Salah": { home: 1950, desk: 1400 },
+  "In Guezzam": { home: 1950, desk: 1400 },
+  "Touggourt": { home: 1100, desk: 700 },
+  "Djanet": { home: 1950, desk: 1400 },
+  "El M'Ghair": { home: 1100, desk: 700 },
+  "El Menia": { home: 1100, desk: 700 }
 };
+
+let activeDeliveryRates = { ...defaultDeliveryRates };
+let deliveryCosts = {};
+Object.keys(defaultDeliveryRates).forEach(c => {
+  deliveryCosts[c] = defaultDeliveryRates[c].home;
+});
+
+let availableDeliveryCompanies = [];
+let selectedDeliveryCompanyId = null;
+let selectedDeliveryCompanyName = '';
+let selectedDeliveryType = 'home'; // 'home' or 'desk'
+
+// Promo & Free Delivery State
+let appliedCartPromo = null;
+let isCartFreeDelivery = false;
+let storewideFreeDelivery = false;
+let freeDeliveryProductsList = [];
+
+async function checkCartFreeDeliveryStatus() {
+  try {
+    const res = await fetch('/api/delivery/free-delivery-status');
+    if (res.ok) {
+      const data = await res.json();
+      storewideFreeDelivery = !!data.storewide_free_delivery;
+      freeDeliveryProductsList = Array.isArray(data.free_delivery_products) ? data.free_delivery_products : [];
+    }
+  } catch (e) {
+    console.warn('Could not check free delivery status:', e);
+  }
+}
+
+function evaluateCartFreeDelivery(cart) {
+  if (!cart || cart.length === 0) return false;
+  if (storewideFreeDelivery) return true;
+  return cart.some(item => {
+    const pId = parseInt(item.id || item.productId || item.product_id, 10);
+    return freeDeliveryProductsList.some(p => {
+      const id = typeof p === 'object' && p !== null ? p.id : p;
+      return parseInt(id, 10) === pId;
+    }) || item.is_free_delivery === true;
+  });
+}
+
+function getCityDeliveryCost(city, type = selectedDeliveryType) {
+  if (!city) return 0;
+  const rate = activeDeliveryRates[city];
+  if (!rate) return deliveryCosts[city] || 0;
+  const homeP = rate.home !== undefined ? rate.home : (rate.home_price !== undefined ? parseFloat(rate.home_price) : 0);
+  const deskP = rate.desk !== undefined ? rate.desk : (rate.desk_price !== undefined ? parseFloat(rate.desk_price) : homeP);
+  return type === 'desk' ? deskP : homeP;
+}
+
+function updateDeliveryBadges(selectedCity) {
+  const homeBadge = document.getElementById('cartHomePriceBadge');
+  const deskBadge = document.getElementById('cartDeskPriceBadge');
+  if (!selectedCity) {
+    if (homeBadge) homeBadge.textContent = '-- دج';
+    if (deskBadge) deskBadge.textContent = '-- دج';
+    return;
+  }
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const hasItems = cart.length > 0;
+  const isFree = hasItems && (isCartFreeDelivery || Boolean(appliedCartPromo && appliedCartPromo.free_delivery));
+  if (isFree) {
+    if (homeBadge) homeBadge.textContent = '0 دج (مجاني)';
+    if (deskBadge) deskBadge.textContent = '0 دج (مجاني)';
+    return;
+  }
+  const homeP = getCityDeliveryCost(selectedCity, 'home');
+  const deskP = getCityDeliveryCost(selectedCity, 'desk');
+  if (homeBadge) homeBadge.textContent = `${homeP} دج`;
+  if (deskBadge) deskBadge.textContent = `${deskP} دج`;
+}
+
+const WILAYA_CODES = {
+  "Adrar": "1", "Chlef": "2", "Laghouat": "3", "Oum El Bouaghi": "4", "Batna": "5",
+  "Béjaïa": "6", "Biskra": "7", "Béchar": "8", "Blida": "9", "Bouira": "10",
+  "Tamanrasset": "11", "Tébessa": "12", "Tlemcen": "13", "Tiaret": "14", "Tizi Ouzou": "15",
+  "Algiers": "16", "Djelfa": "17", "Jijel": "18", "Sétif": "19", "Saïda": "20",
+  "Skikda": "21", "Sidi Bel Abbès": "22", "Annaba": "23", "Guelma": "24", "Constantine": "25",
+  "Médéa": "26", "Mostaganem": "27", "M'Sila": "28", "Mascara": "29", "Ouargla": "30",
+  "Oran": "31", "El Bayadh": "32", "Illizi": "33", "Bordj Bou Arréridj": "34", "Boumerdès": "35",
+  "El Tarf": "36", "Tindouf": "37", "Tissemsilt": "38", "El Oued": "39", "Khenchela": "40",
+  "Souk Ahras": "41", "Tipaza": "42", "Mila": "43", "Aïn Defla": "44", "Naâma": "45",
+  "Aïn Témouchent": "46", "Ghardaïa": "47", "Relizane": "48", "Timimoun": "49", "Bordj Badji Mokhtar": "50",
+  "Ouled Djellal": "51", "Béni Abbès": "52", "In Salah": "53", "In Guezzam": "54", "Touggourt": "55",
+  "Djanet": "56", "El M'Ghair": "57", "El Menia": "58"
+};
+
+function populateCitySelect() {
+  const citySelect = document.getElementById('city');
+  if (!citySelect) return;
+  const currentVal = citySelect.value;
+  citySelect.innerHTML = '<option value="">اختر الولاية...</option>';
+
+  const sortedCities = Object.keys(activeDeliveryRates).sort((a, b) => {
+    const rateA = activeDeliveryRates[a] || {};
+    const rateB = activeDeliveryRates[b] || {};
+    const numA = parseInt(rateA.city_code || WILAYA_CODES[a] || '999', 10);
+    const numB = parseInt(rateB.city_code || WILAYA_CODES[b] || '999', 10);
+    return numA - numB;
+  });
+
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const hasItems = cart.length > 0;
+  const isFree = hasItems && (isCartFreeDelivery || Boolean(appliedCartPromo && appliedCartPromo.free_delivery));
+
+  sortedCities.forEach(city => {
+    const option = document.createElement('option');
+    option.value = city;
+    const rate = activeDeliveryRates[city] || {};
+    const rawCode = rate.city_code || WILAYA_CODES[city] || '';
+    const numCode = rawCode ? (parseInt(rawCode, 10) || rawCode) : '';
+    const cost = isFree ? 0 : getCityDeliveryCost(city, selectedDeliveryType);
+    const prefix = numCode ? `${numCode}- ` : '';
+    option.textContent = `${prefix}${city} (${cost} دج)`;
+    citySelect.appendChild(option);
+  });
+
+  if (currentVal && activeDeliveryRates[currentVal]) {
+    citySelect.value = currentVal;
+  }
+}
+
+function updateDeliveryCost(cartTotalOverride = null) {
+  let cartTotal = cartTotalOverride;
+  if (cartTotal === null) {
+    const cartTotalText = document.getElementById('cart-total')?.textContent || 'دج0';
+    cartTotal = parseFloat(cartTotalText.replace('دج', '')) || 0;
+  }
+  
+  const citySelect = document.getElementById('city');
+  const selectedCity = citySelect ? citySelect.value : '';
+  let rawDeliveryCost = getCityDeliveryCost(selectedCity, selectedDeliveryType);
+  
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const hasItems = cart.length > 0;
+  isCartFreeDelivery = evaluateCartFreeDelivery(cart);
+
+  const isFree = hasItems && (isCartFreeDelivery || Boolean(appliedCartPromo && appliedCartPromo.free_delivery));
+  const deliveryCost = isFree ? 0 : rawDeliveryCost;
+
+  // Calculate discount
+  let discountAmount = 0;
+  if (appliedCartPromo) {
+    if (appliedCartPromo.discount_type === 'percentage') {
+      discountAmount = (cartTotal * appliedCartPromo.discount_value) / 100;
+      if (appliedCartPromo.max_discount && discountAmount > appliedCartPromo.max_discount) {
+        discountAmount = appliedCartPromo.max_discount;
+      }
+    } else if (appliedCartPromo.discount_type === 'fixed') {
+      discountAmount = Math.min(appliedCartPromo.discount_value, cartTotal);
+    }
+  }
+
+  const finalTotal = Math.max(0, cartTotal - discountAmount) + deliveryCost;
+
+  // Update Free Delivery Banner visibility
+  const banner = document.getElementById('cartFreeDeliveryBanner');
+  if (banner) {
+    banner.style.display = isFree ? 'block' : 'none';
+  }
+
+  // Update Discount Row
+  const discountRow = document.getElementById('cartDiscountRow');
+  const promoNameEl = document.getElementById('cartAppliedPromoName');
+  const discountAmountEl = document.getElementById('cartDiscountAmount');
+  if (discountRow && promoNameEl && discountAmountEl) {
+    if (appliedCartPromo && discountAmount > 0) {
+      discountRow.style.setProperty('display', 'flex', 'important');
+      promoNameEl.textContent = appliedCartPromo.code;
+      discountAmountEl.textContent = `-دج${discountAmount.toFixed(2)}`;
+    } else {
+      discountRow.style.setProperty('display', 'none', 'important');
+    }
+  }
+  
+  if (document.getElementById('delivery-cost')) {
+    const typeLabel = selectedCity ? (selectedDeliveryType === 'desk' ? ' (المكتب)' : ' (المنزل)') : '';
+    if (isFree && selectedCity) {
+      document.getElementById('delivery-cost').innerHTML = `<span class="badge bg-success">0 دج (توصيل مجاني 🚚)</span>`;
+    } else {
+      document.getElementById('delivery-cost').textContent = `دج${deliveryCost.toFixed(2)}${typeLabel}`;
+    }
+  }
+  if (document.getElementById('final-total')) {
+    document.getElementById('final-total').textContent = `دج${finalTotal.toFixed(2)}`;
+  }
+  updateDeliveryBadges(selectedCity);
+}
+
+async function applyCartPromoCode() {
+  const input = document.getElementById('cartPromoCodeInput');
+  const feedback = document.getElementById('cartPromoFeedback');
+  const btn = document.getElementById('cartApplyPromoBtn');
+  if (!input || !feedback) return;
+
+  const code = input.value.trim().toUpperCase();
+  if (!code) {
+    feedback.className = 'small mt-1 text-danger';
+    feedback.textContent = 'الرجاء إدخال كود الخصم أولاً.';
+    feedback.style.display = 'block';
+    return;
+  }
+
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const cartTotalText = document.getElementById('cart-total')?.textContent || 'دج0';
+  const cartTotal = parseFloat(cartTotalText.replace('دج', '')) || 0;
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    }
+
+    const res = await fetch('/api/promo-codes/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        items: cart,
+        cartTotal
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      appliedCartPromo = null;
+      updateDeliveryCost(cartTotal);
+      feedback.className = 'small mt-1 text-danger';
+      feedback.textContent = data.error || 'كود الخصم غير صالح';
+      feedback.style.display = 'block';
+      return;
+    }
+
+    appliedCartPromo = {
+      code: data.code,
+      discount_type: data.discount_type,
+      discount_value: data.discount_value,
+      discount_amount: data.discount_amount,
+      free_delivery: !!data.free_delivery,
+      max_discount: data.max_discount
+    };
+
+    input.disabled = true;
+    if (btn) {
+      btn.textContent = 'إلغاء';
+      btn.className = 'btn btn-outline-danger fw-bold';
+      btn.onclick = removeCartPromoCode;
+    }
+
+    feedback.className = 'small mt-1 text-success fw-bold';
+    feedback.textContent = `تم تطبيق الكوبون بنجاح: ${data.message || ''}`;
+    feedback.style.display = 'block';
+
+    updateDeliveryCost(cartTotal);
+  } catch (err) {
+    feedback.className = 'small mt-1 text-danger';
+    feedback.textContent = 'حدث خطأ أثناء فحص الكود.';
+    feedback.style.display = 'block';
+  } finally {
+    if (btn && !appliedCartPromo) {
+      btn.disabled = false;
+      btn.textContent = 'تطبيق';
+      btn.className = 'btn btn-outline-primary fw-bold';
+      btn.onclick = applyCartPromoCode;
+    } else if (btn) {
+      btn.disabled = false;
+    }
+  }
+}
+
+function removeCartPromoCode() {
+  appliedCartPromo = null;
+  const input = document.getElementById('cartPromoCodeInput');
+  const feedback = document.getElementById('cartPromoFeedback');
+  const btn = document.getElementById('cartApplyPromoBtn');
+
+  if (input) {
+    input.value = '';
+    input.disabled = false;
+  }
+  if (btn) {
+    btn.textContent = 'تطبيق';
+    btn.className = 'btn btn-outline-primary fw-bold';
+    btn.onclick = applyCartPromoCode;
+  }
+  if (feedback) {
+    feedback.style.display = 'none';
+  }
+
+  updateDeliveryCost();
+}
 
 function loadCart() {
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  isCartFreeDelivery = evaluateCartFreeDelivery(cart);
+
   const container = document.getElementById('cart-container');
+  if (!container) return;
   container.innerHTML = '';
 
   // Empty cart
@@ -48,7 +391,6 @@ function loadCart() {
     const card = document.createElement('div');
     card.className = 'cart-item-card d-flex flex-row align-items-center mb-2 p-2 border rounded-3 bg-white shadow-sm';
 
-    // Product block WITH small image and compact text
     card.innerHTML = `
       <!-- Image Preview -->
       <div class="me-3" style="width: 60px; height: 60px; flex-shrink: 0; border-radius: 6px; overflow: hidden; border: 1px solid #eee;">
@@ -100,7 +442,6 @@ function loadCart() {
     });
 
     container.appendChild(card);
-
     total += (parseFloat(item.price) || 0) * (parseInt(item.quantity, 10) || 1);
   });
 
@@ -109,7 +450,7 @@ function loadCart() {
   }
   updateDeliveryCost(total);
 
-  // Enable checkout button if cart has items
+  // Enable checkout button
   const checkoutBtn = document.getElementById('checkout-button');
   if (checkoutBtn) {
     checkoutBtn.disabled = false;
@@ -117,27 +458,6 @@ function loadCart() {
     checkoutBtn.classList.add('btn-primary');
     checkoutBtn.style.opacity = '';
     checkoutBtn.style.cursor = '';
-  }
-}
-
-function updateDeliveryCost(cartTotalOverride = null) {
-  let cartTotal = cartTotalOverride;
-  if (cartTotal === null) {
-    const cartTotalText = document.getElementById('cart-total')?.textContent || 'دج0';
-    cartTotal = parseFloat(cartTotalText.replace('دج', '')) || 0;
-  }
-  
-  const citySelect = document.getElementById('city');
-  const selectedCity = citySelect ? citySelect.value : '';
-  const deliveryCost = deliveryCosts[selectedCity] || 0;
-  
-  const finalTotal = cartTotal + deliveryCost;
-  
-  if(document.getElementById('delivery-cost')) {
-    document.getElementById('delivery-cost').textContent = `دج${deliveryCost.toFixed(2)}`;
-  }
-  if(document.getElementById('final-total')) {
-    document.getElementById('final-total').textContent = `دج${finalTotal.toFixed(2)}`;
   }
 }
 
@@ -149,20 +469,135 @@ function saveCartAndReload(cart) {
   }
 }
 
-function setupCityProvinceHandlers() {
-  const citySelect = document.getElementById('city');
-  if (!citySelect) return;
-  
-  Object.keys(deliveryCosts).forEach(city => {
-    const option = document.createElement('option');
-    option.value = city;
-    option.innerHTML = city;
-    citySelect.appendChild(option);
-  });
+// Fetch rates for a specific delivery company
+async function fetchCartRatesForCompany(companyId) {
+  try {
+    const url = companyId ? `/api/delivery-costs?company_id=${companyId}` : '/api/delivery-costs';
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ratesMap && Object.keys(data.ratesMap).length > 0) {
+        activeDeliveryRates = data.ratesMap;
+        deliveryCosts = {};
+        Object.keys(data.ratesMap).forEach(c => {
+          const item = data.ratesMap[c];
+          deliveryCosts[c] = item.home !== undefined ? item.home : (item.home_price || 0);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch delivery costs for company:', err);
+  }
 
-  citySelect.addEventListener('change', function() {
+  populateCitySelect();
+  updateDeliveryCost();
+}
+
+async function setupCityProvinceHandlers() {
+  const compSelect = document.getElementById('cartDeliveryCompany');
+  const citySelect = document.getElementById('city');
+
+  const compContainer = compSelect ? (compSelect.closest('.col-md-6') || compSelect.parentElement) : null;
+
+  // Load available companies
+  try {
+    const res = await fetch('/api/delivery-companies');
+    if (res.ok) {
+      const companies = await res.json();
+      if (Array.isArray(companies)) {
+        availableDeliveryCompanies = companies;
+        if (compSelect) {
+          compSelect.innerHTML = '';
+          if (companies.length === 0) {
+            if (compContainer) compContainer.style.display = 'none';
+            compSelect.removeAttribute('required');
+            selectedDeliveryCompanyId = null;
+            selectedDeliveryCompanyName = '';
+          } else {
+            if (compContainer) compContainer.style.display = '';
+            compSelect.setAttribute('required', 'required');
+            companies.forEach(c => {
+              const opt = document.createElement('option');
+              opt.value = c.id;
+              opt.textContent = c.name + (c.is_default ? ' (الافتراضية)' : '');
+              if (c.is_default) opt.selected = true;
+              compSelect.appendChild(opt);
+            });
+            const defaultComp = companies.find(c => c.is_default) || companies[0];
+            selectedDeliveryCompanyId = defaultComp ? defaultComp.id : companies[0].id;
+            selectedDeliveryCompanyName = defaultComp ? defaultComp.name : companies[0].name;
+            compSelect.value = selectedDeliveryCompanyId;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load delivery companies in cart:', err);
+  }
+
+  if (compSelect) {
+    compSelect.addEventListener('change', async function() {
+      selectedDeliveryCompanyId = parseInt(this.value, 10);
+      const selectedOpt = this.options[this.selectedIndex];
+      selectedDeliveryCompanyName = selectedOpt ? selectedOpt.textContent.replace(' (الافتراضية)', '').trim() : '';
+      await fetchCartRatesForCompany(selectedDeliveryCompanyId);
+    });
+  }
+
+  // Fetch initial rates for the selected company
+  await fetchCartRatesForCompany(selectedDeliveryCompanyId);
+
+  if (citySelect) {
+    citySelect.addEventListener('change', function() {
+      updateDeliveryCost();
+    });
+  }
+
+  // Setup delivery type buttons (Home vs Stopdesk)
+  const homeRadio = document.getElementById('cartDeliveryHome');
+  const deskRadio = document.getElementById('cartDeliveryDesk');
+
+  const handleCartDeliveryTypeChange = (newType) => {
+    selectedDeliveryType = newType;
+    populateCitySelect();
     updateDeliveryCost();
-  });
+
+    if (homeRadio && deskRadio) {
+      const homeLabel = homeRadio.closest('label');
+      const deskLabel = deskRadio.closest('label');
+      if (newType === 'home') {
+        if (homeLabel) {
+          homeLabel.style.borderColor = 'var(--orange-accent, #ffbf00)';
+          homeLabel.style.backgroundColor = '#fffdf5';
+        }
+        if (deskLabel) {
+          deskLabel.style.borderColor = '#dee2e6';
+          deskLabel.style.backgroundColor = '#fff';
+        }
+      } else {
+        if (deskLabel) {
+          deskLabel.style.borderColor = 'var(--orange-accent, #ffbf00)';
+          deskLabel.style.backgroundColor = '#fffdf5';
+        }
+        if (homeLabel) {
+          homeLabel.style.borderColor = '#dee2e6';
+          homeLabel.style.backgroundColor = '#fff';
+        }
+      }
+    }
+  };
+
+  if (homeRadio) {
+    homeRadio.addEventListener('change', () => {
+      if (homeRadio.checked) handleCartDeliveryTypeChange('home');
+    });
+  }
+  if (deskRadio) {
+    deskRadio.addEventListener('change', () => {
+      if (deskRadio.checked) handleCartDeliveryTypeChange('desk');
+    });
+  }
+  handleCartDeliveryTypeChange('home');
 }
 
 async function showMessage(message, type = 'success') {
@@ -197,18 +632,20 @@ function setupFormSubmitHandler() {
     const lastName = document.getElementById('lastName').value.trim();
     const shippingName = document.getElementById('shippingName').value.trim();
     const city = document.getElementById('city').value;
-    const province = document.getElementById('province').value.trim();
-    
-    // Hardcoded empty strings for removed optional fields to satisfy backend
-    const shippingAddress = ""; 
-    const department = "";
-    const postalCode = "";
-    const street = "";
+    const provinceEl = document.getElementById('province');
+    const province = provinceEl ? provinceEl.value.trim() : '';
+    const compSelect = document.getElementById('cartDeliveryCompany');
 
     const phonePattern = /^\d{9,10}$/;
     if (!phonePattern.test(shippingName)) {
         showMessage('يرجى إدخال رقم هاتف صالح مكون من 9 أو 10 أرقام.', 'danger');
         document.getElementById('shippingName').focus();
+        return;
+    }
+
+    if (!city) {
+        showMessage('الرجاء اختيار الولاية.', 'danger');
+        document.getElementById('city').focus();
         return;
     }
 
@@ -218,14 +655,38 @@ function setupFormSubmitHandler() {
         return;
     }
 
-    const deliveryCost = deliveryCosts[city] || 0;
-    const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('دج', ''));
-    const finalTotal = cartTotal + deliveryCost;
+    const deliveryCost = getCityDeliveryCost(city, selectedDeliveryType);
+    const cartTotal = parseFloat(document.getElementById('cart-total').textContent.replace('دج', '')) || 0;
+    
+    let discountAmount = 0;
+    if (appliedCartPromo) {
+      if (appliedCartPromo.discount_type === 'percentage') {
+        discountAmount = (cartTotal * appliedCartPromo.discount_value) / 100;
+        if (appliedCartPromo.max_discount && discountAmount > appliedCartPromo.max_discount) {
+          discountAmount = appliedCartPromo.max_discount;
+        }
+      } else if (appliedCartPromo.discount_type === 'fixed') {
+        discountAmount = Math.min(appliedCartPromo.discount_value, cartTotal);
+      }
+    }
+    const isFree = isCartFreeDelivery || (appliedCartPromo && appliedCartPromo.free_delivery);
+    const finalDeliveryCost = isFree ? 0 : deliveryCost;
+    const finalTotal = Math.max(0, cartTotal - discountAmount) + finalDeliveryCost;
+
+    const compName = selectedDeliveryCompanyName || (compSelect?.options[compSelect.selectedIndex]?.textContent || 'شركة التوصيل').replace(' (الافتراضية)', '').trim();
+    const typeLabel = selectedDeliveryType === 'desk' ? 'استلام من المكتب (Stopdesk)' : 'توصيل للمنزل';
+    const formattedAddress = `[شركة: ${compName}] [${typeLabel}] ${province ? 'البلدية/العنوان: ' + province : ''}`.trim();
 
     const orderData = {
-        firstName, lastName, shippingName, shippingAddress, 
-        city, province, street, department, postalCode, 
-        items: cart, cartTotal, deliveryCost, finalTotal
+        firstName, lastName, shippingName, 
+        shippingAddress: formattedAddress,
+        city, province, street: province, 
+        department: compName, postalCode: '',
+        items: cart, cartTotal, deliveryCost: finalDeliveryCost, finalTotal,
+        deliveryType: selectedDeliveryType,
+        deliveryCompanyId: selectedDeliveryCompanyId,
+        deliveryCompanyName: compName,
+        promoCode: appliedCartPromo ? appliedCartPromo.code : null
     };
 
     const token = localStorage.getItem('token');
@@ -263,7 +724,6 @@ function setupFormSubmitHandler() {
 
         const result = await response.json();
         
-        // Handle out-of-stock API errors gracefully if they occur
         if (!response.ok) {
             if (result.error && (result.error.includes('stok') || result.error.toLowerCase().includes('stock'))) {
                 showMessage(`بعض المنتجات غير متوفرة في المخزون: ${result.error}`, 'danger');
@@ -288,7 +748,8 @@ function setupFormSubmitHandler() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkCartFreeDeliveryStatus();
   setupCityProvinceHandlers();
   loadCart();
   setupFormSubmitHandler();

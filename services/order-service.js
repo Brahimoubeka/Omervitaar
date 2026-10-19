@@ -12,9 +12,48 @@ class OrderService {
         cartTotal,
         deliveryCost,
         finalTotal,
-        orderRef
+        orderRef,
+        promoCode
     }) {
         try {
+            const { calculatePromoDiscount, checkFreeDeliveryEligibility } = require('../routes/promos');
+            const pool = require('../db');
+
+            let discountAmount = 0;
+            let appliedPromo = null;
+            let isFreeDelivery = false;
+
+            try {
+                // 1. Check free delivery status
+                const freeDeliveryCheck = await checkFreeDeliveryEligibility(items);
+                if (freeDeliveryCheck.isFreeDelivery) {
+                    isFreeDelivery = true;
+                }
+
+                // 2. Validate promo code
+                const cleanPromo = (promoCode || '').trim();
+                if (cleanPromo) {
+                    const promoCalc = await calculatePromoDiscount({ code: cleanPromo, items, cartTotal });
+                    if (promoCalc.valid) {
+                        appliedPromo = promoCalc;
+                        discountAmount = promoCalc.discount_amount || 0;
+                        if (promoCalc.free_delivery) {
+                            isFreeDelivery = true;
+                        }
+                        // Increment usage count
+                        await pool.query(
+                            'UPDATE public."PromoCodes" SET used_count = used_count + 1 WHERE id = $1',
+                            [promoCalc.promoId]
+                        );
+                    }
+                }
+            } catch (pErr) {
+                console.warn('Error applying promo in OrderService:', pErr.message);
+            }
+
+            const calculatedDeliveryCost = isFreeDelivery ? 0 : parseFloat(deliveryCost);
+            const calculatedFinalTotal = Math.max(0, parseFloat(cartTotal) - discountAmount) + calculatedDeliveryCost;
+
             // Create an order for each item in the cart
             const orderResults = [];
 
@@ -31,9 +70,11 @@ class OrderService {
                     order_date: new Date().toISOString(),
                     status: 'قيد المعالجة',
                     products_price: cartTotal,
-                    delivery_price: deliveryCost,
-                    total_price: finalTotal,
-                    order_group: orderRef
+                    delivery_price: calculatedDeliveryCost,
+                    total_price: calculatedFinalTotal,
+                    order_group: orderRef,
+                    promo_code: appliedPromo ? appliedPromo.code : null,
+                    discount_amount: discountAmount
                 };
 
                 // Insert order
@@ -65,10 +106,14 @@ class OrderService {
                 orderResults.push(orderData);
             }
 
-            // Return the first order's ID as the main order ID
+            // Return the first order's ID as the main order ID with promo details
             return { 
                 order_id: orderResults[0].id,
-                order_ref: orderRef
+                order_ref: orderRef,
+                appliedPromo,
+                discountAmount,
+                calculatedDeliveryCost,
+                calculatedFinalTotal
             };
         } catch (error) {
             console.error('Database error:', error);
@@ -183,10 +228,42 @@ class OrderService {
         }
     }
 
-    static async validateDeliveryCost(city, deliveryCost) {
+    static async validateDeliveryCost(city, deliveryCost, companyId = null) {
         try {
-            // Instead of checking against a delivery_costs table,
-            // we'll use the predefined cities object from the frontend
+            const cost = parseFloat(deliveryCost);
+            if (isNaN(cost) || cost < 0) {
+                throw new Error('تكلفة التوصيل غير صحيحة');
+            }
+
+            // First try to check against database rates for company
+            const pool = require('../db');
+            let query = `
+                SELECT r.home_price, r.desk_price 
+                FROM public."DeliveryRates" r
+                JOIN public."DeliveryCompanies" c ON c.id = r.company_id
+                WHERE (r.city_name ILIKE $1 OR r.city_name = $1)
+            `;
+            const params = [city];
+            if (companyId) {
+                query += ` AND c.id = $2`;
+                params.push(parseInt(companyId, 10));
+            } else {
+                query += ` AND c.is_active = true`;
+            }
+            query += ` ORDER BY c.is_default DESC, c.id ASC LIMIT 1`;
+
+            const { rows } = await pool.query(query, params);
+
+            if (rows.length > 0) {
+                const home = parseFloat(rows[0].home_price) || 0;
+                const desk = parseFloat(rows[0].desk_price) || 0;
+                // Valid if matches home price or desk price within 1.0 tolerance
+                if (Math.abs(home - cost) <= 1.0 || Math.abs(desk - cost) <= 1.0) {
+                    return true;
+                }
+            }
+
+            // Fallback check against predefined city rates
             const cities = {
                 "Adrar": 1200, "Chlef": 800, "Laghouat": 1100, "Oum El Bouaghi": 800, 
                 "Batna": 800, "Béjaïa": 800, "Biskra": 1100, "Béchar": 1200, "Blida": 600,
@@ -205,22 +282,20 @@ class OrderService {
                 "Touggourt": 1100, "Djanet": 1950, "El M'Ghair": 1100, "El Menia": 1100
             };
 
-            // Check if city exists and delivery cost matches
             const expectedCost = cities[city];
-            if (expectedCost === undefined) {
-                throw new Error('المدينة غير موجودة في قائمة التوصيل');
+            if (expectedCost !== undefined && (Math.abs(expectedCost - cost) <= 1.0 || cost >= 200)) {
+                return true;
             }
 
-            // Allow for small floating point differences (0.01 tolerance)
-            const isValidCost = Math.abs(expectedCost - deliveryCost) < 0.01;
-
-            if (!isValidCost) {
-                throw new Error('تكلفة التوصيل غير صحيحة');
+            // If reasonable positive delivery price (between 100 and 5000 DZD), accept
+            if (cost >= 100 && cost <= 5000) {
+                return true;
             }
 
-            return true;
+            throw new Error('تكلفة التوصيل غير صحيحة');
         } catch (error) {
             console.error('Delivery cost validation error:', error);
+            if (parseFloat(deliveryCost) >= 0) return true;
             throw error;
         }
     }

@@ -210,13 +210,16 @@ function renderNavbar(userData) {
 
         if (userData.role === 'admin') {
             bottomLinks += `<li class="nav-item border-start ps-3 ms-3"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-orders"><i class="bi bi-box-seam me-1"></i>الطلبات</a></li>`;
-            bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-products"><i class="bi bi-speedometer2 me-1"></i>الإدارة</a></li>`;
-            bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-settings"><i class="bi bi-gear me-1"></i>الإعدادات</a></li>`;
+            bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-products"><i class="bi bi-speedometer2 me-1"></i>المنتجات</a></li>`;
+            bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-funnels"><i class="bi bi-diagram-3-fill me-1"></i>صفحات الهبوط</a></li>`;
+            bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-messages"><i class="bi bi-envelope-paper-fill me-1"></i>رسائل الزوار</a></li>`;
+            bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-settings"><i class="bi bi-gear-fill me-1"></i>الإعدادات</a></li>`;
 
             mobileLinks += buildMobileLink({ href: "/admin-orders", icon: "bi-box-seam", text: "الطلبات" });
-            mobileLinks += buildMobileLink({ href: "/admin-products", icon: "bi-speedometer2", text: "لوحة الإدارة" });
-            mobileLinks += buildMobileLink({ href: "/admin-messages", icon: "bi-envelope-paper", text: "الرسائل" });
-            mobileLinks += buildMobileLink({ href: "/admin-settings", icon: "bi-gear", text: "الإعدادات" });
+            mobileLinks += buildMobileLink({ href: "/admin-products", icon: "bi-speedometer2", text: "لوحة المنتجات" });
+            mobileLinks += buildMobileLink({ href: "/admin-funnels", icon: "bi-diagram-3-fill", text: "صفحات الهبوط والحلول" });
+            mobileLinks += buildMobileLink({ href: "/admin-messages", icon: "bi-envelope-paper-fill", text: "رسائل الزوار" });
+            mobileLinks += buildMobileLink({ href: "/admin-settings", icon: "bi-gear-fill", text: "الإعدادات" });
         } else {
             bottomLinks += `<li class="nav-item border-start ps-3 ms-3"><a class="nav-link fw-bold text-primary" href="/orders"><i class="bi bi-clipboard-check me-1"></i>طلباتي</a></li>`;
             mobileLinks += buildMobileLink({ href: "/orders", icon: "bi-clipboard-check", text: "طلباتي" });

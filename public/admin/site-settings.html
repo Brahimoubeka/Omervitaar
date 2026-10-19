@@ -171,9 +171,18 @@
   <div class="toast-container" id="toast-container"></div>
 
   <main class="container my-4" dir="rtl">
-    <div class="d-flex align-items-center mb-4">
-      <a href="/admin-products" class="btn btn-outline-secondary btn-sm me-3">
+    <div class="d-flex align-items-center mb-4 flex-wrap gap-2">
+      <a href="/admin-products" class="btn btn-outline-secondary btn-sm me-2">
         <i class="bi bi-arrow-right me-1"></i>رجوع للمنتجات
+      </a>
+      <a href="/admin-funnels" class="btn btn-outline-success btn-sm me-2">
+        <i class="bi bi-diagram-3-fill me-1"></i>صفحات الهبوط (Funnels)
+      </a>
+      <a href="/admin-messages" class="btn btn-outline-primary btn-sm me-2">
+        <i class="bi bi-envelope-paper-fill me-1"></i>رسائل الزوار
+      </a>
+      <a href="/admin-orders" class="btn btn-outline-secondary btn-sm me-2">
+        <i class="bi bi-truck me-1"></i>الطلبات
       </a>
       <h1 class="mb-0" style="color: var(--military-green); font-weight: 700;">
         <i class="bi bi-gear-fill me-2"></i>إعدادات الموقع
@@ -400,6 +409,612 @@
           <button type="button" class="btn btn-primary" onclick="saveSocialLinks()">
             <i class="bi bi-save me-1"></i> حفظ الروابط الاجتماعية
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CATEGORIES MANAGEMENT ===== -->
+    <div class="settings-card" id="categories-management-section">
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-grid-3x3-gap-fill fs-4"></i>
+          <div>
+            <h5 class="mb-0">إدارة فئات وتصنيفات المتجر (Categories)</h5>
+            <small class="text-white-50" style="font-size:0.8rem;">إضافة، تعديل الاسم، الأيقونة، اللون، الترتيب، أو حذف الفئات وتحديث الصفحة الرئيسية وقوائم المنتجات تلقائياً</small>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-light fw-bold shadow-sm" onclick="openAddCategoryModal()">
+          <i class="bi bi-plus-lg me-1 text-primary"></i> إضافة فئة جديدة
+        </button>
+      </div>
+
+      <div class="settings-card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="categories-table">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 70px;" class="text-center">الترتيب</th>
+                <th style="width: 80px;" class="text-center">الأيقونة</th>
+                <th>اسم الفئة والرابط</th>
+                <th style="width: 140px;" class="text-center">عدد المنتجات</th>
+                <th style="width: 140px;" class="text-center">الحالة للزوار</th>
+                <th style="width: 160px;" class="text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="categories-table-body">
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">
+                  <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل الفئات...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DELIVERY COMPANIES & RATES ===== -->
+    <div class="settings-card" id="delivery-management-section">
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-truck fs-4"></i>
+          <div>
+            <h5 class="mb-0">شركات التوصيل وأسعار الولايات</h5>
+            <small class="text-white-50" style="font-size:0.8rem;">إدارة شركات الشحن وأسعار التوصيل للمنزل والمكتب (Stopdesk) لكل ولاية</small>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-light fw-bold" onclick="openAddCompanyModal()">
+          <i class="bi bi-plus-lg me-1 text-primary"></i> إضافة شركة توصيل جديدة
+        </button>
+      </div>
+
+      <div class="settings-card-body">
+        <!-- Company Selector & Actions Bar -->
+        <div class="p-3 mb-4 rounded-3 bg-light border">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+              <label class="form-label small fw-bold text-secondary mb-1">شركة التوصيل المحددة:</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-building text-warning"></i></span>
+                <select id="delivery-company-select" class="form-select fw-bold" onchange="onDeliveryCompanyChange(this.value)">
+                  <option value="">جاري تحميل الشركات...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-md-7 d-flex align-items-end justify-content-md-end gap-2 flex-wrap">
+              <span id="active-company-status-badge" class="badge bg-success p-2 px-3 fs-6 d-inline-flex align-items-center gap-1 shadow-sm" style="cursor: pointer; user-select: none;" onclick="toggleCompanyActiveStatus()" title="اضغط لتعطيل الشركة وإخفائها مؤقتاً من استمارة الطلب">
+                <i class="bi bi-check-circle-fill me-1"></i> نشطة حالياً للعملاء
+              </span>
+              <button type="button" id="set-default-company-btn" class="btn btn-outline-warning btn-sm text-dark fw-bold" onclick="setDefaultDeliveryCompany()">
+                <i class="bi bi-star me-1"></i> تعيين كشركة افتراضية
+              </button>
+              <button type="button" id="delete-company-btn" class="btn btn-outline-danger btn-sm" onclick="deleteCurrentDeliveryCompany()">
+                <i class="bi bi-trash me-1"></i> حذف الشركة
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Add City Bar -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+          <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 400px;">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="text" id="delivery-city-search" class="form-control" placeholder="بحث بالاسم أو الرمز (مثال: الجزائر، 16)..." oninput="filterDeliveryRates(this.value)">
+            </div>
+          </div>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span id="rates-count-badge" class="badge bg-secondary p-2">58 ولاية</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="openAddCityModal()">
+              <i class="bi bi-geo-alt-fill me-1"></i> إضافة مدينة / ولاية
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveAllDeliveryRates()">
+              <i class="bi bi-save me-1"></i> حفظ جميع الأسعار
+            </button>
+          </div>
+        </div>
+
+        <!-- Rates Table -->
+        <div class="table-responsive border rounded-3" style="max-height: 520px; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0 text-center" style="font-size: 0.9rem;">
+            <thead class="table-light sticky-top" style="z-index: 1;">
+              <tr>
+                <th style="width: 70px;">الرمز</th>
+                <th class="text-start" style="min-width: 150px;">الولاية / المدينة</th>
+                <th style="min-width: 160px;">سعر التوصيل للمنزل (دج)</th>
+                <th style="min-width: 160px;">سعر المكتب / Stopdesk (دج)</th>
+                <th style="width: 100px;">الحالة</th>
+                <th style="width: 80px;">إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="delivery-rates-table-body">
+              <tr>
+                <td colspan="6" class="py-4 text-muted">
+                  <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل أسعار التوصيل...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+          <small class="text-muted"><i class="bi bi-info-circle me-1"></i>يمكنك تعديل الأسعار مباشرة في الجدول ثم الضغط على "حفظ جميع الأسعار".</small>
+          <button type="button" class="btn btn-primary px-4" onclick="saveAllDeliveryRates()">
+            <i class="bi bi-save me-1"></i> حفظ جميع الأسعار
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FREE DELIVERY MANAGEMENT ===== -->
+    <div class="settings-card" id="free-delivery-management-section">
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-gift-fill fs-4"></i>
+          <div>
+            <h5 class="mb-0">إعدادات التوصيل المجاني (Free Delivery)</h5>
+            <small class="text-white-50" style="font-size:0.8rem;">تفعيل التوصيل المجاني لجميع المنتجات في المتجر، أو تحديد منتجات معينة ليكون توصيلها مجانياً للزبائن</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card-body">
+        <!-- Storewide Free Delivery Banner -->
+        <div class="p-3 mb-4 rounded-3 border" id="storewide-banner-wrap" style="background: linear-gradient(to right, #f8f9fa, #fff);">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <h6 class="mb-0 fw-bold fs-5 text-dark">
+                  <i class="bi bi-truck text-success me-1"></i> توصيل مجاني لجميع منتجات المتجر (Storewide Free Delivery)
+                </h6>
+                <span id="storewide-status-badge" class="badge bg-secondary">معطل</span>
+              </div>
+              <p class="text-muted small mb-0">
+                عند تفعيل هذا الخيار، سيحصل جميع الزبائن على توصيل مجاني لكافة الطلبات والولايات في المتجر حتى تقوم بإيقافه.
+              </p>
+            </div>
+            <div class="form-check form-switch fs-4 m-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="storewide-switch" onchange="toggleStorewideFreeDelivery(this.checked)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-Product Free Delivery List -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h6 class="fw-bold mb-0">
+            <i class="bi bi-box-seam me-1 text-primary"></i> تحديد التوصيل المجاني لمنتجات معينة:
+          </h6>
+          <div class="d-flex gap-2">
+            <input type="text" id="free-delivery-search" class="form-control form-control-sm" placeholder="ابحث عن منتج..." style="max-width: 200px;" oninput="filterFreeDeliveryProducts()">
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th style="width: 60px;" class="text-center">#</th>
+                <th>اسم المنتج</th>
+                <th style="width: 120px;" class="text-center">السعر</th>
+                <th style="width: 120px;" class="text-center">المخزون</th>
+                <th style="width: 180px;" class="text-center">حالة التوصيل المجاني</th>
+              </tr>
+            </thead>
+            <tbody id="free-delivery-products-tbody">
+              <tr>
+                <td colspan="5" class="text-center py-3 text-muted">
+                  <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل المنتجات...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROMO CODES MANAGEMENT ===== -->
+    <div class="settings-card" id="promo-codes-section">
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-ticket-perforated-fill fs-4"></i>
+          <div>
+            <h5 class="mb-0">كوبونات وأكواد الخصم (Promo Codes & Coupons)</h5>
+            <small class="text-white-50" style="font-size:0.8rem;">إنشاء أكواد خصم بنسبة مئوية أو مبلغ ثابت أو توصيل مجاني، وتطبيقها على منتجات محددة أو كل المنتجات</small>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-light fw-bold shadow-sm" onclick="openAddPromoModal()">
+          <i class="bi bi-plus-lg me-1 text-primary"></i> إضافة كود خصم جديد
+        </button>
+      </div>
+
+      <div class="settings-card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="promos-table">
+            <thead class="table-light">
+              <tr>
+                <th>كود الخصم</th>
+                <th style="width: 150px;" class="text-center">نوع الخصم والقيمة</th>
+                <th style="width: 160px;" class="text-center">المنتجات المشمولة</th>
+                <th style="width: 120px;" class="text-center">الحد الأدنى للطلب</th>
+                <th style="width: 120px;" class="text-center">مرات الاستخدام</th>
+                <th style="width: 130px;" class="text-center">حالة الكود</th>
+                <th style="width: 150px;" class="text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="promos-table-body">
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                  <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل كوبونات الخصم...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRACKING SCRIPTS & PIXELS ===== -->
+    <div class="settings-card" id="tracking-scripts-section">
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-code-slash fs-4"></i>
+          <div>
+            <h5 class="mb-0">أكواد التتبع والبكسل (Tracking Pixels & Analytics)</h5>
+            <small class="text-white-50" style="font-size:0.8rem;">إدارة بكسل فيسبوك، تيك توك، جوجل أناليتكس وغيرها مع حقنها تلقائياً وبسرعة في جميع صفحات الموقع</small>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-light fw-bold shadow-sm" onclick="openAddTrackingScriptModal()">
+          <i class="bi bi-plus-lg me-1 text-primary"></i> إضافة كود تتبع جديد
+        </button>
+      </div>
+
+      <div class="settings-card-body">
+        <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-info-circle-fill fs-5 text-primary flex-shrink-0"></i>
+          <div>
+            جميع الأكواد المفعلة هنا يتم حقنها تلقائياً في خادم الموقع داخل كافة صفحات المتجر (الرئيسية، المنتجات، تفاصيل المنتج، السلة، إلخ). يمكنك إضافة Meta Pixel أو TikTok Pixel أو Google Tag أو أي كود مخصص، وتفعيله أو تعطيله مؤقتاً بضغطة زر.
+          </div>
+        </div>
+
+        <div id="tracking-scripts-list" class="d-flex flex-column gap-3">
+          <div class="text-center text-muted py-4">
+            <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل أكواد التتبع...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add Delivery Company -->
+    <div class="modal fade" id="addCompanyModal" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold"><i class="bi bi-truck me-2 text-primary"></i>إضافة شركة توصيل جديدة</h5>
+            <button type="button" class="btn-close me-auto ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info py-2 small mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              سيتم تلقائياً إضافة جميع الولايات الـ 58 مع الأسعار الافتراضية للشركة الجديدة، ويمكنك تعديل الأسعار لاحقاً بكل حرية.
+            </div>
+            <div class="mb-3">
+              <label for="new-company-name" class="form-label fw-semibold">اسم شركة التوصيل:</label>
+              <input type="text" id="new-company-name" class="form-control" placeholder="مثال: ZR Express، Yalidine، Maystro..." required>
+            </div>
+            <div class="mb-3">
+              <label for="new-company-code" class="form-label fw-semibold">رمز الشركة (اختياري):</label>
+              <input type="text" id="new-company-code" class="form-control" placeholder="مثال: zr-express">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" onclick="submitAddCompany()">
+              <i class="bi bi-plus-lg me-1"></i> إضافة وإنشاء الولايات
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add City -->
+    <div class="modal fade" id="addCityModal" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold"><i class="bi bi-geo-alt me-2 text-primary"></i>إضافة مدينة / ولاية جديدة</h5>
+            <button type="button" class="btn-close me-auto ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="new-city-name" class="form-label fw-semibold">اسم المدينة أو الولاية:</label>
+              <input type="text" id="new-city-name" class="form-control" placeholder="مثال: بوسعادة، تيميمون..." required>
+            </div>
+            <div class="mb-3">
+              <label for="new-city-code" class="form-label fw-semibold">رمز الولاية (اختياري):</label>
+              <input type="text" id="new-city-code" class="form-control" placeholder="مثال: 59">
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label for="new-city-home-price" class="form-label fw-semibold">سعر توصيل المنزل (دج):</label>
+                <input type="number" id="new-city-home-price" class="form-control" value="800" min="0">
+              </div>
+              <div class="col-6">
+                <label for="new-city-desk-price" class="form-label fw-semibold">سعر المكتب (دج):</label>
+                <input type="number" id="new-city-desk-price" class="form-control" value="500" min="0">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" onclick="submitAddCity()">
+              <i class="bi bi-check-lg me-1"></i> إضافة المدينة
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add / Edit Tracking Script -->
+    <div class="modal fade" id="trackingScriptModal" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="trackingModalTitle">
+              <i class="bi bi-code-square me-2 text-primary"></i>إضافة كود تتبع جديد
+            </h5>
+            <button type="button" class="btn-close me-auto ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="tracking-script-id" value="">
+            <input type="hidden" id="tracking-script-type" value="custom">
+
+            <!-- Platform Quick Presets -->
+            <label class="form-label fw-bold small text-secondary mb-2">قوالب جاهزة سريعة (اضغط للتعبئة التلقائية):</label>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="applyTrackingPreset('meta_pixel')">
+                <i class="bi bi-facebook me-1"></i> Meta Pixel (Facebook)
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-dark" onclick="applyTrackingPreset('tiktok_pixel')">
+                <i class="bi bi-tiktok me-1"></i> TikTok Pixel
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="applyTrackingPreset('google_tag')">
+                <i class="bi bi-google me-1"></i> Google Tag / GA4
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-warning text-dark" onclick="applyTrackingPreset('snapchat')">
+                <i class="bi bi-snapchat me-1"></i> Snapchat Pixel
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="applyTrackingPreset('custom')">
+                <i class="bi bi-code me-1"></i> كود مخصص
+              </button>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-7">
+                <label for="tracking-script-name" class="form-label fw-semibold">اسم الكود / المنصة:</label>
+                <input type="text" id="tracking-script-name" class="form-control" placeholder="مثال: Meta Pixel الأساسي، TikTok Pixel..." required>
+              </div>
+              <div class="col-md-5">
+                <label for="tracking-script-placement" class="form-label fw-semibold">مكان الحقن في الصفحة:</label>
+                <select id="tracking-script-placement" class="form-select">
+                  <option value="head">داخل رأس الصفحة &lt;head&gt; (موصى به للبكسل والتتبع)</option>
+                  <option value="body_end">نهاية الصفحة قبل إغلاق &lt;/body&gt;</option>
+                </select>
+              </div>
+
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label for="tracking-script-code" class="form-label fw-semibold mb-0">الكود البرمجي الكامل (HTML / JavaScript):</label>
+                  <small class="text-muted font-monospace">&lt;script&gt;...&lt;/script&gt;</small>
+                </div>
+                <textarea id="tracking-script-code" class="form-control font-monospace" rows="8" dir="ltr" placeholder="<!-- الصق الكود البرمجي هنا بما فيه وسم <script> -->" style="font-size: 0.85rem; tab-size: 2; background-color: #1e1e1e; color: #d4d4d4; border-radius: 8px;" required></textarea>
+              </div>
+
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="tracking-script-active" checked>
+                  <label class="form-check-label fw-bold text-dark" for="tracking-script-active">
+                    تفعيل الكود فوراً على جميع صفحات الموقع
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" onclick="submitSaveTrackingScript()">
+              <i class="bi bi-save me-1"></i> حفظ وتطبيق الكود
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add / Edit Category -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="categoryModalTitle">
+              <i class="bi bi-tag-fill me-2 text-primary"></i>إضافة فئة جديدة
+            </h5>
+            <button type="button" class="btn-close me-auto ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="category-id" value="">
+
+            <div class="mb-3">
+              <label for="category-name-input" class="form-label fw-semibold">اسم الفئة: <span class="text-danger">*</span></label>
+              <input type="text" id="category-name-input" class="form-control" placeholder="مثال: مكملات غذائية، زيوت عطرية..." required>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label for="category-order-input" class="form-label fw-semibold">ترتيب الظهور:</label>
+                <input type="number" id="category-order-input" class="form-control" value="0" min="0">
+                <small class="text-muted" style="font-size:0.75rem;">الأصغر يظهر أولاً (1، 2، 3...)</small>
+              </div>
+              <div class="col-6">
+                <label for="category-color-select" class="form-label fw-semibold">نمط اللون:</label>
+                <select id="category-color-select" class="form-select" onchange="updateCategoryIconPreview()">
+                  <option value="orange">برتقالي (Orange)</option>
+                  <option value="pink">وردي (Pink)</option>
+                  <option value="green">أخضر (Green)</option>
+                  <option value="info">أزرق سماوي (Info)</option>
+                  <option value="purple">بنفسجي (Purple)</option>
+                  <option value="primary">عسكري (Brand)</option>
+                  <option value="dark">داكن (Dark)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Icon Selection & Preview -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold d-flex justify-content-between align-items-center mb-1">
+                <span>أيقونة الفئة:</span>
+                <span id="category-icon-preview-badge" class="badge rounded-pill px-3 py-2" style="background: rgba(113,81,0,0.1); color: var(--military-green); font-size: 0.95rem;">
+                  <i id="category-icon-preview" class="bi bi-tag me-1"></i>
+                  <span id="category-icon-name-preview" class="font-monospace" style="font-size: 0.75rem;">bi-tag</span>
+                </span>
+              </label>
+
+              <!-- Quick Presets -->
+              <div class="border rounded-3 p-2 bg-light mb-2">
+                <small class="text-muted d-block mb-2 fw-semibold">أيقونات شائعة سريعة (اضغط للاختيار):</small>
+                <div class="d-flex flex-wrap gap-2" id="category-icon-presets">
+                  <!-- Populated dynamically by JS -->
+                </div>
+              </div>
+
+              <input type="text" id="category-icon-input" class="form-control font-monospace" placeholder="مثال: bi-flower1 أو bi-droplet-half" oninput="updateCategoryIconPreview()">
+              <small class="text-muted" style="font-size:0.75rem;">يمكنك كتابة أي رمز من مكتبة <a href="https://icons.getbootstrap.com/" target="_blank" class="text-decoration-none">Bootstrap Icons</a> (مثال: bi-flower1)</small>
+            </div>
+
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="category-active-input" checked>
+              <label class="form-check-label fw-bold text-dark" for="category-active-input">
+                تفعيل الفئة وإظهارها للزوار في الموقع
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" onclick="submitSaveCategory()">
+              <i class="bi bi-save me-1"></i> حفظ الفئة
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Add / Edit Promo Code -->
+    <div class="modal fade" id="promoCodeModal" tabindex="-1" aria-hidden="true" dir="rtl">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="promoCodeModalTitle">
+              <i class="bi bi-ticket-perforated-fill me-2 text-primary"></i>إضافة كود خصم جديد
+            </h5>
+            <button type="button" class="btn-close me-auto ms-0" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="promo-id" value="">
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="promo-code-input" class="form-label fw-semibold">رمز كود الخصم: <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-tag-fill"></i></span>
+                  <input type="text" id="promo-code-input" class="form-control font-monospace text-uppercase fw-bold" placeholder="مثال: SUMMER20 أو FREE" style="letter-spacing: 1px;" required oninput="this.value = this.value.toUpperCase()">
+                </div>
+                <small class="text-muted" style="font-size:0.75rem;">يتحول تلقائياً لأحرف إنجليزية كبيرة</small>
+              </div>
+
+              <div class="col-md-6">
+                <label for="promo-type-select" class="form-label fw-semibold">نوع الخصم: <span class="text-danger">*</span></label>
+                <select id="promo-type-select" class="form-select" onchange="handlePromoTypeChange()">
+                  <option value="percentage">نسبة مئوية (% من السعر)</option>
+                  <option value="fixed">مبلغ ثابت (دج)</option>
+                  <option value="free_delivery">توصيل مجاني بالكامل (100% Free Shipping)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3" id="promo-values-row">
+              <div class="col-md-6" id="promo-value-col">
+                <label for="promo-value-input" class="form-label fw-semibold" id="promo-value-label">قيمة الخصم (%):</label>
+                <div class="input-group">
+                  <input type="number" id="promo-value-input" class="form-control" placeholder="مثال: 15" min="0" step="any">
+                  <span class="input-group-text" id="promo-value-unit">%</span>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="promo-min-order-input" class="form-label fw-semibold">الحد الأدنى للطلب (دج):</label>
+                <div class="input-group">
+                  <input type="number" id="promo-min-order-input" class="form-control" value="0" min="0">
+                  <span class="input-group-text">دج</span>
+                </div>
+                <small class="text-muted" style="font-size:0.75rem;">اتركه 0 إذا لم يكن هناك حد أدنى</small>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="promo-usage-limit-input" class="form-label fw-semibold">الحد الأقصى لمرات الاستخدام:</label>
+                <input type="number" id="promo-usage-limit-input" class="form-control" placeholder="اتركه فارغاً للاستخدام غير المحدود" min="1">
+              </div>
+
+              <div class="col-md-6">
+                <label for="promo-expires-input" class="form-label fw-semibold">تاريخ انتهاء الصلاحية (اختياري):</label>
+                <input type="date" id="promo-expires-input" class="form-control">
+              </div>
+            </div>
+
+            <!-- Applies to -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold">نطاق تطبيق الخصم:</label>
+              <div class="d-flex gap-4 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="promoAppliesTo" id="promo-applies-all" value="all" checked onchange="handlePromoAppliesChange()">
+                  <label class="form-check-label fw-semibold" for="promo-applies-all">
+                    على كل المنتجات في المتجر
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="promoAppliesTo" id="promo-applies-specific" value="specific" onchange="handlePromoAppliesChange()">
+                  <label class="form-check-label fw-semibold" for="promo-applies-specific">
+                    على منتجات محددة فقط
+                  </label>
+                </div>
+              </div>
+
+              <!-- Specific Products Selector -->
+              <div id="promo-specific-products-wrap" class="border rounded-3 p-3 bg-light" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label small fw-bold mb-0">اختر المنتجات المشمولة بالخصم:</label>
+                  <input type="text" id="promo-product-search" class="form-control form-control-sm" placeholder="ابحث في المنتجات..." style="max-width: 200px;" oninput="filterPromoModalProducts()">
+                </div>
+                <div id="promo-products-checklist" style="max-height: 200px; overflow-y: auto;" class="d-flex flex-column gap-2 p-2 bg-white rounded border">
+                  <!-- Checkboxes populated by JS -->
+                </div>
+                <small class="text-muted d-block mt-1">يجب اختيار منتج واحد على الأقل إذا كان الخصم مخصصاً.</small>
+              </div>
+            </div>
+
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="promo-active-input" checked>
+              <label class="form-check-label fw-bold text-dark" for="promo-active-input">
+                تفعيل الكود فوراً للاستخدام من الزوار
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-primary" onclick="submitSavePromoCode()">
+              <i class="bi bi-save me-1"></i> حفظ كود الخصم
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -912,10 +1527,1503 @@
       }
     }
 
+    // ====== DELIVERY MANAGEMENT ======
+    let deliveryCompanies = [];
+    let currentCompanyId = null;
+    let currentDeliveryRates = [];
+    let addCompanyModalInstance = null;
+    let addCityModalInstance = null;
+
+    async function loadDeliveryCompanies() {
+      try {
+        const res = await fetch('/api/admin/delivery-companies', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'خطأ في جلب شركات التوصيل', 'error');
+          return;
+        }
+
+        deliveryCompanies = Array.isArray(data) ? data : (data.companies || []);
+        const select = document.getElementById('delivery-company-select');
+        select.innerHTML = '';
+
+        if (!deliveryCompanies || deliveryCompanies.length === 0) {
+          select.innerHTML = '<option value="">لا توجد شركات توصيل حالياً</option>';
+          document.getElementById('delivery-rates-table-body').innerHTML = '<tr><td colspan="6" class="text-muted py-4">الرجاء إضافة شركة توصيل جديدة أولاً</td></tr>';
+          return;
+        }
+
+        // Determine selected company (preserve existing selection or pick default/first)
+        if (!currentCompanyId || !deliveryCompanies.some(c => c.id === currentCompanyId)) {
+          let defaultComp = deliveryCompanies.find(c => c.is_default) || deliveryCompanies.find(c => c.is_active) || deliveryCompanies[0];
+          currentCompanyId = defaultComp ? defaultComp.id : deliveryCompanies[0].id;
+        }
+
+        deliveryCompanies.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          const count = c.rates_count !== undefined ? c.rates_count : (c.cities_count !== undefined ? c.cities_count : 0);
+          let tag = '';
+          if (c.is_default) tag += ' ★ (الافتراضية)';
+          if (!c.is_active) tag += ' 🚫 (مخفية للعملاء)';
+          opt.textContent = `${c.name}${tag} (${count} ولاية)`;
+          if (c.id === currentCompanyId) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        await loadDeliveryRates(currentCompanyId);
+      } catch (err) {
+        console.error('Error loading delivery companies:', err);
+        showToast('تعذر تحميل بيانات شركات التوصيل', 'error');
+      }
+    }
+
+    async function onDeliveryCompanyChange(companyId) {
+      if (!companyId) return;
+      currentCompanyId = parseInt(companyId);
+      await loadDeliveryRates(currentCompanyId);
+    }
+
+    async function loadDeliveryRates(companyId) {
+      const tbody = document.getElementById('delivery-rates-table-body');
+      tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل أسعار التوصيل...</td></tr>';
+
+      try {
+        const res = await fetch(`/api/admin/delivery-rates/${companyId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'خطأ في جلب أسعار الولايات', 'error');
+          return;
+        }
+
+        currentDeliveryRates = Array.isArray(data) ? data : (data.rates || []);
+        const comp = (data && data.company) || deliveryCompanies.find(c => c.id === companyId);
+
+        // Update company status badge & default button
+        const statusBadge = document.getElementById('active-company-status-badge');
+        const setDefaultBtn = document.getElementById('set-default-company-btn') || document.getElementById('set-active-company-btn');
+
+        if (statusBadge) {
+          if (comp && comp.is_active) {
+            statusBadge.className = 'badge bg-success p-2 px-3 fs-6 d-inline-flex align-items-center gap-1 shadow-sm';
+            statusBadge.style.cursor = 'pointer';
+            statusBadge.setAttribute('title', 'اضغط لتعطيل الشركة وإخفائها مؤقتاً من استمارة الطلب للعملاء');
+            statusBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> نشطة حالياً للعملاء <span class="badge bg-light text-success ms-1 small" style="font-size: 0.72rem;"><i class="bi bi-pause-fill"></i> اضغط للتعطيل</span>';
+          } else {
+            statusBadge.className = 'badge bg-danger p-2 px-3 fs-6 d-inline-flex align-items-center gap-1 shadow-sm';
+            statusBadge.style.cursor = 'pointer';
+            statusBadge.setAttribute('title', 'اضغط لتفعيل الشركة وإظهارها للعملاء في استمارة الطلب');
+            statusBadge.innerHTML = '<i class="bi bi-eye-slash-fill me-1"></i> معطلة (مخفية عن العملاء) <span class="badge bg-light text-danger ms-1 small" style="font-size: 0.72rem;"><i class="bi bi-play-fill"></i> اضغط للتفعيل</span>';
+          }
+        }
+
+        if (setDefaultBtn) {
+          if (comp && comp.is_default) {
+            setDefaultBtn.disabled = true;
+            setDefaultBtn.className = 'btn btn-warning btn-sm text-dark fw-bold border-0 shadow-sm';
+            setDefaultBtn.style.cursor = 'default';
+            setDefaultBtn.style.opacity = '1';
+            setDefaultBtn.innerHTML = '<i class="bi bi-star-fill me-1"></i> الشركة الافتراضية حالياً';
+          } else {
+            setDefaultBtn.disabled = false;
+            setDefaultBtn.className = 'btn btn-outline-warning btn-sm text-dark fw-bold border-warning shadow-sm';
+            setDefaultBtn.style.cursor = 'pointer';
+            setDefaultBtn.style.opacity = '1';
+            setDefaultBtn.innerHTML = '<i class="bi bi-star me-1"></i> تعيين كشركة افتراضية';
+          }
+        }
+
+        renderDeliveryRatesTable();
+      } catch (err) {
+        console.error('Error loading rates:', err);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-danger py-4">فشل في تحميل الأسعار</td></tr>';
+      }
+    }
+
+    function renderDeliveryRatesTable(filterText = '') {
+      const tbody = document.getElementById('delivery-rates-table-body');
+      tbody.innerHTML = '';
+
+      const search = (filterText || '').toLowerCase().trim();
+      const filtered = currentDeliveryRates.filter(r => {
+        if (!search) return true;
+        const name = (r.city_name || '').toLowerCase();
+        const code = (r.city_code || '').toLowerCase();
+        return name.includes(search) || code.includes(search);
+      });
+
+      document.getElementById('rates-count-badge').textContent = `${filtered.length} ولاية`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-4">لا توجد ولايات مطابقة للبحث</td></tr>';
+        return;
+      }
+
+      filtered.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-rate-id', r.id);
+        tr.innerHTML = `
+          <td><span class="badge bg-light text-secondary border font-monospace px-2 py-1">${r.city_code || '--'}</span></td>
+          <td class="text-start fw-bold text-dark">${r.city_name}</td>
+          <td>
+            <div class="input-group input-group-sm mx-auto" style="max-width: 150px;">
+              <input type="number" class="form-control text-center fw-bold home-price-input" value="${r.home_price || 0}" min="0" step="50">
+              <span class="input-group-text bg-light text-muted">دج</span>
+            </div>
+          </td>
+          <td>
+            <div class="input-group input-group-sm mx-auto" style="max-width: 150px;">
+              <input type="number" class="form-control text-center fw-bold desk-price-input" value="${r.desk_price || 0}" min="0" step="50">
+              <span class="input-group-text bg-light text-muted">دج</span>
+            </div>
+          </td>
+          <td>
+            <div class="form-check form-switch d-inline-block">
+              <input class="form-check-input rate-active-toggle" type="checkbox" role="switch" ${r.is_active ? 'checked' : ''} title="تفعيل أو تعطيل التوصيل لهذه الولاية">
+            </div>
+          </td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-danger p-1 px-2" onclick="deleteCityRate(${r.id}, '${r.city_name}')" title="حذف هذه الولاية">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterDeliveryRates(query) {
+      renderDeliveryRatesTable(query);
+    }
+
+    async function saveAllDeliveryRates() {
+      if (!currentCompanyId) return;
+
+      const rows = document.querySelectorAll('#delivery-rates-table-body tr[data-rate-id]');
+      if (rows.length === 0) return;
+
+      const ratesToUpdate = [];
+      rows.forEach(row => {
+        const id = parseInt(row.getAttribute('data-rate-id'));
+        const homeInput = row.querySelector('.home-price-input');
+        const deskInput = row.querySelector('.desk-price-input');
+        const activeToggle = row.querySelector('.rate-active-toggle');
+
+        ratesToUpdate.push({
+          id,
+          home_price: parseFloat(homeInput?.value) || 0,
+          desk_price: parseFloat(deskInput?.value) || 0,
+          is_active: activeToggle ? activeToggle.checked : true
+        });
+      });
+
+      try {
+        const res = await fetch(`/api/admin/delivery-rates/${currentCompanyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ rates: ratesToUpdate })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'خطأ في حفظ الأسعار', 'error');
+          return;
+        }
+
+        showToast('تم حفظ جميع أسعار التوصيل بنجاح!', 'success');
+        // Update local array with modified values
+        ratesToUpdate.forEach(updated => {
+          const item = currentDeliveryRates.find(r => r.id === updated.id);
+          if (item) {
+            item.home_price = updated.home_price;
+            item.desk_price = updated.desk_price;
+            item.is_active = updated.is_active;
+          }
+        });
+      } catch (err) {
+        console.error('Error saving delivery rates:', err);
+        showToast('حدث خطأ أثناء حفظ الأسعار', 'error');
+      }
+    }
+
+    function openAddCompanyModal() {
+      document.getElementById('new-company-name').value = '';
+      document.getElementById('new-company-code').value = '';
+      if (!addCompanyModalInstance) {
+        addCompanyModalInstance = new bootstrap.Modal(document.getElementById('addCompanyModal'));
+      }
+      addCompanyModalInstance.show();
+    }
+
+    async function submitAddCompany() {
+      const name = document.getElementById('new-company-name').value.trim();
+      const code = document.getElementById('new-company-code').value.trim();
+
+      if (!name) {
+        showToast('يرجى كتابة اسم شركة التوصيل', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/delivery-companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name, code })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في إنشاء شركة التوصيل', 'error');
+          return;
+        }
+
+        if (addCompanyModalInstance) addCompanyModalInstance.hide();
+        showToast('تمت إضافة الشركة وتعبئة جميع الولايات الـ 58 بنجاح!', 'success');
+        await loadDeliveryCompanies();
+
+        // Switch to newly created company
+        if (data.company && data.company.id) {
+          document.getElementById('delivery-company-select').value = data.company.id;
+          await onDeliveryCompanyChange(data.company.id);
+        }
+      } catch (err) {
+        console.error('Error adding company:', err);
+        showToast('حدث خطأ أثناء إنشاء الشركة', 'error');
+      }
+    }
+
+    async function toggleCompanyActiveStatus() {
+      if (!currentCompanyId) return;
+      const comp = deliveryCompanies.find(c => c.id === currentCompanyId);
+      const isCurrentlyActive = comp ? Boolean(comp.is_active) : true;
+      const newStatus = !isCurrentlyActive;
+
+      try {
+        const res = await fetch(`/api/admin/delivery-companies/${currentCompanyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ is_active: newStatus })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تعديل حالة تفعيل الشركة', 'error');
+          return;
+        }
+
+        if (newStatus) {
+          showToast('تم تفعيل شركة التوصيل وإظهارها للعملاء في استمارة الطلب بنجاح', 'success');
+        } else {
+          showToast('تم تعطيل شركة التوصيل وإخفاؤها مؤقتاً من استمارة الطلب للعملاء', 'info');
+        }
+        await loadDeliveryCompanies();
+      } catch (err) {
+        console.error('Error toggling company active status:', err);
+        showToast('حدث خطأ أثناء تعديل حالة الشركة', 'error');
+      }
+    }
+
+    async function setDefaultDeliveryCompany() {
+      if (!currentCompanyId) return;
+
+      try {
+        const res = await fetch(`/api/admin/delivery-companies/${currentCompanyId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ is_default: true, is_active: true })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تعيين الشركة الافتراضية', 'error');
+          return;
+        }
+
+        showToast('تم تعيين الشركة كشركة التوصيل الافتراضية الرئيسية للموقع بنجاح!', 'success');
+        await loadDeliveryCompanies();
+      } catch (err) {
+        console.error('Error setting default company:', err);
+        showToast('حدث خطأ أثناء تفعيل الشركة', 'error');
+      }
+    }
+
+    // Backwards compatibility alias
+    const setActiveDeliveryCompany = setDefaultDeliveryCompany;
+
+    async function deleteCurrentDeliveryCompany() {
+      if (!currentCompanyId) return;
+      if (deliveryCompanies.length <= 1) {
+        showToast('لا يمكن حذف شركة التوصيل الوحيدة في الموقع', 'error');
+        return;
+      }
+
+      const comp = deliveryCompanies.find(c => c.id === currentCompanyId);
+      if (!confirm(`هل أنت متأكد من حذف شركة "${comp ? comp.name : ''}" وجميع أسعارها؟`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/delivery-companies/${currentCompanyId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حذف الشركة', 'error');
+          return;
+        }
+
+        showToast('تم حذف شركة التوصيل بنجاح', 'success');
+        await loadDeliveryCompanies();
+      } catch (err) {
+        console.error('Error deleting company:', err);
+        showToast('حدث خطأ أثناء حذف الشركة', 'error');
+      }
+    }
+
+    function openAddCityModal() {
+      if (!currentCompanyId) {
+        showToast('الرجاء اختيار شركة توصيل أولاً', 'error');
+        return;
+      }
+      document.getElementById('new-city-name').value = '';
+      document.getElementById('new-city-code').value = '';
+      document.getElementById('new-city-home-price').value = '800';
+      document.getElementById('new-city-desk-price').value = '500';
+      if (!addCityModalInstance) {
+        addCityModalInstance = new bootstrap.Modal(document.getElementById('addCityModal'));
+      }
+      addCityModalInstance.show();
+    }
+
+    async function submitAddCity() {
+      if (!currentCompanyId) return;
+
+      const cityName = document.getElementById('new-city-name').value.trim();
+      const cityCode = document.getElementById('new-city-code').value.trim();
+      const homePrice = parseFloat(document.getElementById('new-city-home-price').value) || 0;
+      const deskPrice = parseFloat(document.getElementById('new-city-desk-price').value) || 0;
+
+      if (!cityName) {
+        showToast('يرجى إدخال اسم المدينة أو الولاية', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/delivery-rates/${currentCompanyId}/city`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            city_name: cityName,
+            city_code: cityCode,
+            home_price: homePrice,
+            desk_price: deskPrice
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في إضافة المدينة', 'error');
+          return;
+        }
+
+        if (addCityModalInstance) addCityModalInstance.hide();
+        showToast(`تمت إضافة "${cityName}" بنجاح!`, 'success');
+        await loadDeliveryRates(currentCompanyId);
+      } catch (err) {
+        console.error('Error adding city:', err);
+        showToast('حدث خطأ أثناء إضافة المدينة', 'error');
+      }
+    }
+
+    async function deleteCityRate(rateId, cityName) {
+      if (!confirm(`هل أنت متأكد من حذف ولاية "${cityName}" من هذه الشركة؟`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/delivery-rates/${rateId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حذف الولاية', 'error');
+          return;
+        }
+
+        showToast(`تم حذف ولاية "${cityName}" بنجاح`, 'success');
+        await loadDeliveryRates(currentCompanyId);
+      } catch (err) {
+        console.error('Error deleting city rate:', err);
+        showToast('حدث خطأ أثناء حذف الولاية', 'error');
+      }
+    }
+
+    // ============================================================
+    // TRACKING SCRIPTS & PIXELS MANAGEMENT
+    // ============================================================
+    let trackingScripts = [];
+    let trackingModalInstance = null;
+
+    const TRACKING_PRESETS = {
+      meta_pixel: {
+        name: 'Meta Pixel (Facebook)',
+        code_type: 'meta_pixel',
+        placement: 'head',
+        code: `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', 'ضع_هنا_رقم_البكسل');
+fbq('track', 'PageView');
+<\/script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=ضع_هنا_رقم_البكسل&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->`
+      },
+      tiktok_pixel: {
+        name: 'TikTok Pixel',
+        code_type: 'tiktok_pixel',
+        placement: 'head',
+        code: `<!-- TikTok Pixel Code Start -->
+<script>
+!function (w, d, t) {
+  w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+  ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+
+  ttq.load('ضع_هنا_رقم_تيك_توك_بكسل');
+  ttq.page();
+}(window, document, 'ttq');
+<\/script>
+<!-- TikTok Pixel Code End -->`
+      },
+      google_tag: {
+        name: 'Google Analytics (GA4) / Tag',
+        code_type: 'google_tag',
+        placement: 'head',
+        code: `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"><\/script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-XXXXXXXXXX');
+<\/script>`
+      },
+      snapchat: {
+        name: 'Snapchat Pixel',
+        code_type: 'snapchat',
+        placement: 'head',
+        code: `<!-- Snap Pixel Code -->
+<script type='text/javascript'>
+(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function()
+{a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};
+a.queue=[];var s='script';r=t.createElement(s);r.async=!0;
+r.src=n;var u=t.getElementsByTagName(s)[0];
+u.parentNode.insertBefore(r,u);})(window,document,
+'https://sc-static.net/scevent.min.js');
+
+snaptr('init', 'ضع_هنا_رقم_سناب_شات_بكسل');
+snaptr('track', 'PAGE_VIEW');
+<\/script>
+<!-- End Snap Pixel Code -->`
+      },
+      custom: {
+        name: 'كود تتبع مخصص',
+        code_type: 'custom',
+        placement: 'head',
+        code: `<script>
+  // أضف أي كود تتبع أو سكريبت هنا
+<\/script>`
+      }
+    };
+
+    function applyTrackingPreset(type) {
+      const preset = TRACKING_PRESETS[type];
+      if (!preset) return;
+      document.getElementById('tracking-script-name').value = preset.name;
+      document.getElementById('tracking-script-type').value = preset.code_type;
+      document.getElementById('tracking-script-placement').value = preset.placement;
+      document.getElementById('tracking-script-code').value = preset.code;
+    }
+
+    async function loadTrackingScripts() {
+      const container = document.getElementById('tracking-scripts-list');
+      if (!container) return;
+      container.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل أكواد التتبع...</div>';
+
+      try {
+        const res = await fetch('/api/admin/tracking-scripts', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'تعذر تحميل أكواد التتبع', 'error');
+          return;
+        }
+
+        trackingScripts = data.scripts || [];
+        renderTrackingScripts();
+      } catch (err) {
+        console.error('Error loading tracking scripts:', err);
+        container.innerHTML = '<div class="text-danger text-center py-4">حدث خطأ أثناء تحميل أكواد التتبع</div>';
+      }
+    }
+
+    function renderTrackingScripts() {
+      const container = document.getElementById('tracking-scripts-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (trackingScripts.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-muted py-4 border rounded-3 bg-light">
+            <i class="bi bi-code-slash fs-1 d-block mb-2 text-secondary"></i>
+            <p class="mb-2">لا توجد أكواد تتبع مضافة حالياً.</p>
+            <button class="btn btn-sm btn-primary" onclick="openAddTrackingScriptModal()">
+              <i class="bi bi-plus-lg me-1"></i> إضافة أول كود تتبع (Meta Pixel، TikTok...)
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      trackingScripts.forEach(script => {
+        let icon = 'bi-code-square text-secondary';
+        let typeName = 'كود مخصص';
+        let badgeClass = 'bg-secondary';
+
+        const lowerName = (script.name || '').toLowerCase();
+        const type = script.code_type || '';
+
+        if (type === 'meta_pixel' || lowerName.includes('meta') || lowerName.includes('facebook') || lowerName.includes('fbq')) {
+          icon = 'bi-facebook text-primary';
+          typeName = 'Meta Pixel';
+          badgeClass = 'bg-primary';
+        } else if (type === 'tiktok_pixel' || lowerName.includes('tiktok') || lowerName.includes('ttq')) {
+          icon = 'bi-tiktok text-dark';
+          typeName = 'TikTok Pixel';
+          badgeClass = 'bg-dark';
+        } else if (type === 'google_tag' || lowerName.includes('google') || lowerName.includes('gtag') || lowerName.includes('analytics')) {
+          icon = 'bi-google text-danger';
+          typeName = 'Google Analytics / Tag';
+          badgeClass = 'bg-danger';
+        } else if (type === 'gtm' || lowerName.includes('tag manager') || lowerName.includes('gtm')) {
+          icon = 'bi-tags text-primary';
+          typeName = 'Google Tag Manager';
+          badgeClass = 'bg-primary';
+        } else if (type === 'snapchat' || lowerName.includes('snap')) {
+          icon = 'bi-snapchat text-warning';
+          typeName = 'Snapchat Pixel';
+          badgeClass = 'bg-warning text-dark';
+        }
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-3 border bg-white shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-3 ${!script.is_active ? 'opacity-75 bg-light' : ''}`;
+        
+        const rawCode = script.script_code || '';
+        const preview = rawCode.replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 80) + '...';
+
+        card.innerHTML = `
+          <div class="d-flex align-items-center gap-3" style="min-width: 250px;">
+            <div class="rounded-circle p-2 px-3 border bg-light d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+              <i class="bi ${icon} fs-4"></i>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h6 class="mb-0 fw-bold text-dark">${script.name}</h6>
+                <span class="badge ${badgeClass} small py-1">${typeName}</span>
+                <span class="badge bg-light text-secondary border small py-1">
+                  ${script.placement === 'body_end' ? '<i class="bi bi-arrow-down-square me-1"></i>نهاية &lt;body&gt;' : '<i class="bi bi-arrow-up-square me-1"></i>رأس &lt;head&gt;'}
+                </span>
+              </div>
+              <code class="text-muted small font-monospace d-block mt-1 text-truncate" style="max-width: 450px;" dir="ltr">
+                ${preview}
+              </code>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <div class="form-check form-switch m-0" title="${script.is_active ? 'تعطيل الكود مؤقتاً' : 'تفعيل الكود على الموقع'}">
+              <input class="form-check-input" type="checkbox" role="switch" ${script.is_active ? 'checked' : ''} onchange="toggleTrackingScript(${script.id})">
+              <label class="form-check-label small fw-semibold ms-1 ${script.is_active ? 'text-success' : 'text-muted'}">
+                ${script.is_active ? 'مفعل' : 'معطل'}
+              </label>
+            </div>
+
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="openEditTrackingScriptModal(${script.id})" title="تعديل الكود">
+              <i class="bi bi-pencil-square me-1"></i>تعديل
+            </button>
+
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTrackingScript(${script.id}, '${script.name}')" title="حذف الكود">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openAddTrackingScriptModal() {
+      if (!trackingModalInstance) {
+        trackingModalInstance = new bootstrap.Modal(document.getElementById('trackingScriptModal'));
+      }
+      document.getElementById('trackingModalTitle').innerHTML = '<i class="bi bi-plus-circle me-2 text-primary"></i>إضافة كود تتبع جديد';
+      document.getElementById('tracking-script-id').value = '';
+      document.getElementById('tracking-script-type').value = 'custom';
+      document.getElementById('tracking-script-name').value = '';
+      document.getElementById('tracking-script-placement').value = 'head';
+      document.getElementById('tracking-script-code').value = '';
+      document.getElementById('tracking-script-active').checked = true;
+      trackingModalInstance.show();
+    }
+
+    function openEditTrackingScriptModal(scriptId) {
+      const script = trackingScripts.find(s => s.id === scriptId);
+      if (!script) return;
+
+      if (!trackingModalInstance) {
+        trackingModalInstance = new bootstrap.Modal(document.getElementById('trackingScriptModal'));
+      }
+      document.getElementById('trackingModalTitle').innerHTML = `<i class="bi bi-pencil-square me-2 text-primary"></i>تعديل كود: ${script.name}`;
+      document.getElementById('tracking-script-id').value = script.id;
+      document.getElementById('tracking-script-type').value = script.code_type || 'custom';
+      document.getElementById('tracking-script-name').value = script.name;
+      document.getElementById('tracking-script-placement').value = script.placement || 'head';
+      document.getElementById('tracking-script-code').value = script.script_code;
+      document.getElementById('tracking-script-active').checked = Boolean(script.is_active);
+      trackingModalInstance.show();
+    }
+
+    async function submitSaveTrackingScript() {
+      const id = document.getElementById('tracking-script-id').value;
+      const name = document.getElementById('tracking-script-name').value.trim();
+      const code_type = document.getElementById('tracking-script-type').value;
+      const placement = document.getElementById('tracking-script-placement').value;
+      const script_code = document.getElementById('tracking-script-code').value.trim();
+      const is_active = document.getElementById('tracking-script-active').checked;
+
+      if (!name) {
+        showToast('يرجى إدخال اسم كود التتبع', 'error');
+        return;
+      }
+      if (!script_code) {
+        showToast('يرجى لصق الكود البرمجي للتتبع', 'error');
+        return;
+      }
+
+      const isEdit = Boolean(id);
+      const url = isEdit ? `/api/admin/tracking-scripts/${id}` : '/api/admin/tracking-scripts';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name, code_type, placement, script_code, is_active })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حفظ كود التتبع', 'error');
+          return;
+        }
+
+        if (trackingModalInstance) trackingModalInstance.hide();
+        showToast(isEdit ? 'تم تحديث كود التتبع وتطبيقه على كافة الصفحات بنجاح!' : 'تمت إضافة كود التتبع وتطبيقه على كافة صفحات الموقع بنجاح!', 'success');
+        await loadTrackingScripts();
+      } catch (err) {
+        console.error('Error saving tracking script:', err);
+        showToast('حدث خطأ أثناء حفظ كود التتبع', 'error');
+      }
+    }
+
+    async function toggleTrackingScript(scriptId) {
+      try {
+        const res = await fetch(`/api/admin/tracking-scripts/${scriptId}/toggle`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تعديل حالة الكود', 'error');
+          await loadTrackingScripts();
+          return;
+        }
+
+        showToast(data.message || 'تم تحديث حالة كود التتبع بنجاح', 'success');
+        await loadTrackingScripts();
+      } catch (err) {
+        console.error('Error toggling tracking script:', err);
+        showToast('حدث خطأ أثناء تغيير حالة كود التتبع', 'error');
+      }
+    }
+
+    async function deleteTrackingScript(scriptId, scriptName) {
+      if (!confirm(`هل أنت متأكد من حذف كود التتبع "${scriptName}"؟ سيتم إزالته فوراً من جميع صفحات الموقع.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/tracking-scripts/${scriptId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حذف كود التتبع', 'error');
+          return;
+        }
+
+        showToast('تم حذف كود التتبع بنجاح!', 'success');
+        await loadTrackingScripts();
+      } catch (err) {
+        console.error('Error deleting tracking script:', err);
+        showToast('حدث خطأ أثناء حذف كود التتبع', 'error');
+      }
+    }
+
+    // ====== CATEGORIES MANAGEMENT ======
+    let adminCategoriesList = [];
+    let categoryModalInstance = null;
+
+    const CATEGORY_PRESET_ICONS = [
+      { icon: 'bi-droplet-half', title: 'عناية بالبشرة' },
+      { icon: 'bi-eyedropper', title: 'زيوت وقطارات' },
+      { icon: 'bi-scissors', title: 'عناية بالشعر' },
+      { icon: 'bi-capsule', title: 'مكملات وصحة' },
+      { icon: 'bi-flower1', title: 'زهور طبيعية' },
+      { icon: 'bi-flower2', title: 'أزهار' },
+      { icon: 'bi-tree', title: 'أعشاب ونباتات' },
+      { icon: 'bi-cup-hot', title: 'مشروبات' },
+      { icon: 'bi-sparkles', title: 'نضارة وجمال' },
+      { icon: 'bi-stars', title: 'مميز' },
+      { icon: 'bi-heart-pulse', title: 'حيوية' },
+      { icon: 'bi-shield-check', title: 'وقاية' },
+      { icon: 'bi-box-seam', title: 'باقات' },
+      { icon: 'bi-gem', title: 'فاخر' },
+      { icon: 'bi-tag', title: 'تصنيف عام' }
+    ];
+
+    function initCategoryIconPresets() {
+      const container = document.getElementById('category-icon-presets');
+      if (!container) return;
+      container.innerHTML = CATEGORY_PRESET_ICONS.map(item => `
+        <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                onclick="selectCategoryPresetIcon('${item.icon}')" title="${item.title}" style="font-size:0.8rem; padding: 3px 8px;">
+          <i class="bi ${item.icon}"></i>
+          <span>${item.title}</span>
+        </button>
+      `).join('');
+    }
+
+    function selectCategoryPresetIcon(iconClass) {
+      const input = document.getElementById('category-icon-input');
+      if (input) {
+        input.value = iconClass;
+        updateCategoryIconPreview();
+      }
+    }
+
+    function updateCategoryIconPreview() {
+      const input = document.getElementById('category-icon-input');
+      const iconPreview = document.getElementById('category-icon-preview');
+      const namePreview = document.getElementById('category-icon-name-preview');
+      const colorSelect = document.getElementById('category-color-select');
+      const badge = document.getElementById('category-icon-preview-badge');
+
+      let iconVal = (input ? input.value : '').trim();
+      if (!iconVal) iconVal = 'bi-tag';
+      if (!iconVal.startsWith('bi-') && !iconVal.startsWith('bi ')) {
+        iconVal = 'bi-' + iconVal;
+      }
+
+      if (iconPreview) {
+        iconPreview.className = `bi ${iconVal} me-1`;
+      }
+      if (namePreview) {
+        namePreview.textContent = iconVal;
+      }
+    }
+
+    async function loadAdminCategories() {
+      const tbody = document.getElementById('categories-table-body');
+      if (!tbody) return;
+      try {
+        const res = await fetch('/api/admin/categories', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('فشل جلب الفئات');
+        adminCategoriesList = await res.json();
+        renderAdminCategoriesTable();
+        // Update global categories dropdown for slide linking
+        allCategories = adminCategoriesList;
+        if (typeof populateSelectOptions === 'function') populateSelectOptions();
+      } catch (err) {
+        console.error('Error loading admin categories:', err);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>حدث خطأ أثناء تحميل الفئات</td></tr>`;
+      }
+    }
+
+    function renderAdminCategoriesTable() {
+      const tbody = document.getElementById('categories-table-body');
+      if (!tbody) return;
+      if (!adminCategoriesList || adminCategoriesList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">لا توجد فئات حالياً. اضغط "إضافة فئة جديدة" للبدء.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = adminCategoriesList.map((cat, idx) => {
+        const isActive = cat.is_active !== false;
+        const iconClass = cat.icon || 'bi-tag';
+        const prodCount = cat.products_count || 0;
+        const color = cat.color || 'orange';
+
+        return `
+          <tr class="${isActive ? '' : 'table-light opacity-75'}">
+            <td class="text-center">
+              <span class="badge bg-secondary rounded-pill px-2 py-1">${cat.display_order ?? idx + 1}</span>
+            </td>
+            <td class="text-center">
+              <div class="cat-shortcut-icon mx-auto" style="width: 44px; height: 44px; font-size: 1.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(113,81,0,0.08); border: 1.5px solid var(--military-green); color: var(--military-green);">
+                <i class="bi ${iconClass}"></i>
+              </div>
+            </td>
+            <td>
+              <div class="fw-bold text-dark fs-6">${cat.name}</div>
+              <small class="text-muted font-monospace" style="font-size:0.75rem;">
+                <a href="/categories/${cat.slug || cat.id}" target="_blank" class="text-decoration-none text-muted">
+                  /categories/${cat.slug || cat.id} <i class="bi bi-box-arrow-up-right" style="font-size:0.65rem;"></i>
+                </a>
+              </small>
+            </td>
+            <td class="text-center">
+              <span class="badge ${prodCount > 0 ? 'bg-primary-subtle text-primary border' : 'bg-light text-muted border'} px-2 py-1">
+                <i class="bi bi-box-seam me-1"></i>${prodCount} منتج
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input" type="checkbox" role="switch" ${isActive ? 'checked' : ''} onchange="toggleCategoryActive(${cat.id}, this.checked)">
+              </div>
+              <span class="small d-block ${isActive ? 'text-success fw-semibold' : 'text-secondary'}">
+                ${isActive ? 'ظاهرة للزوار' : 'مخفية'}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary" onclick="openEditCategoryModal(${cat.id})" title="تعديل الفئة">
+                  <i class="bi bi-pencil-square me-1"></i> تعديل
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="deleteCategory(${cat.id}, '${(cat.name || '').replace(/'/g, "\\'")}', ${prodCount})" title="حذف الفئة">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openAddCategoryModal() {
+      document.getElementById('categoryModalTitle').innerHTML = '<i class="bi bi-plus-circle me-2 text-primary"></i>إضافة فئة جديدة';
+      document.getElementById('category-id').value = '';
+      document.getElementById('category-name-input').value = '';
+      // Default order to next available sequence
+      const nextOrder = adminCategoriesList.length > 0 
+        ? Math.max(...adminCategoriesList.map(c => c.display_order || 0)) + 1 
+        : 1;
+      document.getElementById('category-order-input').value = nextOrder;
+      document.getElementById('category-color-select').value = 'orange';
+      document.getElementById('category-icon-input').value = 'bi-tag';
+      document.getElementById('category-active-input').checked = true;
+      updateCategoryIconPreview();
+
+      const modalEl = document.getElementById('categoryModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+
+    function openEditCategoryModal(id) {
+      const cat = adminCategoriesList.find(c => c.id === id);
+      if (!cat) return;
+
+      document.getElementById('categoryModalTitle').innerHTML = '<i class="bi bi-pencil-square me-2 text-primary"></i>تعديل الفئة';
+      document.getElementById('category-id').value = cat.id;
+      document.getElementById('category-name-input').value = cat.name || '';
+      document.getElementById('category-order-input').value = cat.display_order ?? 0;
+      document.getElementById('category-color-select').value = cat.color || 'orange';
+      document.getElementById('category-icon-input').value = cat.icon || 'bi-tag';
+      document.getElementById('category-active-input').checked = cat.is_active !== false;
+      updateCategoryIconPreview();
+
+      const modalEl = document.getElementById('categoryModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+
+    async function submitSaveCategory() {
+      const id = document.getElementById('category-id').value;
+      const name = document.getElementById('category-name-input').value.trim();
+      const display_order = parseInt(document.getElementById('category-order-input').value, 10) || 0;
+      const color = document.getElementById('category-color-select').value;
+      let icon = document.getElementById('category-icon-input').value.trim() || 'bi-tag';
+      if (!icon.startsWith('bi-') && !icon.startsWith('bi ')) {
+        icon = 'bi-' + icon;
+      }
+      const is_active = document.getElementById('category-active-input').checked;
+
+      if (!name) {
+        showToast('يرجى إدخال اسم الفئة', 'error');
+        return;
+      }
+
+      const payload = { name, display_order, color, icon, is_active };
+      const isEdit = Boolean(id);
+      const url = isEdit ? `/api/admin/categories/${id}` : '/api/admin/categories';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'حدث خطأ أثناء حفظ الفئة', 'error');
+          return;
+        }
+
+        showToast(isEdit ? 'تم تحديث الفئة بنجاح!' : 'تم إنشاء الفئة بنجاح!', 'success');
+        const modalEl = document.getElementById('categoryModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
+        await loadAdminCategories();
+      } catch (err) {
+        console.error('Error saving category:', err);
+        showToast('حدث خطأ أثناء حفظ الفئة', 'error');
+      }
+    }
+
+    async function toggleCategoryActive(id, newState) {
+      try {
+        const res = await fetch(`/api/admin/categories/${id}/toggle`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ is_active: newState })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تغيير حالة الفئة', 'error');
+          await loadAdminCategories();
+          return;
+        }
+
+        showToast('تم تحديث حالة الفئة بنجاح', 'success');
+        await loadAdminCategories();
+      } catch (err) {
+        console.error('Error toggling category active status:', err);
+        showToast('حدث خطأ أثناء تغيير حالة الفئة', 'error');
+      }
+    }
+
+    async function deleteCategory(id, name, prodCount) {
+      let confirmMsg = `هل أنت متأكد من حذف الفئة "${name}"؟`;
+      if (prodCount > 0) {
+        confirmMsg += `\n\nتنبيه: يوجد ${prodCount} منتج مرتبط بهذه الفئة. المنتجات ستظل موجودة في المتجر ولكن سيتم إزالة ربطها بهذه الفئة.`;
+      }
+
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/categories/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حذف الفئة', 'error');
+          return;
+        }
+
+        showToast('تم حذف الفئة بنجاح', 'success');
+        await loadAdminCategories();
+      } catch (err) {
+        console.error('Error deleting category:', err);
+        showToast('حدث خطأ أثناء حذف الفئة', 'error');
+      }
+    }
+
+    // ====== FREE DELIVERY MANAGEMENT ======
+    let adminFreeDeliveryProducts = [];
+    let isStorewideFreeDelivery = false;
+
+    async function loadFreeDeliverySettings() {
+      const tbody = document.getElementById('free-delivery-products-tbody');
+      if (!tbody) return;
+      try {
+        const res = await fetch('/api/admin/free-delivery', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('فشل جلب بيانات التوصيل المجاني');
+        const data = await res.json();
+        isStorewideFreeDelivery = Boolean(data.storewide_free_delivery);
+        adminFreeDeliveryProducts = Array.isArray(data.products) ? data.products : [];
+
+        // Update Storewide Switch & Badge
+        const swSwitch = document.getElementById('storewide-switch');
+        const swBadge = document.getElementById('storewide-status-badge');
+        const swWrap = document.getElementById('storewide-banner-wrap');
+        if (swSwitch) swSwitch.checked = isStorewideFreeDelivery;
+        if (swBadge) {
+          swBadge.textContent = isStorewideFreeDelivery ? 'مفعل لجميع الولايات والمنتجات' : 'معطل';
+          swBadge.className = isStorewideFreeDelivery ? 'badge bg-success fs-6' : 'badge bg-secondary';
+        }
+        if (swWrap) {
+          swWrap.style.borderColor = isStorewideFreeDelivery ? '#198754' : '#dee2e6';
+          swWrap.style.background = isStorewideFreeDelivery ? 'rgba(25, 135, 84, 0.05)' : '#fff';
+        }
+
+        renderFreeDeliveryProductsTable();
+      } catch (err) {
+        console.error('Error loading free delivery settings:', err);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>حدث خطأ أثناء تحميل المنتجات</td></tr>`;
+      }
+    }
+
+    function renderFreeDeliveryProductsTable(filter = '') {
+      const tbody = document.getElementById('free-delivery-products-tbody');
+      if (!tbody) return;
+
+      const cleanFilter = (filter || '').trim().toLowerCase();
+      const filtered = cleanFilter
+        ? adminFreeDeliveryProducts.filter(p => (p.name || '').toLowerCase().includes(cleanFilter))
+        : adminFreeDeliveryProducts;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">لا توجد منتجات مطابقة للبحث</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((prod, idx) => {
+        const isFree = Boolean(prod.is_free_delivery);
+        return `
+          <tr class="${isFree ? 'table-success bg-opacity-10' : ''}">
+            <td class="text-center text-muted small">${idx + 1}</td>
+            <td>
+              <span class="fw-bold text-dark">${prod.name}</span>
+            </td>
+            <td class="text-center fw-semibold text-primary">${prod.price || 0} دج</td>
+            <td class="text-center">
+              <span class="badge ${prod.stock > 0 ? 'bg-light text-dark border' : 'bg-danger'}">${prod.stock > 0 ? prod.stock + ' قطعة' : 'نفذ المخزون'}</span>
+            </td>
+            <td class="text-center">
+              <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input" type="checkbox" role="switch" ${isFree ? 'checked' : ''} onchange="toggleProductFreeDelivery(${prod.id}, this.checked)">
+              </div>
+              <span class="small d-block ${isFree ? 'text-success fw-bold' : 'text-muted'}">
+                ${isFree ? '<i class="bi bi-gift-fill me-1"></i>توصيل مجاني' : 'توصيل مدفوع عادي'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterFreeDeliveryProducts() {
+      const q = document.getElementById('free-delivery-search')?.value || '';
+      renderFreeDeliveryProductsTable(q);
+    }
+
+    async function toggleStorewideFreeDelivery(enabled) {
+      try {
+        const res = await fetch('/api/admin/free-delivery/storewide', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تحديث التوصيل المجاني', 'error');
+          await loadFreeDeliverySettings();
+          return;
+        }
+
+        showToast(data.message, 'success');
+        await loadFreeDeliverySettings();
+      } catch (err) {
+        console.error('Error toggling storewide free delivery:', err);
+        showToast('حدث خطأ أثناء تعديل التوصيل المجاني الشامل', 'error');
+      }
+    }
+
+    async function toggleProductFreeDelivery(productId, isFree) {
+      try {
+        const res = await fetch(`/api/admin/free-delivery/product/${productId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ is_free_delivery: isFree })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تحديث حالة المنتج', 'error');
+          await loadFreeDeliverySettings();
+          return;
+        }
+
+        showToast(data.message, 'success');
+        const prod = adminFreeDeliveryProducts.find(p => p.id === productId);
+        if (prod) prod.is_free_delivery = isFree;
+        renderFreeDeliveryProductsTable(document.getElementById('free-delivery-search')?.value || '');
+      } catch (err) {
+        console.error('Error toggling product free delivery:', err);
+        showToast('حدث خطأ أثناء تحديث التوصيل المجاني للمنتج', 'error');
+      }
+    }
+
+    // ====== PROMO CODES MANAGEMENT ======
+    let adminPromoCodesList = [];
+
+    async function loadAdminPromoCodes() {
+      const tbody = document.getElementById('promos-table-body');
+      if (!tbody) return;
+      try {
+        const res = await fetch('/api/admin/promo-codes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('فشل جلب كوبونات الخصم');
+        adminPromoCodesList = await res.json();
+        renderPromoCodesTable();
+      } catch (err) {
+        console.error('Error loading promo codes:', err);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>حدث خطأ أثناء تحميل كوبونات الخصم</td></tr>`;
+      }
+    }
+
+    function renderPromoCodesTable() {
+      const tbody = document.getElementById('promos-table-body');
+      if (!tbody) return;
+      if (!adminPromoCodesList || adminPromoCodesList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">لا توجد كوبونات خصم حالياً. اضغط "إضافة كود خصم جديد" للبدء.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = adminPromoCodesList.map(promo => {
+        const isActive = promo.is_active !== false;
+        let typeBadge = '';
+        if (promo.discount_type === 'percentage') {
+          typeBadge = `<span class="badge bg-warning text-dark fs-6"><i class="bi bi-percent me-1"></i>خصم ${promo.discount_value}%</span>`;
+        } else if (promo.discount_type === 'fixed') {
+          typeBadge = `<span class="badge bg-primary fs-6"><i class="bi bi-cash-stack me-1"></i>خصم ${promo.discount_value} دج</span>`;
+        } else if (promo.discount_type === 'free_delivery') {
+          typeBadge = `<span class="badge bg-success fs-6"><i class="bi bi-truck me-1"></i>توصيل مجاني</span>`;
+        }
+
+        let scopeText = '<span class="badge bg-light text-dark border">كل المنتجات</span>';
+        if (promo.applies_to === 'specific') {
+          const prods = Array.isArray(promo.products) ? promo.products : [];
+          const count = prods.length;
+          const names = prods.map(p => p.name).join('، ');
+          scopeText = `<span class="badge bg-info text-dark" title="${names}"><i class="bi bi-tag me-1"></i>${count} منتجات محددة</span>`;
+        }
+
+        const minOrder = (promo.min_order_amount && parseFloat(promo.min_order_amount) > 0)
+          ? `${promo.min_order_amount} دج`
+          : '<span class="text-muted small">بدون حد</span>';
+
+        const usage = promo.usage_limit 
+          ? `<span class="fw-semibold">${promo.used_count || 0}</span> / <span class="text-muted">${promo.usage_limit}</span>`
+          : `<span class="fw-semibold">${promo.used_count || 0}</span> <span class="text-muted small">(غير محدود)</span>`;
+
+        return `
+          <tr class="${isActive ? '' : 'table-light opacity-75'}">
+            <td>
+              <span class="badge bg-dark font-monospace fs-6 px-3 py-2 border shadow-sm">${promo.code}</span>
+            </td>
+            <td class="text-center">${typeBadge}</td>
+            <td class="text-center">${scopeText}</td>
+            <td class="text-center">${minOrder}</td>
+            <td class="text-center">${usage}</td>
+            <td class="text-center">
+              <div class="form-check form-switch d-inline-block">
+                <input class="form-check-input" type="checkbox" role="switch" ${isActive ? 'checked' : ''} onchange="togglePromoCodeActive(${promo.id})">
+              </div>
+              <span class="small d-block ${isActive ? 'text-success fw-semibold' : 'text-secondary'}">
+                ${isActive ? 'مفعل' : 'معطل'}
+              </span>
+            </td>
+            <td class="text-center">
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary" onclick="openEditPromoModal(${promo.id})" title="تعديل">
+                  <i class="bi bi-pencil-square me-1"></i> تعديل
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="deletePromoCode(${promo.id}, '${promo.code}')" title="حذف">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function handlePromoTypeChange() {
+      const type = document.getElementById('promo-type-select').value;
+      const valueCol = document.getElementById('promo-value-col');
+      const valueLabel = document.getElementById('promo-value-label');
+      const valueUnit = document.getElementById('promo-value-unit');
+
+      if (type === 'free_delivery') {
+        valueCol.style.display = 'none';
+      } else {
+        valueCol.style.display = 'block';
+        if (type === 'percentage') {
+          valueLabel.textContent = 'نسبة الخصم (%):';
+          valueUnit.textContent = '%';
+        } else {
+          valueLabel.textContent = 'قيمة الخصم (دج):';
+          valueUnit.textContent = 'دج';
+        }
+      }
+    }
+
+    function handlePromoAppliesChange() {
+      const isSpecific = document.getElementById('promo-applies-specific').checked;
+      const wrap = document.getElementById('promo-specific-products-wrap');
+      if (wrap) wrap.style.display = isSpecific ? 'block' : 'none';
+      if (isSpecific) renderPromoModalProductsList();
+    }
+
+    function renderPromoModalProductsList(selectedIds = []) {
+      const container = document.getElementById('promo-products-checklist');
+      if (!container) return;
+
+      const prods = adminFreeDeliveryProducts.length > 0 ? adminFreeDeliveryProducts : allProducts;
+      if (!prods || prods.length === 0) {
+        container.innerHTML = '<span class="text-muted small">لا توجد منتجات متاحة</span>';
+        return;
+      }
+
+      container.innerHTML = prods.map(p => {
+        const isChecked = selectedIds.includes(p.id);
+        return `
+          <label class="form-check d-flex align-items-center gap-2 p-1 border-bottom mb-0 promo-product-item" data-name="${(p.name || '').toLowerCase()}">
+            <input class="form-check-input m-0 promo-prod-checkbox" type="checkbox" value="${p.id}" ${isChecked ? 'checked' : ''}>
+            <span class="small fw-semibold flex-grow-1">${p.name}</span>
+            <span class="badge bg-light text-primary border">${p.price || 0} دج</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function filterPromoModalProducts() {
+      const query = (document.getElementById('promo-product-search')?.value || '').trim().toLowerCase();
+      const items = document.querySelectorAll('.promo-product-item');
+      items.forEach(item => {
+        const name = item.dataset.name || '';
+        item.style.display = name.includes(query) ? 'flex' : 'none';
+      });
+    }
+
+    function openAddPromoModal() {
+      document.getElementById('promoCodeModalTitle').innerHTML = '<i class="bi bi-ticket-perforated-fill me-2 text-primary"></i>إضافة كود خصم جديد';
+      document.getElementById('promo-id').value = '';
+      document.getElementById('promo-code-input').value = '';
+      document.getElementById('promo-type-select').value = 'percentage';
+      document.getElementById('promo-value-input').value = '';
+      document.getElementById('promo-min-order-input').value = '0';
+      document.getElementById('promo-usage-limit-input').value = '';
+      document.getElementById('promo-expires-input').value = '';
+      document.getElementById('promo-applies-all').checked = true;
+      document.getElementById('promo-active-input').checked = true;
+
+      handlePromoTypeChange();
+      handlePromoAppliesChange();
+
+      const modalEl = document.getElementById('promoCodeModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+
+    function openEditPromoModal(id) {
+      const promo = adminPromoCodesList.find(p => p.id === id);
+      if (!promo) return;
+
+      document.getElementById('promoCodeModalTitle').innerHTML = '<i class="bi bi-pencil-square me-2 text-primary"></i>تعديل كود الخصم';
+      document.getElementById('promo-id').value = promo.id;
+      document.getElementById('promo-code-input').value = promo.code || '';
+      document.getElementById('promo-type-select').value = promo.discount_type || 'percentage';
+      document.getElementById('promo-value-input').value = promo.discount_value || '';
+      document.getElementById('promo-min-order-input').value = promo.min_order_amount || '0';
+      document.getElementById('promo-usage-limit-input').value = promo.usage_limit || '';
+      document.getElementById('promo-expires-input').value = promo.expires_at ? promo.expires_at.split('T')[0] : '';
+
+      const isSpecific = promo.applies_to === 'specific';
+      if (isSpecific) {
+        document.getElementById('promo-applies-specific').checked = true;
+      } else {
+        document.getElementById('promo-applies-all').checked = true;
+      }
+
+      document.getElementById('promo-active-input').checked = promo.is_active !== false;
+
+      handlePromoTypeChange();
+      handlePromoAppliesChange();
+
+      if (isSpecific) {
+        const prodIds = Array.isArray(promo.products) ? promo.products.map(p => p.id) : [];
+        renderPromoModalProductsList(prodIds);
+      }
+
+      const modalEl = document.getElementById('promoCodeModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    }
+
+    async function submitSavePromoCode() {
+      const id = document.getElementById('promo-id').value;
+      const code = document.getElementById('promo-code-input').value.trim().toUpperCase();
+      const discount_type = document.getElementById('promo-type-select').value;
+      const discount_value = parseFloat(document.getElementById('promo-value-input').value) || 0;
+      const min_order_amount = parseFloat(document.getElementById('promo-min-order-input').value) || 0;
+      const usage_limit = document.getElementById('promo-usage-limit-input').value ? parseInt(document.getElementById('promo-usage-limit-input').value, 10) : null;
+      const expires_at = document.getElementById('promo-expires-input').value || null;
+      const applies_to = document.getElementById('promo-applies-specific').checked ? 'specific' : 'all';
+      const is_active = document.getElementById('promo-active-input').checked;
+
+      if (!code) {
+        showToast('يرجى إدخال رمز كود الخصم', 'error');
+        return;
+      }
+
+      if (discount_type !== 'free_delivery' && discount_value <= 0) {
+        showToast('يرجى إدخال قيمة خصم صالحة أكبر من صفر', 'error');
+        return;
+      }
+
+      let product_ids = [];
+      if (applies_to === 'specific') {
+        const checkedInputs = document.querySelectorAll('.promo-prod-checkbox:checked');
+        product_ids = Array.from(checkedInputs).map(cb => parseInt(cb.value, 10));
+        if (product_ids.length === 0) {
+          showToast('يرجى اختيار منتج واحد على الأقل للمنتجات المحددة', 'error');
+          return;
+        }
+      }
+
+      const payload = {
+        code, discount_type, discount_value, min_order_amount,
+        usage_limit, expires_at, applies_to, product_ids, is_active
+      };
+
+      const isEdit = Boolean(id);
+      const url = isEdit ? `/api/admin/promo-codes/${id}` : '/api/admin/promo-codes';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل حفظ كود الخصم', 'error');
+          return;
+        }
+
+        showToast(isEdit ? 'تم تحديث كود الخصم بنجاح!' : 'تم إنشاء كود الخصم بنجاح!', 'success');
+        const modalEl = document.getElementById('promoCodeModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.hide();
+        await loadAdminPromoCodes();
+      } catch (err) {
+        console.error('Error saving promo code:', err);
+        showToast('حدث خطأ أثناء حفظ كود الخصم', 'error');
+      }
+    }
+
+    async function togglePromoCodeActive(id) {
+      try {
+        const res = await fetch(`/api/admin/promo-codes/${id}/toggle`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في تغيير حالة الكود', 'error');
+          await loadAdminPromoCodes();
+          return;
+        }
+
+        showToast(data.message || 'تم تحديث حالة الكود بنجاح', 'success');
+        await loadAdminPromoCodes();
+      } catch (err) {
+        console.error('Error toggling promo code:', err);
+        showToast('حدث خطأ أثناء تغيير حالة كود الخصم', 'error');
+      }
+    }
+
+    async function deletePromoCode(id, code) {
+      if (!confirm(`هل أنت متأكد من حذف كود الخصم "${code}"؟`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/promo-codes/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حذف الكود', 'error');
+          return;
+        }
+
+        showToast('تم حذف كود الخصم بنجاح', 'success');
+        await loadAdminPromoCodes();
+      } catch (err) {
+        console.error('Error deleting promo code:', err);
+        showToast('حدث خطأ أثناء حذف كود الخصم', 'error');
+      }
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       loadSettings();
       loadProductsAndCategories();
+      loadDeliveryCompanies();
+      loadTrackingScripts();
+      loadAdminCategories();
+      initCategoryIconPresets();
+      loadFreeDeliverySettings();
+      loadAdminPromoCodes();
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

@@ -285,19 +285,24 @@ router.get('/categories', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('Categories')
-      .select('id, name')
-      .order('name', { ascending: true });
+      .select('id, name, icon, color, display_order, is_active')
+      .neq('is_active', false)
+      .order('display_order', { ascending: true })
+      .order('id', { ascending: true });
     if (error) throw error;
 
-    // Add slugs to categories
+    // Add slugs and defaults to categories
     const categoriesWithSlugs = (data || []).map(category => ({
       ...category,
+      icon: category.icon || 'bi-tag',
+      color: category.color || 'orange',
       slug: SlugUtil.generateCategorySlug(category)
     }));
 
     res.json(categoriesWithSlugs);
   } catch (err) {
-    res.status(500).json({ error: 'Kategoriler alınırken hata oluştu.' });
+    console.error('Error fetching categories:', err);
+    res.status(500).json({ error: 'خطأ في جلب الفئات.' });
   }
 });
 

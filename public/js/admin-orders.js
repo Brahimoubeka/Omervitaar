@@ -263,25 +263,32 @@ function populateOrderModal(group) {
     const productsTotal = firstOrder.products_price || 0;
     const deliveryPrice = firstOrder.delivery_price || 0;
     
+    const discountAmount = firstOrder.discount_amount || 0;
+    const promoCode = firstOrder.promo_code;
+
     let headerHtml = `
       <div class="row mb-3">
         <div class="col-md-6">
-          <p><strong>المستخدم:</strong> ${firstOrder.userName} (${firstOrder.userEmail})</p>
-          <p><strong>الاسم الكامل:</strong> ${firstOrder.first_name || ''} ${firstOrder.last_name || ''}</p>
-          <p><strong>الهاتف:</strong> ${firstOrder.shipping_name}</p>
-          <p><strong>العنوان:</strong> ${firstOrder.shipping_address}</p>
-          <p><strong>المنطقة:</strong> ${firstOrder.city || ''}, ${firstOrder.province || ''}</p>
-          <p><strong>الرمز البريدي:</strong> ${firstOrder.postal_code}</p>
+          <p class="mb-1"><strong>العميل:</strong> ${firstOrder.first_name || ''} ${firstOrder.last_name || ''}</p>
+          <p class="mb-1"><strong>الهاتف:</strong> <a href="tel:${firstOrder.shipping_name}" class="text-decoration-none fw-bold" style="color:var(--military-green); direction:ltr;">${firstOrder.shipping_name}</a></p>
+          <p class="mb-1"><strong>الولاية:</strong> ${firstOrder.city || '--'}</p>
+          ${firstOrder.shipping_address ? `<p class="mb-1"><strong>بيانات الشحن:</strong> ${firstOrder.shipping_address}</p>` : ''}
+          <p class="mb-1 text-muted small"><strong>الحساب:</strong> ${firstOrder.userEmail ? `${firstOrder.userName || ''} (${firstOrder.userEmail})` : 'طلب زائر (بدون تسجيل)'}</p>
         </div>
         <div class="col-md-6 text-md-end">
-            <p><strong>تاريخ الطلب:</strong> ${new Date(firstOrder.order_date).toLocaleString()}</p>
-            <p><strong>إجمالي المنتجات:</strong> دج${productsTotal.toFixed(2)}</p>
-            <p><strong>تكلفة الشحن:</strong> دج${deliveryPrice.toFixed(2)}</p>
-            <h5 class="mt-2"><strong>الإجمالي الحالي:</strong> <span id="modal-current-total">دج${currentTotal.toFixed(2)}</span></h5>
+            <p class="mb-1"><strong>تاريخ الطلب:</strong> ${new Date(firstOrder.order_date).toLocaleString('ar-DZ')}</p>
+            <p class="mb-1"><strong>مجموع المنتجات:</strong> دج${productsTotal.toFixed(2)}</p>
+            ${discountAmount > 0 ? `
+            <p class="mb-1 text-success fw-bold">
+              <i class="bi bi-ticket-perforated me-1"></i>خصم الكوبون (${promoCode || 'PROMO'}): 
+              <span>-دج${discountAmount.toFixed(2)}</span>
+            </p>` : ''}
+            <p class="mb-1"><strong>تكلفة الشحن:</strong> ${deliveryPrice === 0 ? '<span class="badge bg-success">0 دج (مجاني 🚚)</span>' : `دج${deliveryPrice.toFixed(2)}`}</p>
+            <h5 class="mt-2 text-primary"><strong>المجموع النهائي:</strong> <span id="modal-current-total">دج${currentTotal.toFixed(2)}</span></h5>
         </div>
       </div>
       <hr />
-      <h4>المنتجات</h4>
+      <h4>المنتجات المطلوبة</h4>
     `;
     modalBody.innerHTML = headerHtml;
 
@@ -397,11 +404,16 @@ function copyOrderDetails(group) {
     const productsTotal = firstOrder.products_price || 0;
     const deliveryPrice = firstOrder.delivery_price || 0;
     const currentTotal = firstOrder.total_price || 0;
+    const discountAmount = firstOrder.discount_amount || 0;
+    const promoCode = firstOrder.promo_code;
     
-    orderText += "--- الإجمالي ---\n";
+    orderText += "--- الإجمالي المالي ---\n";
     orderText += `إجمالي المنتجات: دج${productsTotal.toFixed(2)}\n`;
-    orderText += `تكلفة الشحن: دج${deliveryPrice.toFixed(2)}\n`;
-    orderText += `الإجمالي النهائي: دج${currentTotal.toFixed(2)}\n`;
+    if (discountAmount > 0) {
+        orderText += `خصم الكوبون (${promoCode || 'PROMO'}): -دج${discountAmount.toFixed(2)}\n`;
+    }
+    orderText += `تكلفة الشحن: ${deliveryPrice === 0 ? 'مجاني (0 دج)' : `دج${deliveryPrice.toFixed(2)}`}\n`;
+    orderText += `المجموع النهائي الواجب دفعه: دج${currentTotal.toFixed(2)}\n`;
     
     // Copy to clipboard
     navigator.clipboard.writeText(orderText)
