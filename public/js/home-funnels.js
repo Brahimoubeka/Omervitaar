@@ -34,21 +34,28 @@ document.addEventListener('DOMContentLoaded', async () => {
               return `
                 <div class="home-funnel-card" data-funnel-id="${item.id}">
                   <div class="home-funnel-img-wrap" style="width: 100%; aspect-ratio: 1/1; overflow: hidden; position: relative;">
-                    <img src="${imgUrl}" alt="${item.title}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="400" height="400" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy">
+                    <img src="${imgUrl}" alt="${item.title}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="300" height="300" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy">
                   </div>
                   <div class="home-funnel-content">
                     <h3 class="home-funnel-title" ${titleStyle}>${item.title}</h3>
-                    ${item.subtitle ? `<p class="home-funnel-subtitle" ${textStyle}>${item.subtitle}</p>` : ''}
+                    <p class="home-funnel-subtitle" ${textStyle}>${item.subtitle || '&nbsp;'}</p>
                     
-                    ${hasSubs ? `
-                      <div class="home-funnel-subs">
-                        ${item.sub_sections.slice(0, 4).map(sub => `
+                    <div class="home-funnel-subs ${hasSubs ? '' : 'home-funnel-subs-empty'}">
+                      ${hasSubs ? `
+                        ${item.sub_sections.slice(0, 2).map(sub => `
                           <a href="/solutions/${sub.slug}" class="home-funnel-sub-pill" title="${sub.title}">
                             <span>${sub.title}</span>
                           </a>
                         `).join('')}
-                      </div>
-                    ` : ''}
+                        ${item.sub_sections.length > 2 ? `
+                          <a href="${linkUrl}" class="home-funnel-more-pill" title="يوجد ${item.sub_sections.length - 2} أقسام إضافية">
+                            +${item.sub_sections.length - 2}
+                          </a>
+                        ` : ''}
+                      ` : `
+                        <span class="home-funnel-sub-pill" style="visibility: hidden;">&nbsp;</span>
+                      `}
+                    </div>
 
                     <a href="${linkUrl}" class="home-funnel-cta-btn" style="${btnStyle}">
                       <span>${btnText}</span>
