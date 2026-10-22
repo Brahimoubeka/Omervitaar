@@ -145,7 +145,14 @@ function populateLandingPagesDropdown() {
   landingPages.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
-    opt.textContent = `${p.title} (${p.slug})`;
+    let path = p.title;
+    if (p.parent_id) {
+      const parent = allNodesList.find(n => n.id === p.parent_id);
+      if (parent) {
+        path = `[${parent.title}] ➔ ${p.title}`;
+      }
+    }
+    opt.textContent = `${path} (${p.slug})`;
     select.appendChild(opt);
   });
 
@@ -154,7 +161,7 @@ function populateLandingPagesDropdown() {
   }
 }
 
-// Render Recursive Tree in Tab 1
+// Render Recursive Tree in Tab 1 (Handles infinite depth / layers)
 function renderTree(tree) {
   const container = document.getElementById('treeContainer');
   if (!container) return;
@@ -170,59 +177,81 @@ function renderTree(tree) {
   }
 
   let html = '';
-  tree.forEach(rootNode => {
-    html += renderNodeItem(rootNode, true);
-    if (Array.isArray(rootNode.children) && rootNode.children.length > 0) {
-      rootNode.children.forEach(child => {
-        html += renderNodeItem(child, false);
-      });
-    }
-  });
 
+  function walk(nodes, depth = 0, parentTitle = null) {
+    if (!Array.isArray(nodes)) return;
+    nodes.forEach(node => {
+      html += renderNodeItem(node, depth, parentTitle);
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        walk(node.children, depth + 1, node.title);
+      }
+    });
+  }
+
+  walk(tree, 0, null);
   container.innerHTML = html;
 }
 
-function renderNodeItem(node, isRoot) {
+function renderNodeItem(node, depth = 0, parentTitle = null) {
   const isLanding = node.type === 'landing_page';
-  const typeBadge = isLanding
-    ? '<span class="badge bg-primary-subtle text-primary border"><i class="bi bi-file-earmark-text me-1"></i>صفحة هبوط</span>'
-    : '<span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-folder2 me-1"></i>قسم يحتوي فروع</span>';
+  const depthClass = `depth-${Math.min(depth, 3)}`;
 
+  // Type badge
+  const typeBadge = isLanding
+    ? '<span class="badge bg-primary-subtle text-primary border" style="font-size: 0.68rem; padding: 2px 6px;"><i class="bi bi-file-earmark-text me-1"></i>صفحة هبوط</span>'
+    : `<span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.68rem; padding: 2px 6px;"><i class="bi bi-folder2 me-1"></i>قسم ${node.children_count > 0 ? `(${node.children_count})` : ''}</span>`;
+
+  // Home badge
   const homeBadge = node.show_on_home
-    ? '<span class="badge bg-warning-subtle text-dark border"><i class="bi bi-star-fill text-warning me-1"></i>في الرئيسية</span>'
+    ? '<span class="badge bg-warning-subtle text-dark border" style="font-size: 0.68rem; padding: 2px 6px;"><i class="bi bi-star-fill text-warning me-1"></i>الرئيسية</span>'
     : '';
 
+  // Active status badge
   const activeBadge = node.is_active
-    ? '<span class="badge bg-success-subtle text-success border">نشط</span>'
-    : '<span class="badge bg-danger-subtle text-danger border">معطل</span>';
+    ? '<span class="badge bg-success-subtle text-success border" style="font-size: 0.68rem; padding: 2px 6px;">نشط</span>'
+    : '<span class="badge bg-danger-subtle text-danger border" style="font-size: 0.68rem; padding: 2px 6px;">معطل</span>';
+
+  // Parent relationship badge
+  const parentBadge = parentTitle
+    ? `<span class="badge bg-light text-secondary border" style="font-size: 0.68rem; padding: 2px 6px;" title="فرع من: ${escapeQuotes(parentTitle)}"><i class="bi bi-arrow-return-left me-1"></i>تابع لـ: <strong>${escapeQuotes(parentTitle)}</strong></span>`
+    : '';
 
   const img = node.image_url || '/images/category-banner-oil.jpg';
   const liveUrl = `/solutions/${node.slug}`;
 
+  // Custom margin for depths > 3 if hierarchy gets very deep
+  const extraIndent = depth > 3 ? `style="margin-right: ${depth * 22}px !important;"` : '';
+
   return `
-    <div class="tree-node-item ${isRoot ? 'is-root' : 'is-child'}" id="node-card-${node.id}">
+    <div class="tree-node-item ${depthClass}" id="node-card-${node.id}" ${extraIndent}>
       <div class="tree-node-header">
-        <div class="d-flex align-items-center gap-3">
-          <img src="${img}" alt="${node.title}" class="tree-node-thumb">
-          <div>
-            <div class="d-flex align-items-center gap-2 mb-1">
-              <strong class="fs-5 text-dark">${node.title}</strong>
+        <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden" style="min-width: 0;">
+          ${depth > 0 ? `
+            <span class="text-muted opacity-75 tree-branch-symbol" style="font-size: 0.95rem; flex-shrink: 0;" title="مستوى ${depth + 1}">
+              <i class="bi bi-arrow-return-left"></i>
+            </span>
+          ` : ''}
+          <img src="${img}" alt="${node.title}" class="tree-node-thumb" onerror="this.onerror=null; this.src='/images/category-banner-oil.jpg';">
+          <div class="overflow-hidden" style="min-width: 0;">
+            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+              <strong class="tree-node-title text-truncate" title="${node.title}">${node.title}</strong>
               ${typeBadge}
+              ${parentBadge}
               ${homeBadge}
               ${activeBadge}
             </div>
-            <div class="text-muted small">
+            <div class="tree-node-meta mt-0.5">
               <span>الرابط: <code>${node.slug}</code></span>
-              ${node.subtitle ? ` · <span class="text-secondary">${node.subtitle.slice(0, 50)}...</span>` : ''}
+              ${node.subtitle ? ` · <span class="text-muted text-truncate" style="max-width: 250px;">${node.subtitle}</span>` : ''}
               ${isLanding ? ` · <span class="fw-bold text-success">${node.blocks_count || 0} كتل | ${node.offers_count || 0} عروض</span>` : ` · <span class="fw-bold text-primary">${node.children_count || 0} أقسام فرعية</span>`}
             </div>
           </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="tree-node-actions">
           ${!isLanding ? `
             <button class="btn btn-sm btn-outline-success rounded-pill fw-bold" onclick="openAddChildNodeModal(${node.id}, '${escapeQuotes(node.title)}')">
-              <i class="bi bi-plus me-1"></i>إضافة قسم داخله
+              <i class="bi bi-plus me-0.5"></i>إضافة داخله
             </button>
           ` : `
             <button class="btn btn-sm btn-primary rounded-pill fw-bold" onclick="switchToBuilder(${node.id})">

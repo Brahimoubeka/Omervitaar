@@ -83,47 +83,112 @@
     .funnel-stat-icon.blue { background: #e0f2fe; color: #075985; }
     .funnel-stat-icon.purple { background: #f3e8ff; color: #6b21a8; }
 
-    /* Hierarchy Tree Styling */
+    /* Hierarchy Tree Styling - Compact, Scalable & Clear Hierarchy */
     .tree-node-item {
       background: #ffffff;
       border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      transition: all 0.25s ease;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s ease;
       overflow: hidden;
+      position: relative;
     }
 
     .tree-node-item:hover {
       border-color: var(--admin-brand);
-      box-shadow: 0 6px 18px rgba(90, 99, 68, 0.1);
+      box-shadow: 0 4px 12px rgba(90, 99, 68, 0.08);
     }
 
-    .tree-node-item.is-root {
-      border-right: 5px solid var(--admin-brand);
+    .tree-node-item.depth-0 {
+      border-right: 4px solid var(--admin-brand);
+      background: #ffffff;
+      margin-top: 10px;
     }
 
-    .tree-node-item.is-child {
-      border-right: 5px solid var(--admin-gold);
-      margin-right: 32px;
+    .tree-node-item.depth-1 {
+      border-right: 4px solid var(--admin-gold);
+      margin-right: 22px;
       background: #fafaf8;
     }
 
+    .tree-node-item.depth-2 {
+      border-right: 4px solid #8b5cf6;
+      margin-right: 44px;
+      background: #faf7ff;
+    }
+
+    .tree-node-item.depth-3 {
+      border-right: 4px solid #0ea5e9;
+      margin-right: 66px;
+      background: #f0f9ff;
+    }
+
     .tree-node-header {
-      padding: 1rem 1.25rem;
+      padding: 0.45rem 0.85rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
+      flex-wrap: nowrap;
+      gap: 10px;
     }
 
     .tree-node-thumb {
-      width: 56px;
-      height: 56px;
-      border-radius: 10px;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
       object-fit: cover;
       border: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .tree-node-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0;
+      line-height: 1.25;
+    }
+
+    .tree-node-meta {
+      font-size: 0.74rem;
+      color: #64748b;
+      line-height: 1.3;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tree-node-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .tree-node-actions .btn {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    @media (max-width: 768px) {
+      .tree-node-header {
+        flex-wrap: wrap;
+      }
+      .tree-node-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 4px;
+      }
+      .tree-node-item.depth-1 { margin-right: 14px; }
+      .tree-node-item.depth-2 { margin-right: 24px; }
+      .tree-node-item.depth-3 { margin-right: 32px; }
     }
 
     /* Builder Drag / Blocks */
