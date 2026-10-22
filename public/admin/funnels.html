@@ -516,6 +516,16 @@
                     </div>
 
                     <div class="col-6 col-md-2">
+                      <label for="nodePriceColor" class="form-label fw-bold small">لون الأسعار</label>
+                      <input type="color" class="form-control form-control-color w-100" id="nodePriceColor" value="#5a6344" title="اختر لون الأسعار">
+                    </div>
+
+                    <div class="col-6 col-md-2">
+                      <label for="nodePageBgColor" class="form-label fw-bold small">خلفية الصفحة</label>
+                      <input type="color" class="form-control form-control-color w-100" id="nodePageBgColor" value="#ffffff" title="اختر لون خلفية صفحة الهبوط بالكامل">
+                    </div>
+
+                    <div class="col-6 col-md-2">
                       <label for="nodeTagColor" class="form-label fw-bold small">نص الشارة</label>
                       <input type="color" class="form-control form-control-color w-100" id="nodeTagColor" value="#5a6344" title="اختر لون نص الشارة">
                     </div>
@@ -596,38 +606,177 @@
                 <input type="text" class="form-control" id="blockTitleInput" placeholder="عنوان يظهر أعلى الكتلة...">
               </div>
 
-              <!-- Typography & Styles Options -->
+              <!-- Comprehensive Typography, Colors, Dimensions & Icons Customization Panel -->
               <div class="col-12">
-                <div class="p-3 bg-light rounded-3 border">
-                  <div class="fw-bold small text-muted mb-2"><i class="bi bi-type me-1"></i>تخصيص الخطوط والمظهر (Typography):</div>
-                  <div class="row g-2">
-                    <div class="col-4">
-                      <label class="form-label small mb-1">نوع الخط:</label>
-                      <select class="form-select form-select-sm" id="blockFontFamily">
-                        <option value="Cairo">Cairo (الافتراضي - عربي حديث)</option>
-                        <option value="Tajawal">Tajawal (تجوال - أنيق وعصري)</option>
-                        <option value="Amiri">Amiri (أميري - كلاسيكي)</option>
-                        <option value="Inter">Inter (لاتيني وعصري)</option>
-                      </select>
-                    </div>
-                    <div class="col-4">
-                      <label class="form-label small mb-1">حجم العنوان:</label>
-                      <select class="form-select form-select-sm" id="blockTitleSize">
-                        <option value="2.4rem">كبير جداً (2.4rem)</option>
-                        <option value="2.0rem">كبير (2.0rem)</option>
-                        <option value="1.6rem">متوسط (1.6rem)</option>
-                        <option value="1.25rem">عادي (1.25rem)</option>
-                      </select>
-                    </div>
-                    <div class="col-4">
-                      <label class="form-label small mb-1">محاذاة النص:</label>
-                      <select class="form-select form-select-sm" id="blockTextAlign">
-                        <option value="right">يمين (Right)</option>
-                        <option value="center">وسط (Center)</option>
-                        <option value="left">يسار (Left)</option>
-                      </select>
+                <div class="p-3 bg-white rounded-3 border shadow-sm">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold small text-dark"><i class="bi bi-palette-fill me-1 text-primary"></i>تخصيص المظهر، الأحجام، الألوان والأبعاد (Visual Customizer)</span>
+                    <span class="badge bg-primary-subtle text-primary small">حرية تحكم كاملة</span>
+                  </div>
+
+                  <!-- 1. Titles & Text Sizing (Flexible) -->
+                  <div class="p-2 mb-2 bg-light rounded-2 border">
+                    <div class="small fw-bold text-secondary mb-2"><i class="bi bi-type me-1"></i>الأحجام والخطوط (Typography & Sizing):</div>
+                    <div class="row g-2 align-items-end">
+                      <div class="col-12 col-md-3">
+                        <label class="form-label small mb-1 fw-semibold">حجم العنوان (Title Size):</label>
+                        <div class="input-group input-group-sm">
+                          <input type="text" class="form-control" id="blockTitleSize" placeholder="2.0rem" value="2.0rem">
+                          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">خيارات</button>
+                          <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTitleSize').value='1.2rem';return false;">صغير (1.2rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTitleSize').value='1.5rem';return false;">متوسط (1.5rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTitleSize').value='1.8rem';return false;">كبير (1.8rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTitleSize').value='2.2rem';return false;">بارز (2.2rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTitleSize').value='2.6rem';return false;">ضخم (2.6rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTitleSize').value='3.2rem';return false;">عملاق (3.2rem)</a></li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div class="col-12 col-md-3">
+                        <label class="form-label small mb-1 fw-semibold">حجم النص والوصف (Text Size):</label>
+                        <div class="input-group input-group-sm">
+                          <input type="text" class="form-control" id="blockTextSize" placeholder="1.05rem" value="1.05rem">
+                          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">خيارات</button>
+                          <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTextSize').value='0.9rem';return false;">صغير (0.9rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTextSize').value='1.05rem';return false;">عادي (1.05rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTextSize').value='1.2rem';return false;">متوسط (1.2rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTextSize').value='1.35rem';return false;">كبير (1.35rem)</a></li>
+                            <li><a class="dropdown-item small" href="#" onclick="document.getElementById('blockTextSize').value='1.5rem';return false;">بارز (1.5rem)</a></li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1 fw-semibold">نوع الخط:</label>
+                        <select class="form-select form-select-sm" id="blockFontFamily">
+                          <option value="Cairo">Cairo (حديث)</option>
+                          <option value="Tajawal">Tajawal (عصري)</option>
+                          <option value="Amiri">Amiri (كلاسيكي)</option>
+                          <option value="Inter">Inter (لاتيني)</option>
+                          <option value="Alexandria">Alexandria (هندسي)</option>
+                        </select>
+                      </div>
+
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1 fw-semibold">سمك الخط:</label>
+                        <select class="form-select form-select-sm" id="blockFontWeight">
+                          <option value="400">عادي (400)</option>
+                          <option value="600">متوسط (600)</option>
+                          <option value="700" selected>عريض (700)</option>
+                          <option value="800">عريض جداً (800)</option>
+                          <option value="900">أسود مكثف (900)</option>
+                        </select>
+                      </div>
+
+                      <div class="col-12 col-md-2">
+                        <label class="form-label small mb-1 fw-semibold">المحاذاة:</label>
+                        <select class="form-select form-select-sm" id="blockTextAlign">
+                          <option value="right">يمين (Right)</option>
+                          <option value="center">وسط (Center)</option>
+                          <option value="left">يسار (Left)</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
+
+                  <!-- 2. Colors Freedom (Title, Text, Buttons, Prices, Block Background) -->
+                  <div class="p-2 mb-2 bg-light rounded-2 border">
+                    <div class="small fw-bold text-secondary mb-2"><i class="bi bi-brush me-1"></i>الألوان الكاملة (Colors):</div>
+                    <div class="row g-2">
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">لون العنوان:</label>
+                        <input type="color" class="form-control form-control-color form-control-sm w-100" id="blockTitleColor" value="#222222" title="اختر لون العنوان">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">لون النص والوصف:</label>
+                        <input type="color" class="form-control form-control-color form-control-sm w-100" id="blockTextColor" value="#555555" title="اختر لون النص">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">خلفية الزر:</label>
+                        <input type="color" class="form-control form-control-color form-control-sm w-100" id="blockBtnBgColor" value="#5a6344" title="اختر لون خلفية الزر">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">نص الزر:</label>
+                        <input type="color" class="form-control form-control-color form-control-sm w-100" id="blockBtnTextColor" value="#ffffff" title="اختر لون نص الزر">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">لون الأسعار:</label>
+                        <input type="color" class="form-control form-control-color form-control-sm w-100" id="blockPriceColor" value="#5a6344" title="اختر لون الأسعار">
+                      </div>
+                      <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">خلفية الكتلة:</label>
+                        <div class="d-flex gap-1 align-items-center">
+                          <input type="color" class="form-control form-control-color form-control-sm w-100" id="blockBgColor" value="#ffffff" title="اختر لون خلفية الكتلة">
+                          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 text-nowrap" onclick="document.getElementById('blockBgColor').dataset.transparent='true';document.getElementById('blockBgColor').style.opacity='0.4';" title="خلفية شفافة">شفاف</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 3. Image Dimensions & Aspect Ratio -->
+                  <div class="p-2 mb-2 bg-light rounded-2 border">
+                    <div class="small fw-bold text-secondary mb-2"><i class="bi bi-aspect-ratio me-1"></i>أبعاد واقتصاص الصور (Image Dimensions & Ratio):</div>
+                    <div class="row g-2">
+                      <div class="col-12 col-md-7">
+                        <label class="form-label small mb-1">نسبة أبعاد الصورة (Aspect Ratio):</label>
+                        <select class="form-select form-select-sm" id="blockImageAspectRatio">
+                          <option value="1:1">1:1 (مربع متساوي Square - مثالي للمنتجات والبطاقات)</option>
+                          <option value="9:16">9:16 (طولي ريلز / ستوري Vertical Story)</option>
+                          <option value="16:9">16:9 (عريض سينمائي Widescreen)</option>
+                          <option value="3:4">3:4 (طولي بورتريه Portrait - أنيق للجوال)</option>
+                          <option value="4:3">4:3 (كلاسيكي Classic)</option>
+                          <option value="5:4">5:4 (أفقي متوازن Balanced Landscape)</option>
+                          <option value="auto">auto (الأبعاد الأصلية للصورة دون فرض نسبة)</option>
+                        </select>
+                      </div>
+                      <div class="col-12 col-md-5">
+                        <label class="form-label small mb-1">طريقة ملء الصورة (Image Fit):</label>
+                        <select class="form-select form-select-sm" id="blockImageFit">
+                          <option value="cover">تعبئة كاملة مع قص ذكي (Cover - أنيق وموحد)</option>
+                          <option value="contain">احتواء كامل بدون أي قص (Contain)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 4. Symbols & Icons (إضافة رموز وأيقونات) -->
+                  <div class="p-2 bg-light rounded-2 border">
+                    <div class="small fw-bold text-secondary mb-2"><i class="bi bi-stars me-1 text-warning"></i>الرموز والأيقونات (Symbols & Icons):</div>
+                    <div class="row g-2 align-items-center">
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1">رمز أو أيقونة العنوان:</label>
+                        <div class="input-group input-group-sm">
+                          <input type="text" class="form-control" id="blockIconSymbol" placeholder="مثال: ⭐ أو 🔥 أو bi bi-patch-check-fill">
+                          <button class="btn btn-outline-danger" type="button" onclick="document.getElementById('blockIconSymbol').value='';" title="مسح الأيقونة">✕</button>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label small mb-1 text-muted">اضغط لإضافة رمز سريع:</label>
+                        <div class="d-flex flex-wrap gap-1" id="quickSymbolsPills">
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='⭐';">⭐</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🔥';">🔥</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='✨';">✨</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🚚';">🚚</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🌿';">🌿</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🛡️';">🛡️</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='💎';">💎</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🎁';">🎁</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='⚡';">⚡</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🥇';">🥇</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='✅';">✅</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='🧴';">🧴</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='💧';">💧</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='💯';">💯</button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='bi bi-patch-check-fill';"><i class="bi bi-patch-check-fill text-success"></i></button>
+                          <button type="button" class="btn btn-sm btn-white border px-2 py-0" onclick="document.getElementById('blockIconSymbol').value='bi bi-shield-lock-fill';"><i class="bi bi-shield-lock-fill text-primary"></i></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 

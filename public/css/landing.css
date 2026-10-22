@@ -65,50 +65,71 @@ body.funnel-page-body {
 }
 
 .subsections-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 16px;
-}
-
-@media (max-width: 576px) {
-  .subsections-grid {
-    gap: 10px;
-  }
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
 .subsection-card {
   background: var(--funnel-card-bg);
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid var(--funnel-border);
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   height: 100%;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  flex: 0 1 240px !important;
+  max-width: 250px !important;
+  width: 100% !important;
 }
 
 /* Zero zoom or translateY on card hover */
 .subsection-card:hover {
   transform: none !important;
-  box-shadow: 0 6px 20px rgba(90, 99, 68, 0.14);
-  border-color: rgba(90, 99, 68, 0.35);
+  box-shadow: 0 6px 18px rgba(90, 99, 68, 0.12);
+  border-color: rgba(90, 99, 68, 0.3);
 }
 
 .subsection-card-img-wrap {
   position: relative;
   width: 100%;
-  height: 180px;
-  max-height: 180px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1 / 1 !important;
+  max-height: 250px !important;
   overflow: hidden;
   background: #f1f3ee;
 }
 
-@media (max-width: 576px) {
+@media (min-width: 577px) and (max-width: 991px) {
+  .subsection-card {
+    flex: 0 1 220px !important;
+    max-width: 230px !important;
+  }
   .subsection-card-img-wrap {
-    height: 125px !important;
-    max-height: 125px !important;
+    max-height: 230px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .subsections-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    max-width: none !important;
+  }
+  .subsection-card {
+    max-width: none !important;
+    flex: none !important;
+    border-radius: 12px;
+  }
+  .subsection-card-img-wrap {
+    height: auto !important;
+    max-height: none !important;
+    aspect-ratio: 1 / 1 !important;
   }
 }
 
@@ -116,16 +137,16 @@ body.funnel-page-body {
   width: 100%;
   height: 100%;
   max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
 }
 
 @media (max-width: 576px) {
   .subsection-card-img {
-    height: 125px !important;
-    max-height: 125px !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: 1 / 1 !important;
   }
 }
 

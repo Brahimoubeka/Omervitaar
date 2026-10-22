@@ -1,10 +1,10 @@
 const express = require('express');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 const app = express();
 const db = require('./db');
 require('dotenv').config();
 const fs = require('fs');
-require('dotenv').config();
 const supabase = require('./supabase');
 const jwt = require('jsonwebtoken');
 const { router: trackingRoutes, getCompiledTrackingScripts } = require('./routes/tracking');
@@ -32,6 +32,7 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[UnhandledRejection] at:', promise, 'reason:', reason);
 });
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -310,7 +311,11 @@ async function renderProductDetailHTML(productId) {
 // JWT verification middleware for admin access
 function verifyAdminAccess(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = req.cookies?.token || (authHeader && authHeader.split(' ')[1]);
+  let token = req.cookies?.token || req.cookies?.jwt || (authHeader && authHeader.split(' ')[1]);
+  if (!token && req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|;\s*)(?:token|jwt)=([^;]*)/);
+    if (match) token = decodeURIComponent(match[1]);
+  }
   
   if (!token) {
     return res.status(401).redirect('/login?error=unauthorized');
@@ -396,9 +401,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cookie parser middleware (for JWT from cookies)
-const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+
 
 // --- Performance and Caching Middleware ---
 app.use((req, res, next) => {

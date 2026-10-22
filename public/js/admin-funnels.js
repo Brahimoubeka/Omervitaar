@@ -382,6 +382,8 @@ function openCreateNodeModal() {
   document.getElementById('nodeTextColor').value = '#666666';
   document.getElementById('nodeButtonColor').value = '#5a6344';
   document.getElementById('nodeButtonTextColor').value = '#ffffff';
+  if (document.getElementById('nodePriceColor')) document.getElementById('nodePriceColor').value = '#5a6344';
+  if (document.getElementById('nodePageBgColor')) document.getElementById('nodePageBgColor').value = '#ffffff';
   document.getElementById('nodeTagColor').value = '#5a6344';
   document.getElementById('nodeTagBgColor').value = '#f4f6f1';
 
@@ -410,6 +412,8 @@ function openAddChildNodeModal(parentId, parentTitle) {
   document.getElementById('nodeTextColor').value = '#666666';
   document.getElementById('nodeButtonColor').value = '#5a6344';
   document.getElementById('nodeButtonTextColor').value = '#ffffff';
+  if (document.getElementById('nodePriceColor')) document.getElementById('nodePriceColor').value = '#5a6344';
+  if (document.getElementById('nodePageBgColor')) document.getElementById('nodePageBgColor').value = '#ffffff';
   document.getElementById('nodeTagColor').value = '#5a6344';
   document.getElementById('nodeTagBgColor').value = '#f4f6f1';
 
@@ -444,6 +448,8 @@ function openEditNodeModal(nodeId) {
   document.getElementById('nodeTextColor').value = nodeSettings.text_color || '#666666';
   document.getElementById('nodeButtonColor').value = nodeSettings.button_color || '#5a6344';
   document.getElementById('nodeButtonTextColor').value = nodeSettings.button_text_color || '#ffffff';
+  if (document.getElementById('nodePriceColor')) document.getElementById('nodePriceColor').value = nodeSettings.price_color || '#5a6344';
+  if (document.getElementById('nodePageBgColor')) document.getElementById('nodePageBgColor').value = nodeSettings.page_bg_color || '#ffffff';
   document.getElementById('nodeTagColor').value = nodeSettings.tag_color || '#5a6344';
   document.getElementById('nodeTagBgColor').value = nodeSettings.tag_bg_color || '#f4f6f1';
 
@@ -499,6 +505,8 @@ async function handleNodeFormSubmit(e) {
       text_color: document.getElementById('nodeTextColor').value || '',
       button_color: document.getElementById('nodeButtonColor').value || '',
       button_text_color: document.getElementById('nodeButtonTextColor').value || '',
+      price_color: document.getElementById('nodePriceColor')?.value || '',
+      page_bg_color: document.getElementById('nodePageBgColor')?.value || '',
       tag_color: document.getElementById('nodeTagColor').value || '',
       tag_bg_color: document.getElementById('nodeTagBgColor').value || ''
     }
@@ -730,6 +738,27 @@ function openAddBlockModal() {
   document.getElementById('blockEditIndex').value = '-1';
   document.getElementById('blockModalTitle').innerHTML = '<i class="bi bi-plus-square me-2"></i>إضافة كتلة جديدة';
   document.getElementById('blockType').value = 'text';
+
+  // Reset visual customizer controls
+  if (document.getElementById('blockTitleSize')) document.getElementById('blockTitleSize').value = '2.0rem';
+  if (document.getElementById('blockTextSize')) document.getElementById('blockTextSize').value = '1.05rem';
+  if (document.getElementById('blockFontFamily')) document.getElementById('blockFontFamily').value = 'Cairo';
+  if (document.getElementById('blockFontWeight')) document.getElementById('blockFontWeight').value = '700';
+  if (document.getElementById('blockTextAlign')) document.getElementById('blockTextAlign').value = 'right';
+  if (document.getElementById('blockTitleColor')) document.getElementById('blockTitleColor').value = '#222222';
+  if (document.getElementById('blockTextColor')) document.getElementById('blockTextColor').value = '#555555';
+  if (document.getElementById('blockBtnBgColor')) document.getElementById('blockBtnBgColor').value = '#5a6344';
+  if (document.getElementById('blockBtnTextColor')) document.getElementById('blockBtnTextColor').value = '#ffffff';
+  if (document.getElementById('blockPriceColor')) document.getElementById('blockPriceColor').value = '#5a6344';
+  if (document.getElementById('blockBgColor')) {
+    document.getElementById('blockBgColor').value = '#ffffff';
+    delete document.getElementById('blockBgColor').dataset.transparent;
+    document.getElementById('blockBgColor').style.opacity = '1';
+  }
+  if (document.getElementById('blockImageAspectRatio')) document.getElementById('blockImageAspectRatio').value = '1:1';
+  if (document.getElementById('blockImageFit')) document.getElementById('blockImageFit').value = 'cover';
+  if (document.getElementById('blockIconSymbol')) document.getElementById('blockIconSymbol').value = '';
+
   onBlockTypeChange();
   blockModalInstance.show();
 }
@@ -743,10 +772,33 @@ function openEditBlockModal(index) {
   document.getElementById('blockType').value = block.block_type;
   document.getElementById('blockTitleInput').value = block.title || '';
 
-  const styles = typeof block.styles === 'object' ? block.styles : {};
-  document.getElementById('blockFontFamily').value = styles.font_family || 'Cairo';
-  document.getElementById('blockTitleSize').value = styles.title_size || '2.0rem';
-  document.getElementById('blockTextAlign').value = styles.text_align || 'right';
+  const styles = typeof block.styles === 'object' && block.styles !== null ? block.styles : {};
+  if (document.getElementById('blockFontFamily')) document.getElementById('blockFontFamily').value = styles.font_family || 'Cairo';
+  if (document.getElementById('blockFontWeight')) document.getElementById('blockFontWeight').value = styles.font_weight || '700';
+  if (document.getElementById('blockTitleSize')) document.getElementById('blockTitleSize').value = styles.title_size || '2.0rem';
+  if (document.getElementById('blockTextSize')) document.getElementById('blockTextSize').value = styles.text_size || '1.05rem';
+  if (document.getElementById('blockTextAlign')) document.getElementById('blockTextAlign').value = styles.text_align || 'right';
+
+  if (document.getElementById('blockTitleColor')) document.getElementById('blockTitleColor').value = styles.title_color || '#222222';
+  if (document.getElementById('blockTextColor')) document.getElementById('blockTextColor').value = styles.text_color || '#555555';
+  if (document.getElementById('blockBtnBgColor')) document.getElementById('blockBtnBgColor').value = styles.btn_bg_color || '#5a6344';
+  if (document.getElementById('blockBtnTextColor')) document.getElementById('blockBtnTextColor').value = styles.btn_text_color || '#ffffff';
+  if (document.getElementById('blockPriceColor')) document.getElementById('blockPriceColor').value = styles.price_color || '#5a6344';
+
+  if (document.getElementById('blockBgColor')) {
+    if (styles.bg_color === 'transparent') {
+      document.getElementById('blockBgColor').dataset.transparent = 'true';
+      document.getElementById('blockBgColor').style.opacity = '0.4';
+    } else {
+      delete document.getElementById('blockBgColor').dataset.transparent;
+      document.getElementById('blockBgColor').style.opacity = '1';
+      document.getElementById('blockBgColor').value = styles.bg_color || '#ffffff';
+    }
+  }
+
+  if (document.getElementById('blockImageAspectRatio')) document.getElementById('blockImageAspectRatio').value = styles.image_aspect_ratio || '1:1';
+  if (document.getElementById('blockImageFit')) document.getElementById('blockImageFit').value = styles.image_fit || 'cover';
+  if (document.getElementById('blockIconSymbol')) document.getElementById('blockIconSymbol').value = styles.icon_symbol || '';
 
   onBlockTypeChange();
   populateBlockDynamicFields(block);
@@ -1006,10 +1058,22 @@ function handleBlockFormSubmit(e) {
   const type = document.getElementById('blockType').value;
   const title = document.getElementById('blockTitleInput').value.trim();
 
+  const isBgTransparent = document.getElementById('blockBgColor')?.dataset.transparent === 'true';
   const styles = {
-    font_family: document.getElementById('blockFontFamily').value,
-    title_size: document.getElementById('blockTitleSize').value,
-    text_align: document.getElementById('blockTextAlign').value
+    font_family: document.getElementById('blockFontFamily')?.value || 'Cairo',
+    font_weight: document.getElementById('blockFontWeight')?.value || '700',
+    title_size: document.getElementById('blockTitleSize')?.value?.trim() || '2.0rem',
+    text_size: document.getElementById('blockTextSize')?.value?.trim() || '1.05rem',
+    text_align: document.getElementById('blockTextAlign')?.value || 'right',
+    title_color: document.getElementById('blockTitleColor')?.value || '#222222',
+    text_color: document.getElementById('blockTextColor')?.value || '#555555',
+    btn_bg_color: document.getElementById('blockBtnBgColor')?.value || '#5a6344',
+    btn_text_color: document.getElementById('blockBtnTextColor')?.value || '#ffffff',
+    price_color: document.getElementById('blockPriceColor')?.value || '#5a6344',
+    bg_color: isBgTransparent ? 'transparent' : (document.getElementById('blockBgColor')?.value || '#ffffff'),
+    image_aspect_ratio: document.getElementById('blockImageAspectRatio')?.value || '1:1',
+    image_fit: document.getElementById('blockImageFit')?.value || 'cover',
+    icon_symbol: document.getElementById('blockIconSymbol')?.value?.trim() || ''
   };
 
   const content = {};

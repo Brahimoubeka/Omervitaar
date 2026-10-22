@@ -55,10 +55,10 @@ body {
   padding-top: 135px;
 }
 
-/* On mobile/tablet, the navbar collapses to 1 line */
+/* On mobile/tablet, account for navbar height with permanent search bar */
 @media (max-width: 991px) {
   body {
-    padding-top: 85px;
+    padding-top: 120px;
   }
 }
 
@@ -201,4 +201,143 @@ a:has(img[data-dynamic-logo]) {
   }
 }
 .social-btn i.bi { margin: 0 !important; }
+
+/* ==========================================================================
+   Responsive Scaling for 14-inch Laptops and Desktop Screens (1024px - 1440px)
+   Prevents oversized elements, hidden content, and excessive vertical scrolling
+   ========================================================================== */
+
+@media (min-width: 992px) and (max-width: 1440px), (max-height: 820px) and (min-width: 992px) {
+  body {
+    padding-top: 115px !important;
+  }
+
+  body.funnel-page-body {
+    padding-top: 120px !important;
+  }
+
+  .container, .container-lg, .container-xl {
+    max-width: 1140px !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Compact Navbar */
+  .navbar.fixed-top {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  .navbar-brand {
+    font-size: 1.45rem !important;
+  }
+
+  .navbar-nav .nav-link {
+    padding: 5px 8px !important;
+    font-size: 0.88rem !important;
+    margin: 0 1px !important;
+  }
+}
+
+/* Global Navbar Alignment & Anti-Shift Rules across all pages */
+#global-navbar i.bi {
+  margin-inline-end: 4px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+#global-navbar .navbar-nav {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+}
+
+#global-navbar .navbar-nav .nav-link {
+  white-space: nowrap !important;
+}
+
+#global-navbar .ms-auto {
+  margin-inline-start: auto !important;
+}
+
+  /* Compact Hero Banner on 14" Laptops */
+  .hero-section {
+    padding: 1.5rem 1.25rem !important;
+    border-radius: 20px !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .hero-title-main {
+    font-size: 2rem !important;
+    margin-bottom: 0.65rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .hero-subtitle-main {
+    font-size: 0.95rem !important;
+    line-height: 1.55 !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .hero-cta-btn {
+    padding: 0.6rem 1.5rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  .hero-slider-phone-container {
+    max-width: 320px !important;
+  }
+
+  .hero-img {
+    height: 350px !important;
+    max-height: 350px !important;
+  }
+
+  .hero-trust-badges {
+    padding-top: 0.75rem !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Compact Product Details on 14" Laptops */
+  .product-main-image-box {
+    height: 360px !important;
+    max-width: 480px !important;
+  }
+
+  #product-info-col h1 {
+    font-size: 1.35rem !important;
+  }
+
+  .product-description, .product-description-text {
+    font-size: 0.98rem !important;
+    line-height: 1.65 !important;
+  }
+
+  /* Category Shortcuts on 14" screens */
+  .cat-shortcut-link {
+    width: 105px !important;
+  }
+
+  .cat-shortcut-card {
+    padding: 14px 8px 12px 8px !important;
+    min-height: 105px !important;
+  }
+
+  .cat-shortcut-icon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 1.25rem !important;
+  }
+
+  .cat-shortcut-title {
+    font-size: 0.85rem !important;
+    margin-top: 6px !important;
+  }
+}
+
+/* Global Anti-Overflow and Media Safety */
+img, video, iframe {
+  max-width: 100%;
+}
+
 

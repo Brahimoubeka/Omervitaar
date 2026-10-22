@@ -209,7 +209,7 @@ function renderNavbar(userData) {
         mobileLinks += buildMobileLink({ href: "/cart", icon: "bi-cart3", text: "سلتي", counter: 0 });
 
         if (userData.role === 'admin') {
-            bottomLinks += `<li class="nav-item border-start ps-3 ms-3"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-orders"><i class="bi bi-box-seam me-1"></i>الطلبات</a></li>`;
+            bottomLinks += `<li class="nav-item border-start ps-2 ms-2"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-orders"><i class="bi bi-box-seam me-1"></i>الطلبات</a></li>`;
             bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-products"><i class="bi bi-speedometer2 me-1"></i>المنتجات</a></li>`;
             bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-funnels"><i class="bi bi-diagram-3-fill me-1"></i>صفحات الهبوط</a></li>`;
             bottomLinks += `<li class="nav-item"><a class="nav-link fw-bold" style="color: var(--orange-accent);" href="/admin-messages"><i class="bi bi-envelope-paper-fill me-1"></i>رسائل الزوار</a></li>`;
@@ -221,7 +221,7 @@ function renderNavbar(userData) {
             mobileLinks += buildMobileLink({ href: "/admin-messages", icon: "bi-envelope-paper-fill", text: "رسائل الزوار" });
             mobileLinks += buildMobileLink({ href: "/admin-settings", icon: "bi-gear-fill", text: "الإعدادات" });
         } else {
-            bottomLinks += `<li class="nav-item border-start ps-3 ms-3"><a class="nav-link fw-bold text-primary" href="/orders"><i class="bi bi-clipboard-check me-1"></i>طلباتي</a></li>`;
+            bottomLinks += `<li class="nav-item border-start ps-2 ms-2"><a class="nav-link fw-bold text-primary" href="/orders"><i class="bi bi-clipboard-check me-1"></i>طلباتي</a></li>`;
             mobileLinks += buildMobileLink({ href: "/orders", icon: "bi-clipboard-check", text: "طلباتي" });
         }
 
@@ -318,9 +318,9 @@ function renderNavbar(userData) {
             </ul>
           </li>
           
-          <li class="nav-item me-3"><a class="nav-link py-2" href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
-          <li class="nav-item me-3"><a class="nav-link py-2" href="/products"><i class="bi bi-bag me-1"></i>المنتجات</a></li>
-          <li class="nav-item me-3"><a class="nav-link py-2" href="/contact"><i class="bi bi-headset me-1"></i>تواصل معنا</a></li>
+          <li class="nav-item me-2"><a class="nav-link py-2" href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
+          <li class="nav-item me-2"><a class="nav-link py-2" href="/products"><i class="bi bi-bag me-1"></i>المنتجات</a></li>
+          <li class="nav-item me-2"><a class="nav-link py-2" href="/contact"><i class="bi bi-headset me-1"></i>تواصل معنا</a></li>
           
           <!-- Push remaining links to the end -->
           <li class="ms-auto"></li>

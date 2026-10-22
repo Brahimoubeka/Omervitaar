@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               const hasSubs = Array.isArray(item.sub_sections) && item.sub_sections.length > 0;
               const linkUrl = `/solutions/${item.slug}`;
               const btnText = item.button_text || 'اكتشف الحل ➔';
-              const imgUrl = item.image_url || '/images/category-banner-oil.jpg';
+              const imgUrl = item.image_url || '/images/hero.jpg';
 
               const settings = typeof item.settings === 'object' && item.settings !== null ? item.settings : {};
 
@@ -33,8 +33,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
               return `
                 <div class="home-funnel-card" data-funnel-id="${item.id}">
-                  <div class="home-funnel-img-wrap" style="width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative;">
-                    <img src="${imgUrl}" alt="${item.title}" class="home-funnel-img" width="400" height="225" style="width: 100%; height: 100%; max-width: 100%; object-fit: cover; display: block;" loading="lazy">
+                  <div class="home-funnel-img-wrap" style="width: 100%; aspect-ratio: 1/1; overflow: hidden; position: relative;">
+                    <img src="${imgUrl}" alt="${item.title}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="400" height="400" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy">
                   </div>
                   <div class="home-funnel-content">
                     <h3 class="home-funnel-title" ${titleStyle}>${item.title}</h3>

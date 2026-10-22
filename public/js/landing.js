@@ -172,6 +172,15 @@ function renderPage(data) {
   // 2. Breadcrumbs
   renderBreadcrumbs(breadcrumbs, node);
 
+  // Apply page-level custom styling from settings if defined
+  const nodeSettings = typeof node.settings === 'object' && node.settings !== null ? node.settings : {};
+  if (nodeSettings.page_bg_color && nodeSettings.page_bg_color !== '#ffffff') {
+    document.body.style.backgroundColor = nodeSettings.page_bg_color;
+  }
+  if (nodeSettings.price_color) {
+    document.documentElement.style.setProperty('--landing-price-color', nodeSettings.price_color);
+  }
+
   const root = document.getElementById('landing-page-root');
 
   // 3. Render Section View or Landing Page View
@@ -248,8 +257,8 @@ function renderSectionView(root, node, children) {
 
             return `
               <div class="subsection-card">
-                <div class="subsection-card-img-wrap position-relative">
-                  <img src="${childImg}" alt="${child.title}" class="subsection-card-img" width="400" height="225" loading="lazy">
+                <div class="subsection-card-img-wrap position-relative" style="aspect-ratio: 1/1;">
+                  <img src="${childImg}" alt="${child.title}" class="subsection-card-img" width="400" height="400" style="aspect-ratio: 1/1; object-fit: cover;" loading="lazy">
                 </div>
                 <div class="subsection-card-body">
                   <h3 class="subsection-card-title" ${titleStyle}>${child.title}</h3>
@@ -307,30 +316,94 @@ function renderLandingPageView(root, node, blocks, offers) {
   initFaqEvents();
 }
 
+// Helpers for dynamic typography, colors, symbols, and dimensions
+function formatBlockTitle(title, styles, defaultTag = 'h2', defaultClass = '') {
+  if (!title) return '';
+  let inline = '';
+  if (styles.title_size) inline += `font-size: ${styles.title_size} !important; `;
+  if (styles.title_color) inline += `color: ${styles.title_color} !important; `;
+  if (styles.font_weight) inline += `font-weight: ${styles.font_weight} !important; `;
+  if (styles.font_family) inline += `font-family: '${styles.font_family}', sans-serif !important; `;
+  if (styles.text_align) inline += `text-align: ${styles.text_align} !important; `;
+
+  let iconHtml = '';
+  if (styles.icon_symbol) {
+    const sym = styles.icon_symbol.trim();
+    if (sym.startsWith('bi ') || sym.startsWith('bi-')) {
+      const cls = sym.startsWith('bi ') ? sym : `bi ${sym}`;
+      iconHtml = `<i class="${cls} me-2" style="color: ${styles.title_color || 'inherit'};"></i>`;
+    } else {
+      iconHtml = `<span class="me-2">${sym}</span>`;
+    }
+  }
+
+  return `<${defaultTag} class="${defaultClass}" style="${inline}">${iconHtml}<span>${title}</span></${defaultTag}>`;
+}
+
+function formatBlockText(text, styles, tag = 'p', extraClass = '') {
+  if (!text) return '';
+  let inline = '';
+  if (styles.text_size) inline += `font-size: ${styles.text_size} !important; `;
+  if (styles.text_color) inline += `color: ${styles.text_color} !important; `;
+  if (styles.font_family) inline += `font-family: '${styles.font_family}', sans-serif !important; `;
+  if (styles.text_align) inline += `text-align: ${styles.text_align} !important; `;
+  return `<${tag} class="${extraClass}" style="${inline}">${text.replace(/\n/g, '<br>')}</${tag}>`;
+}
+
+function getBlockBtnStyle(styles, node) {
+  const nodeSettings = typeof node?.settings === 'object' && node.settings !== null ? node.settings : {};
+  const bg = styles.btn_bg_color || nodeSettings.button_color || '#5a6344';
+  const text = styles.btn_text_color || nodeSettings.button_text_color || '#ffffff';
+  return `background: ${bg} !important; color: ${text} !important; border-color: ${bg} !important;`;
+}
+
+function getBlockPriceStyle(styles, node) {
+  const nodeSettings = typeof node?.settings === 'object' && node.settings !== null ? node.settings : {};
+  const color = styles.price_color || nodeSettings.price_color || '#5a6344';
+  return `color: ${color} !important;`;
+}
+
+function getBlockImageRatioStyle(styles) {
+  const ratio = styles.image_aspect_ratio || '1:1';
+  const fit = styles.image_fit || 'cover';
+  if (ratio === 'auto') {
+    return `width: 100%; height: auto; object-fit: ${fit};`;
+  }
+  const cssRatio = ratio.replace(':', ' / ');
+  return `width: 100%; aspect-ratio: ${cssRatio}; object-fit: ${fit};`;
+}
+
 // Render individual block by type
 function renderBlock(block, offers, node) {
-  const content = typeof block.content === 'object' ? block.content : {};
-  const styles = typeof block.styles === 'object' ? block.styles : {};
+  const content = typeof block.content === 'object' && block.content !== null ? block.content : {};
+  const styles = typeof block.styles === 'object' && block.styles !== null ? block.styles : {};
 
-  // Custom Typography Inline Styles
+  // Custom Typography & Container Inline Styles
   let customStyle = '';
   if (styles.font_family) customStyle += `font-family: '${styles.font_family}', sans-serif; `;
   if (styles.text_color) customStyle += `color: ${styles.text_color}; `;
   if (styles.text_align) customStyle += `text-align: ${styles.text_align}; `;
+  if (styles.bg_color && styles.bg_color !== 'transparent' && styles.bg_color !== '#ffffff') {
+    customStyle += `background-color: ${styles.bg_color}; `;
+  }
+
+  const imgRatioStyle = getBlockImageRatioStyle(styles);
+  const btnStyle = getBlockBtnStyle(styles, node);
+  const priceStyle = getBlockPriceStyle(styles, node);
 
   switch (block.block_type) {
     case 'hero':
       return `
         <div class="funnel-block funnel-hero-block" style="${customStyle}">
-          <h1 class="funnel-hero-title" style="${styles.title_size ? `font-size: ${styles.title_size};` : ''}">${block.title || node.title}</h1>
-          ${content.description ? `<p class="funnel-hero-desc">${content.description}</p>` : ''}
+          ${formatBlockTitle(block.title || node.title, styles, 'h1', 'funnel-hero-title')}
+          ${formatBlockText(content.description, styles, 'p', 'funnel-hero-desc')}
           ${content.image_url ? `
-            <div class="funnel-hero-img-wrap">
-              <img src="${content.image_url}" alt="${block.title}" class="funnel-hero-img" loading="lazy">
+            <div class="funnel-hero-img-wrap" style="${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')}; height: auto; max-height: none;` : ''}">
+              <img src="${content.image_url}" alt="${block.title || ''}" class="funnel-hero-img" style="${imgRatioStyle}" loading="lazy">
             </div>
           ` : ''}
           <div>
-            <a href="#orderFormBlock" class="funnel-submit-btn d-inline-flex px-5 py-3 text-decoration-none mt-3" style="max-width:380px; margin: 0 auto;">
+            <a href="#orderFormBlock" class="funnel-submit-btn d-inline-flex px-5 py-3 text-decoration-none mt-3" style="max-width:380px; margin: 0 auto; ${btnStyle}">
               <i class="bi bi-lightning-charge-fill"></i>
               <span>${content.cta_text || 'أطلب الآن واستفد من العرض'}</span>
             </a>
@@ -341,18 +414,16 @@ function renderBlock(block, offers, node) {
     case 'heading':
       return `
         <div class="funnel-block funnel-heading-block" style="${customStyle}">
-          <h2 class="funnel-heading-title" style="${styles.title_size ? `font-size: ${styles.title_size};` : ''}">${block.title}</h2>
-          ${content.subtitle ? `<p class="text-muted mt-2">${content.subtitle}</p>` : ''}
+          ${formatBlockTitle(block.title, styles, 'h2', 'funnel-heading-title')}
+          ${formatBlockText(content.subtitle, styles, 'p', 'text-muted mt-2')}
         </div>
       `;
 
     case 'text':
       return `
         <div class="funnel-block" style="${customStyle}">
-          ${block.title ? `<h3 class="fw-bold mb-3">${block.title}</h3>` : ''}
-          <div class="lead" style="line-height: 1.8; font-size: ${styles.font_size || '1.15rem'};">
-            ${content.text ? content.text.replace(/\n/g, '<br>') : ''}
-          </div>
+          ${formatBlockTitle(block.title, styles, 'h3', 'fw-bold mb-3')}
+          ${formatBlockText(content.text, styles, 'div', 'lead')}
         </div>
       `;
 
@@ -361,16 +432,14 @@ function renderBlock(block, offers, node) {
       return `
         <div class="funnel-block" style="${customStyle}">
           <div class="funnel-split-row ${isReverse ? 'reverse' : ''}">
-            <div class="funnel-split-img-col">
-              <img src="${content.image_url || '/images/category-banner-oil.jpg'}" alt="${block.title || ''}" class="funnel-split-img" loading="lazy">
+            <div class="funnel-split-img-col" style="${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')}; height: auto;` : ''}">
+              <img src="${content.image_url || '/images/hero.jpg'}" alt="${block.title || ''}" class="funnel-split-img" style="${imgRatioStyle}" loading="lazy">
             </div>
             <div class="funnel-split-text-col">
-              ${block.title ? `<h3 class="fw-bold mb-3">${block.title}</h3>` : ''}
-              <p class="text-muted mb-4" style="line-height: 1.8; font-size: 1.05rem;">
-                ${content.text ? content.text.replace(/\n/g, '<br>') : ''}
-              </p>
+              ${formatBlockTitle(block.title, styles, 'h3', 'fw-bold mb-3')}
+              ${formatBlockText(content.text, styles, 'p', 'text-muted mb-4')}
               ${content.cta_text ? `
-                <a href="#orderFormBlock" class="btn btn-outline-success rounded-pill fw-bold px-4 py-2">
+                <a href="#orderFormBlock" class="btn rounded-pill fw-bold px-4 py-2" style="${btnStyle}">
                   ${content.cta_text} ➔
                 </a>
               ` : ''}
@@ -379,20 +448,35 @@ function renderBlock(block, offers, node) {
         </div>
       `;
 
+    case 'carousel':
+      const carouselImgs = Array.isArray(content.images) && content.images.length > 0 ? content.images : (content.image_url ? [content.image_url] : []);
+      return `
+        <div class="funnel-block" style="${customStyle}">
+          ${formatBlockTitle(block.title, styles, 'h3', 'fw-bold text-center mb-3')}
+          <div class="d-flex gap-3 overflow-x-auto pb-2" style="scrollbar-width: thin;">
+            ${carouselImgs.map(imgSrc => `
+              <div style="flex: 0 0 280px; ${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')};` : 'aspect-ratio: 1/1;'} overflow: hidden; border-radius: 14px;">
+                <img src="${imgSrc}" style="${imgRatioStyle}" loading="lazy" class="shadow-sm">
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
     case 'features':
       const items = Array.isArray(content.items) ? content.items : [];
       return `
         <div class="funnel-block" style="${customStyle}">
-          ${block.title ? `<h3 class="fw-bold text-center mb-4">${block.title}</h3>` : ''}
+          ${formatBlockTitle(block.title, styles, 'h3', 'fw-bold text-center mb-4')}
           <div class="funnel-features-grid">
             ${items.map(it => `
               <div class="funnel-feature-item">
-                <div class="funnel-feature-icon">
+                <div class="funnel-feature-icon" style="${btnStyle}">
                   <i class="bi bi-check-lg"></i>
                 </div>
                 <div>
-                  <h4 class="funnel-feature-title">${it.title}</h4>
-                  <p class="funnel-feature-desc">${it.text}</p>
+                  <h4 class="funnel-feature-title" style="${styles.title_color ? `color: ${styles.title_color} !important;` : ''}">${it.title}</h4>
+                  <p class="funnel-feature-desc" style="${styles.text_color ? `color: ${styles.text_color} !important;` : ''}">${it.text}</p>
                 </div>
               </div>
             `).join('')}
@@ -404,7 +488,6 @@ function renderBlock(block, offers, node) {
       const prod = block.product_data;
       if (!prod) return '';
 
-      // Review Stars calculation
       const ratingVal = Number(prod.avg_rating) || 5.0;
       let starsHtml = '';
       for (let i = 1; i <= 5; i++) {
@@ -417,7 +500,6 @@ function renderBlock(block, offers, node) {
         }
       }
 
-      // Stock badge
       let stockBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>متوفر في المخزون</span>';
       if (prod.stock === 0) {
         stockBadge = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>نفذت الكمية</span>';
@@ -428,8 +510,8 @@ function renderBlock(block, offers, node) {
       return `
         <div class="funnel-block funnel-product-block" style="${customStyle}">
           <div class="funnel-product-card-wrap">
-            <div class="funnel-product-img-box position-relative">
-              <img src="${prod.image || '/images/category-banner-oil.jpg'}" alt="${prod.name}" class="funnel-product-img" loading="lazy">
+            <div class="funnel-product-img-box position-relative" style="${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')}; height: auto;` : ''}">
+              <img src="${prod.image || '/images/hero.jpg'}" alt="${prod.name}" class="funnel-product-img" style="${imgRatioStyle}" loading="lazy">
               ${prod.is_free_delivery ? '<span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2 shadow-sm"><i class="bi bi-truck me-1"></i>توصيل مجاني</span>' : ''}
             </div>
 
@@ -439,11 +521,8 @@ function renderBlock(block, offers, node) {
                 ${prod.category_names ? `<span class="text-muted small">${prod.category_names}</span>` : ''}
               </div>
 
-              <h3 class="funnel-product-name fw-bold mb-2">
-                <a href="/products/${prod.id}" class="text-dark text-decoration-none">${prod.name}</a>
-              </h3>
+              ${formatBlockTitle(prod.name, styles, 'h3', 'funnel-product-name fw-bold mb-2')}
 
-              <!-- Review Stars & Rating -->
               <div class="d-flex align-items-center gap-1 mb-2">
                 <div class="stars-box">${starsHtml}</div>
                 <span class="text-warning fw-bold small ms-1">${ratingVal.toFixed(1)}</span>
@@ -454,13 +533,13 @@ function renderBlock(block, offers, node) {
 
               <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-auto pt-2 border-top">
                 <div class="funnel-product-price">
-                  <span class="fs-3 fw-bold text-success">${prod.price} دج</span>
+                  <span class="fs-3 fw-bold" style="${priceStyle}">${prod.price} دج</span>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                   <a href="/products/${prod.id}" class="btn btn-outline-secondary rounded-pill px-3 py-2 btn-sm fw-bold">
                     <i class="bi bi-eye me-1"></i>تفاصيل المنتج
                   </a>
-                  <a href="#orderFormBlock" class="btn btn-success rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                  <a href="#orderFormBlock" class="btn rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-1 shadow-sm" style="${btnStyle}">
                     <i class="bi bi-bag-check-fill"></i>
                     <span>أطلب هذا المنتج الآن</span>
                   </a>
@@ -472,24 +551,24 @@ function renderBlock(block, offers, node) {
       `;
 
     case 'offers':
-      return renderOffersBlock(block, offers);
+      return renderOffersBlock(block, offers, node);
 
     case 'order_form':
-      return renderOrderFormBlock(block, offers);
+      return renderOrderFormBlock(block, offers, node);
 
     case 'faq':
       const faqList = Array.isArray(content.items) ? content.items : [];
       return `
         <div class="funnel-block" style="${customStyle}">
-          ${block.title ? `<h3 class="fw-bold text-center mb-4">${block.title}</h3>` : ''}
+          ${formatBlockTitle(block.title, styles, 'h3', 'fw-bold text-center mb-4')}
           <div class="funnel-faq-list">
             ${faqList.map(item => `
               <div class="funnel-faq-item">
-                <div class="funnel-faq-question">
+                <div class="funnel-faq-question" style="${styles.title_color ? `color: ${styles.title_color} !important;` : ''}">
                   <span>${item.question}</span>
                   <i class="bi bi-chevron-down"></i>
                 </div>
-                <div class="funnel-faq-answer">${item.answer}</div>
+                <div class="funnel-faq-answer" style="${styles.text_color ? `color: ${styles.text_color} !important;` : ''}">${item.answer}</div>
               </div>
             `).join('')}
           </div>
@@ -504,15 +583,24 @@ function renderBlock(block, offers, node) {
 // --------------------------------------------------------------------------
 // OFFERS BUNDLE BLOCK
 // --------------------------------------------------------------------------
-function renderOffersBlock(block, offers) {
+function renderOffersBlock(block, offers, node) {
   if (!offers || offers.length === 0) return '';
   const content = typeof block.content === 'object' && block.content !== null ? block.content : {};
+  const styles = typeof block.styles === 'object' && block.styles !== null ? block.styles : {};
+
+  let customStyle = '';
+  if (styles.bg_color && styles.bg_color !== 'transparent' && styles.bg_color !== '#ffffff') {
+    customStyle += `background-color: ${styles.bg_color}; `;
+  }
+
+  const priceStyle = getBlockPriceStyle(styles, node);
+  const imgRatioStyle = getBlockImageRatioStyle(styles);
 
   return `
-    <div class="funnel-block" id="funnelOffersBlock">
+    <div class="funnel-block" id="funnelOffersBlock" style="${customStyle}">
       <div class="text-center mb-4">
-        ${block.title ? `<h2 class="fw-bold text-dark">${block.title}</h2>` : ''}
-        ${content.subtitle ? `<p class="text-muted">${content.subtitle}</p>` : ''}
+        ${formatBlockTitle(block.title, styles, 'h2', 'fw-bold text-dark')}
+        ${formatBlockText(content.subtitle, styles, 'p', 'text-muted')}
       </div>
 
       <div class="funnel-offers-grid">
@@ -528,14 +616,14 @@ function renderOffersBlock(block, offers) {
               ` : ''}
 
               ${offer.image_url ? `
-                <div class="funnel-offer-img-box mb-2">
-                  <img src="${offer.image_url}" alt="${offer.title}" class="funnel-offer-img" loading="lazy">
+                <div class="funnel-offer-img-box mb-2" style="${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')}; height: auto;` : ''}">
+                  <img src="${offer.image_url}" alt="${offer.title}" class="funnel-offer-img" style="${imgRatioStyle}" loading="lazy">
                 </div>
               ` : ''}
 
               <h3 class="funnel-offer-title">${offer.title}</h3>
               <div class="funnel-offer-qty">الكمية: ${offer.quantity} قطع</div>
-              <div class="funnel-offer-price">${offer.price} دج</div>
+              <div class="funnel-offer-price" style="${priceStyle}">${offer.price} دج</div>
               ${offer.original_price ? `<div class="funnel-offer-orig-price">${offer.original_price} دج</div>` : ''}
 
               <div class="funnel-offer-delivery-tag ${offer.free_delivery ? 'free' : 'standard'}">
@@ -573,13 +661,22 @@ function attachOffersEvents() {
 // --------------------------------------------------------------------------
 // DIRECT ORDER FORM BLOCK
 // --------------------------------------------------------------------------
-function renderOrderFormBlock(block, offers) {
+function renderOrderFormBlock(block, offers, node) {
   const content = typeof block.content === 'object' && block.content !== null ? block.content : {};
+  const styles = typeof block.styles === 'object' && block.styles !== null ? block.styles : {};
+
+  let customStyle = '';
+  if (styles.bg_color && styles.bg_color !== 'transparent' && styles.bg_color !== '#ffffff') {
+    customStyle += `background-color: ${styles.bg_color}; `;
+  }
+
+  const btnStyle = getBlockBtnStyle(styles, node);
+  const priceStyle = getBlockPriceStyle(styles, node);
 
   return `
-    <div class="funnel-block funnel-order-box" id="orderFormBlock">
-      <h2 class="funnel-order-box-title">${block.title || 'أكمل معلوماتك لتأكيد الطلب'}</h2>
-      ${content.subtitle ? `<p class="funnel-order-box-desc">${content.subtitle}</p>` : ''}
+    <div class="funnel-block funnel-order-box" id="orderFormBlock" style="${customStyle}">
+      ${formatBlockTitle(block.title || 'أكمل معلوماتك لتأكيد الطلب', styles, 'h2', 'funnel-order-box-title')}
+      ${formatBlockText(content.subtitle, styles, 'p', 'funnel-order-box-desc')}
 
       <!-- Selected Deal Bar -->
       <div class="funnel-selected-deal-bar" id="selectedDealSummaryBar">
@@ -589,7 +686,7 @@ function renderOrderFormBlock(block, offers) {
         </div>
         <div class="text-end">
           <span class="text-muted small d-block">السعر:</span>
-          <strong class="fs-5 text-dark" id="selectedDealPriceText">${selectedOffer ? selectedOffer.price : '--'} دج</strong>
+          <strong class="fs-5" style="${priceStyle}" id="selectedDealPriceText">${selectedOffer ? selectedOffer.price : '--'} دج</strong>
         </div>
       </div>
 
