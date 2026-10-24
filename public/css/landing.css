@@ -743,7 +743,7 @@ body.funnel-page-body {
   padding: 1.5rem 1.15rem;
   border: 2px solid #e5e7eb;
   cursor: pointer;
-  transition: border-color 0.25s ease, background 0.25s ease;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, background 0.25s ease;
   display: flex;
   flex-direction: column;
   text-align: right;
@@ -754,7 +754,7 @@ body.funnel-page-body {
 .funnel-offer-card:hover {
   border-color: var(--funnel-gold);
   transform: none !important;
-  box-shadow: 0 6px 20px rgba(214, 168, 72, 0.16);
+  box-shadow: 0 8px 24px rgba(214, 168, 72, 0.22);
 }
 
 .funnel-offer-card.selected {
@@ -762,6 +762,41 @@ body.funnel-page-body {
   background: #f0fdf4;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
   transform: none !important;
+}
+
+/* Radiant glow when reached on scroll */
+.funnel-offer-card.offer-glow {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.42), 0 0 50px rgba(245, 158, 11, 0.18), 0 8px 25px rgba(0, 0, 0, 0.08) !important;
+  animation: offerGlowPulse 2.4s infinite ease-in-out;
+}
+
+.funnel-offer-card.selected.offer-glow {
+  border-color: var(--funnel-primary) !important;
+  box-shadow: 0 0 28px rgba(16, 185, 129, 0.45), 0 0 55px rgba(16, 185, 129, 0.22), 0 8px 25px rgba(0, 0, 0, 0.08) !important;
+  animation: offerSelectedGlowPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes offerGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.3), 0 0 35px rgba(245, 158, 11, 0.12), 0 6px 20px rgba(0, 0, 0, 0.06);
+    border-color: #f59e0b;
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(245, 158, 11, 0.65), 0 0 70px rgba(245, 158, 11, 0.28), 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-color: #fbbf24;
+  }
+}
+
+@keyframes offerSelectedGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.3), 0 0 38px rgba(16, 185, 129, 0.12), 0 6px 20px rgba(0, 0, 0, 0.06);
+    border-color: var(--funnel-primary);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(16, 185, 129, 0.65), 0 0 75px rgba(16, 185, 129, 0.3), 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-color: #34d399;
+  }
 }
 
 @media (max-width: 576px) {
@@ -1303,42 +1338,6 @@ body.funnel-page-body {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
 }
 
-/* Attractive Transparent Offers Hint Toast (shown for 5s on reaching offers cards) */
-.funnel-offers-hint-toast {
-  position: fixed;
-  top: 90px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-24px);
-  background: rgba(17, 24, 39, 0.78);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 0 18px rgba(245, 158, 11, 0.35);
-  padding: 10px 22px;
-  border-radius: 50px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  z-index: 1045;
-  direction: rtl;
-  pointer-events: none;
-  opacity: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.funnel-offers-hint-toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.funnel-offers-hint-toast.fade-out {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-18px);
-}
-
 /* Sticky Small "Back to Top" Button */
 .funnel-back-to-top-btn {
   position: fixed;
@@ -1385,13 +1384,6 @@ body.funnel-page-body {
 }
 
 @media (max-width: 576px) {
-  .funnel-offers-hint-toast {
-    top: 75px;
-    font-size: 0.85rem;
-    padding: 8px 18px;
-    max-width: 90%;
-  }
-
   .funnel-back-to-top-btn {
     bottom: 20px;
     left: 18px;

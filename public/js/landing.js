@@ -389,7 +389,7 @@ function renderLandingPageView(root, node, blocks, offers) {
   attachOffersEvents();
   initLandingOrderForm();
   initFaqEvents();
-  initOffersVisibilityHint();
+  initOffersScrollGlow();
   initOrderFormScrollObserver();
   initStickyScrollToTop();
 }
@@ -1072,68 +1072,42 @@ function initOrderFormScrollObserver() {
   }, { passive: true });
 }
 
-// Show attractive transparent hint message for 5 seconds when reaching the offers cards
-let offersHintShown = false;
-let offersHintTimer = null;
-
-function initOffersVisibilityHint() {
-  const offersBlock = document.getElementById('funnelOffersBlock');
-  if (!offersBlock || offersHintShown) return;
+// Each offer card glows when reached on scroll
+function initOffersScrollGlow() {
+  const cards = document.querySelectorAll('.funnel-offer-card');
+  if (!cards || cards.length === 0) return;
 
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting && !offersHintShown) {
-          offersHintShown = true;
-          showOffersHintToast();
-          observer.disconnect();
+        if (entry.isIntersecting) {
+          entry.target.classList.add('offer-glow');
+        } else {
+          entry.target.classList.remove('offer-glow');
         }
       });
-    }, { threshold: 0.15 });
-    observer.observe(offersBlock);
+    }, {
+      threshold: 0.2,
+      rootMargin: '0px 0px -5% 0px'
+    });
+
+    cards.forEach(card => observer.observe(card));
   } else {
-    // Fallback if IntersectionObserver is unsupported
-    const onScrollCheck = () => {
-      if (offersHintShown) return;
-      const rect = offersBlock.getBoundingClientRect();
-      if (rect.top <= window.innerHeight * 0.75 && rect.bottom >= 0) {
-        offersHintShown = true;
-        showOffersHintToast();
-        window.removeEventListener('scroll', onScrollCheck);
-      }
+    // Fallback on scroll
+    const checkGlowOnScroll = () => {
+      const vHeight = window.innerHeight;
+      cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        if (rect.top <= vHeight * 0.85 && rect.bottom >= vHeight * 0.15) {
+          card.classList.add('offer-glow');
+        } else {
+          card.classList.remove('offer-glow');
+        }
+      });
     };
-    window.addEventListener('scroll', onScrollCheck, { passive: true });
+    window.addEventListener('scroll', checkGlowOnScroll, { passive: true });
+    checkGlowOnScroll();
   }
-}
-
-function showOffersHintToast() {
-  let toast = document.getElementById('funnelOffersHintToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'funnelOffersHintToast';
-    toast.className = 'funnel-offers-hint-toast';
-    toast.setAttribute('dir', 'rtl');
-    toast.innerHTML = `
-      <i class="bi bi-hand-index-thumb-fill text-warning fs-5"></i>
-      <span>اضغط لاختيار هذا العرض ✨</span>
-    `;
-    document.body.appendChild(toast);
-  }
-
-  requestAnimationFrame(() => {
-    toast.classList.remove('fade-out');
-    toast.classList.add('show');
-  });
-
-  if (offersHintTimer) clearTimeout(offersHintTimer);
-  offersHintTimer = setTimeout(() => {
-    if (toast) {
-      toast.classList.add('fade-out');
-      setTimeout(() => {
-        if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
-      }, 550);
-    }
-  }, 5000);
 }
 
 // Sticky "Back to Top" Button
@@ -1164,15 +1138,6 @@ function initStickyScrollToTop() {
 
 // Show animated floating prompt with bouncing arrow guiding user to order form
 function showOfferSelectedPrompt(offer) {
-  // If the initial offers hint toast is still visible, fade it out immediately
-  const hintToast = document.getElementById('funnelOffersHintToast');
-  if (hintToast) {
-    hintToast.classList.add('fade-out');
-    setTimeout(() => {
-      if (hintToast && hintToast.parentNode) hintToast.parentNode.removeChild(hintToast);
-    }, 400);
-  }
-
   // Do not show the prompt bar if user is already at the order form
   const orderForm = document.getElementById('orderFormBlock');
   if (orderForm) {
