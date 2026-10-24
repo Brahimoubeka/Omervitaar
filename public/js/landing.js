@@ -69,6 +69,80 @@ let currentFunnelData = null;
 let selectedOffer = null;
 let appliedPromo = null;
 let csrfToken = null;
+let selectedCustomOptions = {}; // Keyed by offerId: Array of chosen option objects
+
+// Delivery Companies & Dynamic Rates state
+let availableDeliveryCompanies = [];
+let selectedDeliveryCompanyId = 1;
+let selectedDeliveryCompanyName = 'Yalidine Express';
+let activeDeliveryRates = {}; // wilayaCode/name -> { home, desk }
+
+// Universal International WhatsApp Number Formatter
+function formatWhatsAppTargetNumber(rawStr) {
+  if (!rawStr) return '213770000000';
+  let s = String(rawStr).trim();
+  if (s.startsWith('http://') || s.startsWith('https://')) {
+    const digits = s.replace(/\D/g, '');
+    return digits || '213770000000';
+  }
+  let digits = s.replace(/\D/g, '');
+  if (!digits) return '213770000000';
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+  // Algerian mobile local format: 05, 06, 07 (10 digits)
+  if (digits.startsWith('0') && digits.length === 10) {
+    return '213' + digits.slice(1);
+  }
+  // If already international (e.g. 90..., 213..., 33..., 966...), preserve as-is
+  return digits;
+}
+
+// HTML Escaping Helper
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// Helper: Extract YouTube Embed URL from any valid format
+function getYouTubeEmbedUrl(url, autoplay = false, loop = false, controls = true) {
+  if (!url) return '';
+  let videoId = '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    videoId = match[2];
+  } else {
+    const trimmed = url.trim();
+    if (trimmed.length === 11 && !trimmed.includes('/')) {
+      videoId = trimmed;
+    } else {
+      return url;
+    }
+  }
+
+  const params = new URLSearchParams();
+  params.set('rel', '0');
+  params.set('modestbranding', '1');
+  if (autoplay) {
+    params.set('autoplay', '1');
+    params.set('mute', '1');
+  }
+  if (loop) {
+    params.set('loop', '1');
+    params.set('playlist', videoId);
+  }
+  if (!controls) {
+    params.set('controls', '0');
+  }
+
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}
 
 function getCurrentSlug() {
   const params = new URLSearchParams(window.location.search);
@@ -111,6 +185,7 @@ async function getCsrfToken() {
 
 // Main initialization
 document.addEventListener('DOMContentLoaded', async () => {
+  initStickyScrollToTop();
   const slug = getCurrentSlug();
   await loadFunnelNode(slug);
   await getCsrfToken();
@@ -314,6 +389,9 @@ function renderLandingPageView(root, node, blocks, offers) {
   attachOffersEvents();
   initLandingOrderForm();
   initFaqEvents();
+  initOffersVisibilityHint();
+  initOrderFormScrollObserver();
+  initStickyScrollToTop();
 }
 
 // Helpers for dynamic typography, colors, symbols, and dimensions
@@ -416,6 +494,38 @@ function renderBlock(block, offers, node) {
         <div class="funnel-block funnel-heading-block" style="${customStyle}">
           ${formatBlockTitle(block.title, styles, 'h2', 'funnel-heading-title')}
           ${formatBlockText(content.subtitle, styles, 'p', 'text-muted mt-2')}
+        </div>
+      `;
+
+    case 'video':
+      const isLocal = content.video_source === 'local';
+      const ratio = (content.aspect_ratio || '16:9').replace(':', '/');
+      const maxWidth = content.max_width || '760px';
+      const autoplay = Boolean(content.autoplay);
+      const loop = Boolean(content.loop);
+      const controls = content.controls !== false;
+
+      let playerHtml = '';
+      if (isLocal) {
+        playerHtml = `
+          <video src="${content.local_url || ''}" class="funnel-video-player" playsinline ${controls ? 'controls' : ''} ${autoplay ? 'autoplay muted' : ''} ${loop ? 'loop' : ''} style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px;"></video>
+        `;
+      } else {
+        const embedUrl = getYouTubeEmbedUrl(content.youtube_url || '', autoplay, loop, controls);
+        playerHtml = `
+          <iframe src="${embedUrl}" class="funnel-video-iframe" title="${block.title || 'فيديو صفحة الهبوط'}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width: 100%; height: 100%; border: 0; border-radius: 16px;"></iframe>
+        `;
+      }
+
+      return `
+        <div class="funnel-block funnel-video-block" style="${customStyle}">
+          ${block.title ? formatBlockTitle(block.title, styles, 'h3', 'fw-bold text-center mb-3') : ''}
+          <div class="funnel-video-container" style="max-width: ${maxWidth}; margin: 0 auto;">
+            <div class="funnel-video-wrapper shadow-lg position-relative overflow-hidden" style="aspect-ratio: ${ratio}; border-radius: 16px; background-color: #000;">
+              ${playerHtml}
+            </div>
+            ${content.caption ? `<div class="funnel-video-caption text-center text-muted small mt-2">${content.caption}</div>` : ''}
+          </div>
         </div>
       `;
 
@@ -583,6 +693,188 @@ function renderBlock(block, offers, node) {
 // --------------------------------------------------------------------------
 // OFFERS BUNDLE BLOCK
 // --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// OFFERS BUNDLE BLOCK WITH MULTI-IMAGE, RICH FEATURES & SELECTABLE OPTIONS
+// --------------------------------------------------------------------------
+
+function switchOfferActiveImage(offerId, newSrc, thumbEl) {
+  const mainImg = document.getElementById(`offer-active-img-${offerId}`);
+  if (mainImg) {
+    mainImg.src = newSrc;
+  }
+  if (thumbEl && thumbEl.parentElement) {
+    thumbEl.parentElement.querySelectorAll('.funnel-offer-thumb').forEach(t => t.classList.remove('active'));
+    thumbEl.classList.add('active');
+  }
+}
+
+function getOfferSelectedOptions(offer) {
+  if (!offer || !offer.settings?.has_custom_options || !Array.isArray(offer.settings.options)) {
+    return [];
+  }
+  if (!selectedCustomOptions[offer.id]) {
+    const isSingle = offer.settings.options_mode === 'single';
+    if (isSingle) {
+      const def = offer.settings.options.find(o => o.default_selected);
+      selectedCustomOptions[offer.id] = def ? [def] : [];
+    } else {
+      selectedCustomOptions[offer.id] = offer.settings.options.filter(o => o.default_selected);
+    }
+  }
+  return selectedCustomOptions[offer.id];
+}
+
+function isOptionSelected(offerId, opt) {
+  const offer = currentFunnelData?.offers?.find(o => o.id === offerId);
+  const selected = getOfferSelectedOptions(offer);
+  return selected.some(o => o.id === opt.id);
+}
+
+// Droplist handler for single option selection
+function onOfferOptionDropdownChanged(offerId, selectedOptId, isSingle) {
+  const offer = currentFunnelData?.offers?.find(o => o.id === offerId);
+  if (!offer || !offer.settings?.options) return;
+
+  const allOpts = offer.settings.options;
+  if (!selectedOptId) {
+    selectedCustomOptions[offerId] = [];
+  } else {
+    const targetOpt = allOpts.find(o => String(o.id) === String(selectedOptId));
+    selectedCustomOptions[offerId] = targetOpt ? [targetOpt] : [];
+  }
+
+  // Update offer price on card
+  const priceEl = document.getElementById(`offer-price-display-${offerId}`);
+  if (priceEl) {
+    priceEl.textContent = `${getComputedOfferPrice(offer)} دج`;
+  }
+
+  // Update order summary if this offer is active
+  if (selectedOffer && selectedOffer.id === offerId) {
+    updateOrderSummary();
+  }
+}
+
+// Droplist handler for adding an option in multi-select mode
+function onOfferOptionAddFromDropdown(offerId, selectEl) {
+  const optId = selectEl.value;
+  if (!optId) return;
+  const offer = currentFunnelData?.offers?.find(o => o.id === offerId);
+  if (!offer || !offer.settings?.options) return;
+
+  const targetOpt = offer.settings.options.find(o => String(o.id) === String(optId));
+  if (!targetOpt) return;
+
+  let currentList = getOfferSelectedOptions(offer);
+  if (!currentList.some(o => String(o.id) === String(optId))) {
+    currentList.push(targetOpt);
+    selectedCustomOptions[offerId] = currentList;
+  }
+  selectEl.value = ''; // Reset dropdown selection
+
+  renderOfferSelectedPills(offerId);
+
+  const priceEl = document.getElementById(`offer-price-display-${offerId}`);
+  if (priceEl) {
+    priceEl.textContent = `${getComputedOfferPrice(offer)} دج`;
+  }
+
+  if (selectedOffer && selectedOffer.id === offerId) {
+    updateOrderSummary();
+  }
+}
+
+// Remove option pill in multi-select mode
+function removeOfferOption(offerId, optId) {
+  const offer = currentFunnelData?.offers?.find(o => o.id === offerId);
+  if (!offer) return;
+
+  let currentList = getOfferSelectedOptions(offer);
+  selectedCustomOptions[offerId] = currentList.filter(o => String(o.id) !== String(optId));
+
+  renderOfferSelectedPills(offerId);
+
+  const priceEl = document.getElementById(`offer-price-display-${offerId}`);
+  if (priceEl) {
+    priceEl.textContent = `${getComputedOfferPrice(offer)} دج`;
+  }
+
+  if (selectedOffer && selectedOffer.id === offerId) {
+    updateOrderSummary();
+  }
+}
+
+function renderOfferSelectedPills(offerId) {
+  const container = document.getElementById(`offer-selected-pills-${offerId}`);
+  if (!container) return;
+  const offer = currentFunnelData?.offers?.find(o => o.id === offerId);
+  const selected = getOfferSelectedOptions(offer);
+
+  if (selected.length === 0) {
+    container.innerHTML = '<span class="text-muted small">لم يتم اختيار أي خيار إضافي بعد</span>';
+    return;
+  }
+
+  container.innerHTML = selected.map(opt => `
+    <span class="funnel-offer-pill">
+      <span>${escapeHtml(opt.name)} (+${opt.price} دج)</span>
+      <i class="bi bi-x-circle-fill funnel-offer-pill-remove" onclick="event.stopPropagation(); removeOfferOption(${offerId}, '${opt.id}')" title="إزالة"></i>
+    </span>
+  `).join('');
+}
+
+function getComputedOfferPrice(offer) {
+  if (!offer) return 0;
+  const base = parseFloat(offer.price) || 0;
+  const selectedOpts = getOfferSelectedOptions(offer);
+  const addOnsTotal = selectedOpts.reduce((sum, opt) => sum + (parseFloat(opt.price) || 0), 0);
+  return base + addOnsTotal;
+}
+
+// Smooth slow scroll to order form and highlight the first input field
+function smoothScrollToOrderForm() {
+  const target = document.getElementById('orderFormBlock') || document.getElementById('funnelCheckoutForm');
+  if (!target) return;
+
+  const targetY = target.getBoundingClientRect().top + window.pageYOffset - 85;
+  const startY = window.pageYOffset;
+  const distance = targetY - startY;
+  const duration = 1200; // Very slow and gentle scroll (1.2 seconds)
+  let startTime = null;
+
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function step(currentTime) {
+    if (!startTime) startTime = currentTime;
+    const timeElapsed = currentTime - startTime;
+    const progress = Math.min(timeElapsed / duration, 1);
+    const ease = easeInOutCubic(progress);
+
+    window.scrollTo(0, startY + (distance * ease));
+
+    if (timeElapsed < duration) {
+      window.requestAnimationFrame(step);
+    } else {
+      highlightFirstOrderField();
+    }
+  }
+
+  window.requestAnimationFrame(step);
+}
+
+function highlightFirstOrderField() {
+  const firstInput = document.getElementById('funnelFullName');
+  if (!firstInput) return;
+
+  firstInput.focus();
+  firstInput.classList.add('funnel-input-highlight');
+  setTimeout(() => {
+    firstInput.classList.remove('funnel-input-highlight');
+  }, 3600);
+}
+
 function renderOffersBlock(block, offers, node) {
   if (!offers || offers.length === 0) return '';
   const content = typeof block.content === 'object' && block.content !== null ? block.content : {};
@@ -607,31 +899,121 @@ function renderOffersBlock(block, offers, node) {
         ${offers.map((offer, idx) => {
           const isSelected = selectedOffer && selectedOffer.id === offer.id;
           const isPopular = offer.is_popular;
+          const settings = typeof offer.settings === 'object' && offer.settings !== null ? offer.settings : {};
+
+          // Image Gallery Handling
+          const offerImages = Array.isArray(offer.images) && offer.images.length > 0
+            ? offer.images
+            : (offer.image_url ? [offer.image_url] : []);
+          const primaryImg = offerImages[0] || offer.image_url;
+
+          // Custom Typography & Colors
+          let titleStyle = '';
+          if (settings.title_color) titleStyle += `color: ${settings.title_color} !important; `;
+          if (settings.title_size) titleStyle += `font-size: ${settings.title_size} !important; `;
+
+          let offerPriceStyle = priceStyle;
+          if (settings.price_color) offerPriceStyle += `color: ${settings.price_color} !important; `;
+          if (settings.price_size) offerPriceStyle += `font-size: ${settings.price_size} !important; `;
+
+          const computedPrice = getComputedOfferPrice(offer);
+          const chosenOpts = getOfferSelectedOptions(offer);
+
           return `
             <div class="funnel-offer-card ${isSelected ? 'selected' : ''}" data-offer-id="${offer.id}">
               ${offer.badge ? `
                 <div class="funnel-offer-badge ${isPopular ? 'popular' : ''}">
-                  <i class="bi bi-fire me-1"></i> ${offer.badge}
+                  <i class="bi bi-fire me-1"></i> ${escapeHtml(offer.badge)}
                 </div>
               ` : ''}
 
-              ${offer.image_url ? `
+              ${primaryImg ? `
                 <div class="funnel-offer-img-box mb-2" style="${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')}; height: auto;` : ''}">
-                  <img src="${offer.image_url}" alt="${offer.title}" class="funnel-offer-img" style="${imgRatioStyle}" loading="lazy">
+                  <img src="${primaryImg}" id="offer-active-img-${offer.id}" alt="${escapeHtml(offer.title)}" class="funnel-offer-img" style="${imgRatioStyle}" loading="lazy">
                 </div>
+                ${offerImages.length > 1 ? `
+                  <div class="funnel-offer-thumbs-strip d-flex gap-1 justify-content-center overflow-x-auto pb-1 mb-2" onclick="event.stopPropagation()">
+                    ${offerImages.map((u, imgI) => `
+                      <img src="${u}" class="funnel-offer-thumb ${imgI === 0 ? 'active' : ''}" onclick="switchOfferActiveImage(${offer.id}, '${u}', this)" alt="صورة ${imgI + 1}">
+                    `).join('')}
+                  </div>
+                ` : ''}
               ` : ''}
 
-              <h3 class="funnel-offer-title">${offer.title}</h3>
+              <h3 class="funnel-offer-title" style="${titleStyle}">${escapeHtml(offer.title)}</h3>
               <div class="funnel-offer-qty">الكمية: ${offer.quantity} قطع</div>
-              <div class="funnel-offer-price" style="${priceStyle}">${offer.price} دج</div>
+              <div class="funnel-offer-price" id="offer-price-display-${offer.id}" style="${offerPriceStyle}">${computedPrice} دج</div>
               ${offer.original_price ? `<div class="funnel-offer-orig-price">${offer.original_price} دج</div>` : ''}
 
-              <div class="funnel-offer-delivery-tag ${offer.free_delivery ? 'free' : 'standard'}">
-                <i class="bi bi-truck"></i>
+              <!-- Description Paragraph -->
+              ${settings.description ? `
+                <p class="funnel-offer-desc text-muted mt-2 mb-2">${escapeHtml(settings.description)}</p>
+              ` : ''}
+
+              <!-- Features List with Custom Icons -->
+              ${Array.isArray(settings.features) && settings.features.length > 0 ? `
+                <ul class="funnel-offer-features-list p-0 my-2 list-unstyled">
+                  ${settings.features.map(f => `
+                    <li class="d-flex align-items-center mb-1 text-end" style="color: ${f.text_color || '#333333'}; font-size: ${f.text_size || '0.9rem'};">
+                      <i class="bi ${f.icon || 'bi-check2-circle'} ms-2" style="color: ${f.icon_color || '#5a6344'}; font-size: ${f.icon_size || '1.1rem'}; flex-shrink: 0;"></i>
+                      <span>${escapeHtml(f.text)}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              ` : ''}
+
+              <!-- Delivery Tag -->
+              <div class="funnel-offer-delivery-tag ${offer.free_delivery ? 'free' : 'standard'} my-2">
+                <i class="bi bi-truck ms-1"></i>
                 <span>${offer.free_delivery ? 'توصيل مجاني لجميع الولايات' : 'توصيل عادي'}</span>
               </div>
 
-              <div class="funnel-offer-radio-indicator"></div>
+              <!-- Customizable / Selectable Options Section with Droplist -->
+              ${settings.has_custom_options ? `
+                <div class="funnel-offer-options-wrap border-top pt-2 mt-2 w-100 text-end" onclick="event.stopPropagation()">
+                  ${settings.fixed_option ? `
+                    <div class="funnel-offer-fixed-item-box p-2 bg-success-subtle rounded-3 text-success-emphasis border border-success-subtle small fw-bold mb-2">
+                      <i class="bi bi-pin-angle-fill ms-1 text-success"></i>
+                      <span><strong>يشمل أساسياً:</strong> ${escapeHtml(settings.fixed_option)}</span>
+                    </div>
+                  ` : ''}
+
+                  ${Array.isArray(settings.options) && settings.options.length > 0 ? `
+                    <div class="small fw-bold text-secondary mb-1">
+                      <i class="bi bi-list-check ms-1"></i>حدد الخيارات الإضافية من القائمة:
+                    </div>
+                    
+                    ${settings.options_mode === 'single' ? `
+                      <!-- Single Selection Droplist -->
+                      <select class="form-select form-select-sm funnel-offer-select-dropdown" onchange="onOfferOptionDropdownChanged(${offer.id}, this.value, true)" dir="rtl">
+                        <option value="">-- اختر خياراً إضافياً (اختياري) --</option>
+                        ${settings.options.map(opt => {
+                          const isChecked = isOptionSelected(offer.id, opt);
+                          return `<option value="${opt.id}" ${isChecked ? 'selected' : ''}>${escapeHtml(opt.name)} (+${opt.price} دج)</option>`;
+                        }).join('')}
+                      </select>
+                    ` : `
+                      <!-- Multi-Selection Droplist with interactive Selected Badges -->
+                      <select class="form-select form-select-sm funnel-offer-select-dropdown" onchange="onOfferOptionAddFromDropdown(${offer.id}, this)" dir="rtl">
+                        <option value="">+ انقر لاختيار وإضافة خيار من القائمة...</option>
+                        ${settings.options.map(opt => `
+                          <option value="${opt.id}">${escapeHtml(opt.name)} (+${opt.price} دج)</option>
+                        `).join('')}
+                      </select>
+                      <div class="d-flex flex-wrap gap-1 mt-2" id="offer-selected-pills-${offer.id}">
+                        ${chosenOpts.length === 0 ? '<span class="text-muted small">لم يتم اختيار أي خيار إضافي بعد</span>' : chosenOpts.map(opt => `
+                          <span class="funnel-offer-pill">
+                            <span>${escapeHtml(opt.name)} (+${opt.price} دج)</span>
+                            <i class="bi bi-x-circle-fill funnel-offer-pill-remove" onclick="event.stopPropagation(); removeOfferOption(${offer.id}, '${opt.id}')" title="إزالة"></i>
+                          </span>
+                        `).join('')}
+                      </div>
+                    `}
+                  ` : ''}
+                </div>
+              ` : ''}
+
+              <div class="funnel-offer-radio-indicator mt-2"></div>
             </div>
           `;
         }).join('')}
@@ -640,11 +1022,210 @@ function renderOffersBlock(block, offers, node) {
   `;
 }
 
-// Attach Offer Selection Handlers
+// Smoothly scroll down to order form and immediately hide the prompt bar
+function smoothScrollToOrderForm() {
+  const bar = document.getElementById('funnelOrderPromptBar');
+  if (bar) bar.classList.remove('show');
+
+  const orderForm = document.getElementById('orderFormBlock') || document.getElementById('funnelCheckoutForm');
+  if (orderForm) {
+    orderForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => {
+      const firstInput = document.getElementById('funnelFullName') || orderForm.querySelector('input');
+      if (firstInput) {
+        firstInput.focus({ preventScroll: true });
+        firstInput.classList.add('funnel-highlight-input');
+        setTimeout(() => firstInput.classList.remove('funnel-highlight-input'), 2200);
+      }
+    }, 600);
+  }
+}
+window.smoothScrollToOrderForm = smoothScrollToOrderForm;
+
+// Hide the arrow prompt bar when reaching the order form
+function initOrderFormScrollObserver() {
+  const orderForm = document.getElementById('orderFormBlock');
+  if (!orderForm) return;
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const bar = document.getElementById('funnelOrderPromptBar');
+          if (bar) bar.classList.remove('show');
+        }
+      });
+    }, { threshold: 0.1 });
+    observer.observe(orderForm);
+  }
+
+  // Also check during scroll to guarantee prompt hides as soon as order form comes into view
+  window.addEventListener('scroll', () => {
+    const formEl = document.getElementById('orderFormBlock');
+    const bar = document.getElementById('funnelOrderPromptBar');
+    if (formEl && bar && bar.classList.contains('show')) {
+      const rect = formEl.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.82 && rect.bottom >= 0) {
+        bar.classList.remove('show');
+      }
+    }
+  }, { passive: true });
+}
+
+// Show attractive transparent hint message for 5 seconds when reaching the offers cards
+let offersHintShown = false;
+let offersHintTimer = null;
+
+function initOffersVisibilityHint() {
+  const offersBlock = document.getElementById('funnelOffersBlock');
+  if (!offersBlock || offersHintShown) return;
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !offersHintShown) {
+          offersHintShown = true;
+          showOffersHintToast();
+          observer.disconnect();
+        }
+      });
+    }, { threshold: 0.15 });
+    observer.observe(offersBlock);
+  } else {
+    // Fallback if IntersectionObserver is unsupported
+    const onScrollCheck = () => {
+      if (offersHintShown) return;
+      const rect = offersBlock.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.75 && rect.bottom >= 0) {
+        offersHintShown = true;
+        showOffersHintToast();
+        window.removeEventListener('scroll', onScrollCheck);
+      }
+    };
+    window.addEventListener('scroll', onScrollCheck, { passive: true });
+  }
+}
+
+function showOffersHintToast() {
+  let toast = document.getElementById('funnelOffersHintToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'funnelOffersHintToast';
+    toast.className = 'funnel-offers-hint-toast';
+    toast.setAttribute('dir', 'rtl');
+    toast.innerHTML = `
+      <i class="bi bi-hand-index-thumb-fill text-warning fs-5"></i>
+      <span>اضغط لاختيار هذا العرض ✨</span>
+    `;
+    document.body.appendChild(toast);
+  }
+
+  requestAnimationFrame(() => {
+    toast.classList.remove('fade-out');
+    toast.classList.add('show');
+  });
+
+  if (offersHintTimer) clearTimeout(offersHintTimer);
+  offersHintTimer = setTimeout(() => {
+    if (toast) {
+      toast.classList.add('fade-out');
+      setTimeout(() => {
+        if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 550);
+    }
+  }, 5000);
+}
+
+// Sticky "Back to Top" Button
+function initStickyScrollToTop() {
+  let btn = document.getElementById('funnelScrollToTopBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'funnelScrollToTopBtn';
+    btn.type = 'button';
+    btn.className = 'funnel-back-to-top-btn';
+    btn.setAttribute('aria-label', 'الرجوع لأعلى الصفحة');
+    btn.setAttribute('title', 'الرجوع للأعلى');
+    btn.innerHTML = `<i class="bi bi-chevron-up"></i>`;
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    document.body.appendChild(btn);
+  }
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  }, { passive: true });
+}
+
+// Show animated floating prompt with bouncing arrow guiding user to order form
+function showOfferSelectedPrompt(offer) {
+  // If the initial offers hint toast is still visible, fade it out immediately
+  const hintToast = document.getElementById('funnelOffersHintToast');
+  if (hintToast) {
+    hintToast.classList.add('fade-out');
+    setTimeout(() => {
+      if (hintToast && hintToast.parentNode) hintToast.parentNode.removeChild(hintToast);
+    }, 400);
+  }
+
+  // Do not show the prompt bar if user is already at the order form
+  const orderForm = document.getElementById('orderFormBlock');
+  if (orderForm) {
+    const rect = orderForm.getBoundingClientRect();
+    if (rect.top <= window.innerHeight * 0.82 && rect.bottom >= 0) {
+      return;
+    }
+  }
+
+  let bar = document.getElementById('funnelOrderPromptBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'funnelOrderPromptBar';
+    bar.className = 'funnel-order-prompt-bar';
+    bar.addEventListener('click', (e) => {
+      smoothScrollToOrderForm();
+    });
+    document.body.appendChild(bar);
+  }
+
+  const offerTitle = offer ? escapeHtml(offer.title) : 'العرض المختار';
+  const price = offer ? getComputedOfferPrice(offer) : '';
+
+  bar.innerHTML = `
+    <div class="d-flex align-items-center justify-content-between gap-3 w-100">
+      <div class="d-flex align-items-center gap-2">
+        <span class="funnel-prompt-arrow-bounce">
+          <i class="bi bi-arrow-down-circle-fill text-warning fs-3"></i>
+        </span>
+        <div>
+          <div class="fw-bold text-white small">تم اختيار: <span class="text-warning">${offerTitle}</span> ${price ? `(${price} دج)` : ''}</div>
+          <div class="text-white-50 extra-small" style="font-size: 0.78rem;">املأ النموذج بالأسفل لإتمام طلبك 👇</div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold shadow-sm d-inline-flex align-items-center gap-1" onclick="smoothScrollToOrderForm()">
+        <span>إلى النموذج</span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+  `;
+
+  bar.classList.add('show');
+}
+
+// Attach Offer Selection Handlers (pops up guide prompt without jarring auto-scroll)
 function attachOffersEvents() {
   const cards = document.querySelectorAll('.funnel-offer-card');
   cards.forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Do not trigger card selection if clicking within options droplist or thumbnail strip
+      if (e.target.closest('.funnel-offer-options-wrap') || e.target.closest('.funnel-offer-thumbs-strip')) {
+        return;
+      }
       const offerId = parseInt(card.getAttribute('data-offer-id'), 10);
       if (!currentFunnelData?.offers) return;
       const found = currentFunnelData.offers.find(o => o.id === offerId);
@@ -652,10 +1233,102 @@ function attachOffersEvents() {
         selectedOffer = found;
         cards.forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
+
+        // Sync with order form offer switcher
+        const offerSelect = document.getElementById('orderFormOfferSelect');
+        if (offerSelect) offerSelect.value = String(found.id);
+        const dealBadge = document.getElementById('selectedDealBadge');
+        if (dealBadge) dealBadge.textContent = found.title;
+        const basePriceDisplay = document.getElementById('selectedDealBasePriceDisplay');
+        if (basePriceDisplay) basePriceDisplay.textContent = `${found.price} دج`;
+
+        updateDeliveryBadges();
         updateOrderSummary();
+
+        // Show floating guide prompt with bouncing arrow
+        showOfferSelectedPrompt(found);
       }
     });
   });
+}
+
+// Switch offer directly from inside the order form
+function onOrderFormOfferChanged(newOfferId) {
+  const offerId = parseInt(newOfferId, 10);
+  const found = currentFunnelData?.offers?.find(o => o.id === offerId);
+  if (!found) return;
+
+  selectedOffer = found;
+
+  // Sync offer cards above
+  const cards = document.querySelectorAll('.funnel-offer-card');
+  cards.forEach(card => {
+    if (parseInt(card.getAttribute('data-offer-id'), 10) === offerId) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+
+  const dealBadge = document.getElementById('selectedDealBadge');
+  if (dealBadge) dealBadge.textContent = found.title;
+
+  const basePriceDisplay = document.getElementById('selectedDealBasePriceDisplay');
+  if (basePriceDisplay) basePriceDisplay.textContent = `${found.price} دج`;
+
+  updateDeliveryBadges();
+  updateOrderSummary();
+}
+
+// Load available delivery companies and dynamic rates for funnel
+async function initFunnelDeliveryCompanies() {
+  const compSelect = document.getElementById('funnelDeliveryCompany');
+  try {
+    const res = await fetch('/api/delivery-companies');
+    if (res.ok) {
+      const companies = await res.json();
+      if (Array.isArray(companies) && companies.length > 0) {
+        availableDeliveryCompanies = companies;
+        if (compSelect) {
+          compSelect.innerHTML = '';
+          companies.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name + (c.is_default ? ' (الافتراضية)' : '');
+            if (c.is_default) opt.selected = true;
+            compSelect.appendChild(opt);
+          });
+
+          const defaultComp = companies.find(c => c.is_default) || companies[0];
+          selectedDeliveryCompanyId = defaultComp ? defaultComp.id : companies[0].id;
+          selectedDeliveryCompanyName = defaultComp ? defaultComp.name : companies[0].name;
+          compSelect.value = selectedDeliveryCompanyId;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load delivery companies for funnel:', err);
+  }
+
+  await fetchFunnelRatesForCompany(selectedDeliveryCompanyId);
+}
+
+async function fetchFunnelRatesForCompany(companyId) {
+  try {
+    const url = companyId ? `/api/delivery-costs?company_id=${companyId}` : '/api/delivery-costs';
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ratesMap && Object.keys(data.ratesMap).length > 0) {
+        activeDeliveryRates = data.ratesMap;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch rates for company:', err);
+  }
+
+  updateDeliveryBadges();
+  updateOrderSummary();
 }
 
 // --------------------------------------------------------------------------
@@ -670,23 +1343,36 @@ function renderOrderFormBlock(block, offers, node) {
     customStyle += `background-color: ${styles.bg_color}; `;
   }
 
-  const btnStyle = getBlockBtnStyle(styles, node);
-  const priceStyle = getBlockPriceStyle(styles, node);
-
   return `
     <div class="funnel-block funnel-order-box" id="orderFormBlock" style="${customStyle}">
       ${formatBlockTitle(block.title || 'أكمل معلوماتك لتأكيد الطلب', styles, 'h2', 'funnel-order-box-title')}
       ${formatBlockText(content.subtitle, styles, 'p', 'funnel-order-box-desc')}
 
-      <!-- Selected Deal Bar -->
-      <div class="funnel-selected-deal-bar" id="selectedDealSummaryBar">
-        <div>
-          <span class="text-muted small d-block">الباقة المحددة:</span>
-          <strong class="text-success" id="selectedDealTitleText">${selectedOffer ? selectedOffer.title : 'باقة العرض'}</strong>
+      <!-- Selected Deal Bar with Direct Offer Selector -->
+      <div class="funnel-selected-deal-bar p-3 mb-3 rounded-3 bg-light border border-success-subtle shadow-sm" id="selectedDealSummaryBar">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+          <label for="orderFormOfferSelect" class="form-label mb-0 fw-bold text-success small d-flex align-items-center gap-1">
+            <i class="bi bi-tag-fill"></i>
+            <span>الباقة / العرض المختار:</span>
+          </label>
+          <span class="badge bg-success-subtle text-success border border-success-subtle small fw-bold" id="selectedDealBadge">
+            ${selectedOffer ? escapeHtml(selectedOffer.title) : 'باقة العرض'}
+          </span>
         </div>
-        <div class="text-end">
-          <span class="text-muted small d-block">السعر:</span>
-          <strong class="fs-5" style="${priceStyle}" id="selectedDealPriceText">${selectedOffer ? selectedOffer.price : '--'} دج</strong>
+        ${Array.isArray(offers) && offers.length > 1 ? `
+          <select class="form-select form-select-sm funnel-order-form-offer-select mb-2" id="orderFormOfferSelect" dir="rtl" onchange="onOrderFormOfferChanged(this.value)">
+            ${offers.map(o => `
+              <option value="${o.id}" ${selectedOffer && selectedOffer.id === o.id ? 'selected' : ''}>
+                ${escapeHtml(o.title)} (${o.price} دج) ${o.badge ? ' - ' + escapeHtml(o.badge) : ''}
+              </option>
+            `).join('')}
+          </select>
+        ` : `
+          <div class="fw-bold text-dark fs-5 mb-1" id="selectedDealTitleText">${selectedOffer ? escapeHtml(selectedOffer.title) : 'باقة العرض'}</div>
+        `}
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-light-subtle small">
+          <span class="text-muted">سعر الباقة الأساسية:</span>
+          <strong class="text-success fs-6" id="selectedDealBasePriceDisplay">${selectedOffer ? selectedOffer.price : '--'} دج</strong>
         </div>
       </div>
 
@@ -711,7 +1397,7 @@ function renderOrderFormBlock(block, offers, node) {
           </div>
 
           <!-- Wilaya Dropdown -->
-          <div class="col-12">
+          <div class="col-12 col-md-6">
             <label for="funnelWilaya" class="form-label fw-bold small">الولاية <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
@@ -720,6 +1406,17 @@ function renderOrderFormBlock(block, offers, node) {
                 ${ALGERIAN_WILAYAS.map(w => `
                   <option value="${w.en}">${w.code}- ${w.name} (${w.en})</option>
                 `).join('')}
+              </select>
+            </div>
+          </div>
+
+          <!-- Delivery Company Dropdown -->
+          <div class="col-12 col-md-6" id="funnelDeliveryCompanyCol">
+            <label for="funnelDeliveryCompany" class="form-label fw-bold small">شركة التوصيل <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-light"><i class="bi bi-truck"></i></span>
+              <select class="form-select" id="funnelDeliveryCompany" required>
+                <option value="">جاري تحميل شركات التوصيل...</option>
               </select>
             </div>
           </div>
@@ -756,21 +1453,34 @@ function renderOrderFormBlock(block, offers, node) {
           </div>
         </div>
 
-        <!-- Total Breakdown Box -->
+        <!-- Detailed Total Breakdown Box -->
         <div class="card bg-light border-0 mt-4 p-3 rounded-3">
+          <!-- 1. Offer Base Price -->
           <div class="d-flex justify-content-between mb-2">
-            <span class="text-muted">سعر الباقة / المنتجات:</span>
-            <span class="fw-bold" id="summarySubtotalText">0 دج</span>
+            <span class="text-muted">سعر الباقة الأساسية:</span>
+            <span class="fw-bold" id="summaryOfferBaseText">0 دج</span>
           </div>
+
+          <!-- 2. Add-ons Total -->
+          <div class="d-flex justify-content-between mb-2" id="summaryAddonsRow" style="display:none !important;">
+            <span class="text-muted">مجموع الخيارات الإضافية:</span>
+            <span class="fw-bold text-success" id="summaryAddonsText">+0 دج</span>
+          </div>
+
+          <!-- 3. Delivery Cost -->
           <div class="d-flex justify-content-between mb-2">
             <span class="text-muted">تكلفة التوصيل:</span>
             <span class="fw-bold" id="summaryDeliveryText">-- دج</span>
           </div>
+
+          <!-- 4. Coupon Discount -->
           <div class="d-flex justify-content-between mb-2 text-danger" id="summaryDiscountRow" style="display:none !important;">
             <span>خصم الكوبون:</span>
             <span class="fw-bold" id="summaryDiscountText">-0 دج</span>
           </div>
+
           <hr class="my-2">
+          <!-- 5. Final Total -->
           <div class="d-flex justify-content-between align-items-center">
             <span class="fw-bold fs-5 text-dark">المبلغ الإجمالي للدفع:</span>
             <span class="fw-bold fs-3 text-success" id="summaryTotalText">0 دج</span>
@@ -804,11 +1514,21 @@ function initLandingOrderForm() {
   const deliveryRadios = document.querySelectorAll('input[name="funnelDeliveryType"]');
   const promoBtn = document.getElementById('applyPromoBtn');
   const form = document.getElementById('funnelCheckoutForm');
+  const compSelect = document.getElementById('funnelDeliveryCompany');
 
   if (wilayaSelect) {
     wilayaSelect.addEventListener('change', () => {
       updateDeliveryBadges();
       updateOrderSummary();
+    });
+  }
+
+  if (compSelect) {
+    compSelect.addEventListener('change', async function () {
+      selectedDeliveryCompanyId = parseInt(this.value, 10);
+      const selectedOpt = this.options[this.selectedIndex];
+      selectedDeliveryCompanyName = selectedOpt ? selectedOpt.textContent.replace(' (الافتراضية)', '').trim() : '';
+      await fetchFunnelRatesForCompany(selectedDeliveryCompanyId);
     });
   }
 
@@ -826,11 +1546,14 @@ function initLandingOrderForm() {
     form.addEventListener('submit', submitFunnelOrder);
   }
 
+  // Load delivery companies dynamically
+  initFunnelDeliveryCompanies();
+
   updateDeliveryBadges();
   updateOrderSummary();
 }
 
-// Update Badges on Home/Desk delivery buttons
+// Update Badges on Home/Desk delivery buttons based on selected company & wilaya
 function updateDeliveryBadges() {
   const wilayaSelect = document.getElementById('funnelWilaya');
   const homeBadge = document.getElementById('homePriceBadge');
@@ -850,28 +1573,58 @@ function updateDeliveryBadges() {
   if (isFree) {
     homeBadge.textContent = 'مجاني';
     deskBadge.textContent = 'مجاني';
-  } else {
-    homeBadge.textContent = `${wilayaObj.home} دج`;
-    deskBadge.textContent = `${wilayaObj.desk} دج`;
+    return;
   }
+
+  let homePrice = wilayaObj.home;
+  let deskPrice = wilayaObj.desk;
+
+  if (activeDeliveryRates) {
+    const rate = activeDeliveryRates[wilayaObj.en] || activeDeliveryRates[wilayaObj.name] || activeDeliveryRates[wilayaObj.code];
+    if (rate) {
+      if (rate.home !== undefined) homePrice = rate.home;
+      else if (rate.home_price !== undefined) homePrice = rate.home_price;
+      if (rate.desk !== undefined) deskPrice = rate.desk;
+      else if (rate.desk_price !== undefined) deskPrice = rate.desk_price;
+    }
+  }
+
+  homeBadge.textContent = `${homePrice} دج`;
+  deskBadge.textContent = `${deskPrice} دج`;
 }
 
-// Calculate and update order summary box
+// Calculate and update order summary box with detailed items
 function updateOrderSummary() {
-  const subtotalEl = document.getElementById('summarySubtotalText');
+  const basePriceEl = document.getElementById('summaryOfferBaseText');
+  const addonsRow = document.getElementById('summaryAddonsRow');
+  const addonsText = document.getElementById('summaryAddonsText');
   const deliveryEl = document.getElementById('summaryDeliveryText');
   const totalEl = document.getElementById('summaryTotalText');
   const discountRow = document.getElementById('summaryDiscountRow');
   const discountEl = document.getElementById('summaryDiscountText');
 
-  const dealBarTitle = document.getElementById('selectedDealTitleText');
-  const dealBarPrice = document.getElementById('selectedDealPriceText');
+  const dealBadge = document.getElementById('selectedDealBadge');
+  const basePriceDisplay = document.getElementById('selectedDealBasePriceDisplay');
 
-  if (!subtotalEl || !deliveryEl || !totalEl) return;
+  if (!deliveryEl || !totalEl) return;
 
-  const basePrice = selectedOffer ? parseFloat(selectedOffer.price) : 0;
-  if (dealBarTitle) dealBarTitle.textContent = selectedOffer ? selectedOffer.title : 'باقة العرض';
-  if (dealBarPrice) dealBarPrice.textContent = `${basePrice} دج`;
+  const baseOfferPrice = selectedOffer ? (parseFloat(selectedOffer.price) || 0) : 0;
+  const selectedOpts = selectedOffer ? getOfferSelectedOptions(selectedOffer) : [];
+  const addOnsTotal = selectedOpts.reduce((sum, opt) => sum + (parseFloat(opt.price) || 0), 0);
+  const subtotal = baseOfferPrice + addOnsTotal;
+
+  if (dealBadge && selectedOffer) dealBadge.textContent = selectedOffer.title;
+  if (basePriceDisplay && selectedOffer) basePriceDisplay.textContent = `${selectedOffer.price} دج`;
+  if (basePriceEl) basePriceEl.textContent = `${baseOfferPrice} دج`;
+
+  if (addonsRow && addonsText) {
+    if (addOnsTotal > 0) {
+      addonsRow.style.setProperty('display', 'flex', 'important');
+      addonsText.textContent = `+${addOnsTotal} دج`;
+    } else {
+      addonsRow.style.setProperty('display', 'none', 'important');
+    }
+  }
 
   const wilayaSelect = document.getElementById('funnelWilaya');
   const selectedWilaya = wilayaSelect ? wilayaSelect.value : '';
@@ -881,7 +1634,19 @@ function updateOrderSummary() {
 
   let deliveryCost = 0;
   if (wilayaObj) {
-    deliveryCost = deliveryType === 'desk' ? wilayaObj.desk : wilayaObj.home;
+    let homePrice = wilayaObj.home;
+    let deskPrice = wilayaObj.desk;
+    if (activeDeliveryRates) {
+      const rate = activeDeliveryRates[wilayaObj.en] || activeDeliveryRates[wilayaObj.name] || activeDeliveryRates[wilayaObj.code];
+      if (rate) {
+        if (rate.home !== undefined) homePrice = rate.home;
+        else if (rate.home_price !== undefined) homePrice = rate.home_price;
+        if (rate.desk !== undefined) deskPrice = rate.desk;
+        else if (rate.desk_price !== undefined) deskPrice = rate.desk_price;
+      }
+    }
+
+    deliveryCost = deliveryType === 'desk' ? deskPrice : homePrice;
     if (selectedOffer?.free_delivery || appliedPromo?.discount_type === 'free_delivery') {
       deliveryCost = 0;
     }
@@ -890,15 +1655,14 @@ function updateOrderSummary() {
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.discount_type === 'percentage') {
-      discountAmount = Math.round((basePrice * appliedPromo.discount_value) / 100);
+      discountAmount = Math.round((subtotal * appliedPromo.discount_value) / 100);
     } else if (appliedPromo.discount_type === 'fixed') {
-      discountAmount = Math.min(basePrice, parseFloat(appliedPromo.discount_value));
+      discountAmount = Math.min(subtotal, parseFloat(appliedPromo.discount_value));
     }
   }
 
-  const finalTotal = Math.max(0, basePrice + (wilayaObj ? deliveryCost : 0) - discountAmount);
+  const finalTotal = Math.max(0, subtotal + (wilayaObj ? deliveryCost : 0) - discountAmount);
 
-  subtotalEl.textContent = `${basePrice} دج`;
   if (!wilayaObj) {
     deliveryEl.textContent = 'يرجى اختيار الولاية';
   } else {
@@ -978,6 +1742,44 @@ async function applyFunnelPromo() {
   }
 }
 
+// Build complete hierarchical root path: e.g. skinsolutions / normal skin / normal skin landing page / vip offer (sesame oil, ricin oil..)
+function buildOrderFunnelRootPath(offer, chosenOptions) {
+  const parts = [];
+
+  // Breadcrumbs (e.g. skinsolutions / normal skin)
+  if (Array.isArray(currentFunnelData?.breadcrumbs)) {
+    currentFunnelData.breadcrumbs.forEach(bc => {
+      if (bc && bc.title) parts.push(bc.title.trim());
+    });
+  }
+
+  // Current Landing Page / Funnel Node title
+  if (currentFunnelData?.node?.title) {
+    parts.push(currentFunnelData.node.title.trim());
+  }
+
+  // Offer Title with fixed and chosen options
+  let offerTitle = offer ? offer.title.trim() : 'عرض مباشر';
+  const optNames = [];
+  if (offer?.settings?.fixed_option) {
+    optNames.push(offer.settings.fixed_option.trim());
+  }
+  if (Array.isArray(chosenOptions) && chosenOptions.length > 0) {
+    chosenOptions.forEach(opt => {
+      if (opt && opt.name) {
+        optNames.push(opt.name.trim() + (opt.price ? ` +${opt.price}دج` : ''));
+      }
+    });
+  }
+
+  if (optNames.length > 0) {
+    offerTitle += ` (${optNames.join(', ')})`;
+  }
+  parts.push(offerTitle);
+
+  return parts.join(' / ');
+}
+
 // Submit Direct Order via /api/guest-orders
 async function submitFunnelOrder(e) {
   e.preventDefault();
@@ -1016,12 +1818,29 @@ async function submitFunnelOrder(e) {
 
   const wilayaObj = ALGERIAN_WILAYAS.find(w => w.en === wilaya);
   const deliveryType = document.querySelector('input[name="funnelDeliveryType"]:checked')?.value || 'home';
-  let deliveryCost = deliveryType === 'desk' ? wilayaObj.desk : wilayaObj.home;
-  if (selectedOffer?.free_delivery || appliedPromo?.discount_type === 'free_delivery') {
-    deliveryCost = 0;
+  
+  let deliveryCost = 0;
+  if (wilayaObj) {
+    let homePrice = wilayaObj.home;
+    let deskPrice = wilayaObj.desk;
+    if (activeDeliveryRates) {
+      const codeKey = String(wilayaObj.code);
+      const codePad = codeKey.padStart(2, '0');
+      const rate = activeDeliveryRates[codeKey] || activeDeliveryRates[codePad] || activeDeliveryRates[wilayaObj.en] || activeDeliveryRates[wilayaObj.ar];
+      if (rate) {
+        if (rate.home_price !== undefined) homePrice = rate.home_price;
+        else if (rate.home !== undefined) homePrice = rate.home;
+        if (rate.desk_price !== undefined) deskPrice = rate.desk_price;
+        else if (rate.desk !== undefined) deskPrice = rate.desk;
+      }
+    }
+    deliveryCost = deliveryType === 'desk' ? deskPrice : homePrice;
+    if (selectedOffer?.free_delivery || appliedPromo?.discount_type === 'free_delivery') {
+      deliveryCost = 0;
+    }
   }
 
-  const basePrice = selectedOffer ? parseFloat(selectedOffer.price) : 0;
+  const basePrice = selectedOffer ? getComputedOfferPrice(selectedOffer) : 0;
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.discount_type === 'percentage') {
@@ -1037,6 +1856,11 @@ async function submitFunnelOrder(e) {
   const firstName = nameParts[0] || fullName;
   const lastName = nameParts.slice(1).join(' ') || '.';
 
+  const chosenOptions = selectedOffer ? (selectedCustomOptions[selectedOffer.id] || []) : [];
+  const funnelRootPath = buildOrderFunnelRootPath(selectedOffer, chosenOptions);
+  const compName = selectedDeliveryCompanyName || 'Yalidine Express';
+  const compId = selectedDeliveryCompanyId || 1;
+
   const payload = {
     firstName: firstName,
     lastName: lastName,
@@ -1047,21 +1871,24 @@ async function submitFunnelOrder(e) {
     deliveryType: deliveryType,
     city: wilaya,
     commune: null,
-    shippingAddress: wilaya,
-    address: null, // Only selecting of willaya as requested
+    shippingAddress: `[شركة: ${compName}] [مسار الطلب: ${funnelRootPath}] ${wilaya}`,
+    address: null,
+    funnel_root_path: funnelRootPath,
     items: [
       {
         id: selectedOffer?.product_id || null,
-        name: selectedOffer ? `${selectedOffer.title} (${currentFunnelData?.node?.title || 'صفحة الهبوط'})` : 'طلب مباشر',
+        name: funnelRootPath,
+        root_path: funnelRootPath,
         price: basePrice,
-        quantity: selectedOffer?.quantity || 1
+        quantity: selectedOffer?.quantity || 1,
+        selected_options: chosenOptions
       }
     ],
     cartTotal: basePrice,
     deliveryCost: deliveryCost,
     deliveryFee: deliveryCost,
-    deliveryCompanyId: 1,
-    deliveryCompanyName: 'Yalidine Express',
+    deliveryCompanyId: compId,
+    deliveryCompanyName: compName,
     finalTotal: finalTotal,
     promoCode: appliedPromo ? appliedPromo.code : null
   };
@@ -1086,17 +1913,80 @@ async function submitFunnelOrder(e) {
 
     localStorage.setItem('last_checkout_submit', now.toString());
 
-    statusMsg.innerHTML = `
-      <div class="alert alert-success p-4 rounded-4 shadow-sm text-center">
-        <i class="bi bi-check-circle-fill text-success display-4 d-block mb-3"></i>
-        <h3 class="fw-bold text-dark">تهانينا! تم استلام طلبك بنجاح 🎉</h3>
-        <p class="text-muted mb-2">رقم الطلب الخاص بك: <strong class="text-success fs-5">#${result.orderId || ''}</strong></p>
-        <p class="mb-0 text-dark">سيتصل بك فريق خدمة العملاء خلال ساعات قليلة لتأكيد العنوان وشحن الطرد فوراً.</p>
-      </div>
-    `;
+    // Replace order form with congratulation & order tracking screen
+    const orderBox = document.getElementById('orderFormBlock');
+    if (orderBox) {
+      let waPhone = '0770000000';
+      let formattedWa = '213770000000';
+      try {
+        const bRes = await fetch('/api/branding');
+        if (bRes.ok) {
+          const bData = await bRes.json();
+          const targetWa = bData.social_links?.whatsapp || bData.whatsapp || bData.phone;
+          if (targetWa) {
+            waPhone = targetWa;
+            formattedWa = formatWhatsAppTargetNumber(targetWa);
+          }
+        }
+      } catch (e) {}
 
-    document.getElementById('funnelCheckoutForm').reset();
-    submitBtn.style.display = 'none';
+      const orderId = result.orderId || result.orderGroup || 'OMV-' + Date.now().toString().slice(-6);
+      const waText = encodeURIComponent(`السلام عليكم! قمت بتأكيد طلبي رقم #${orderId} من خلال صفحة (${currentFunnelData?.node?.title || 'الموقع'}). أود الاستفسار والتأكيد.`);
+      const waUrl = `https://wa.me/${formattedWa}?text=${waText}`;
+
+      orderBox.innerHTML = `
+        <div class="funnel-success-order-card text-center py-4 px-2" dir="rtl">
+          <div class="funnel-success-circle mx-auto mb-4">
+            <i class="bi bi-check2 text-white display-3"></i>
+          </div>
+
+          <span class="badge bg-success-subtle text-success-emphasis border border-success px-3 py-2 rounded-pill fs-6 fw-bold mb-3 d-inline-block">
+            <i class="bi bi-shield-check me-1"></i> تم تسجيل وتأكيد استلام طلبك بنجاح
+          </span>
+
+          <h2 class="fw-bolder text-dark mb-3">تهانينا! لقد تم تسجيل طلبك بنجاح 🎉</h2>
+          
+          <p class="lead text-secondary mx-auto mb-4" style="max-width: 620px; font-size: 1.15rem; line-height: 1.8;">
+            سيبدأ فريقنا فوراً في تجهيز وتحضير طلبك بعناية، وسنتصل بك هاتفياً في أقرب وقت لتأكيد العنوان وتفاصيل الشحن والتوصيل.
+          </p>
+
+          <!-- Order ID Tracking Card -->
+          <div class="funnel-order-id-box p-3 rounded-4 bg-light border border-2 d-inline-flex flex-column align-items-center mb-4 shadow-sm" style="min-width: 300px;">
+            <span class="text-muted small fw-bold mb-1">رقم الطلب الخاص بك للمتابعة والتتبع:</span>
+            <div class="d-flex align-items-center gap-2">
+              <span class="fs-2 fw-bolder text-success font-monospace" id="successOrderIdDisplay">#${orderId}</span>
+              <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-bold" onclick="navigator.clipboard.writeText('${orderId}'); this.innerHTML='<i class=\\'bi bi-check2\\'></i> تم النسخ'; setTimeout(() => this.innerHTML='<i class=\\'bi bi-clipboard\\'></i> نسخ', 2000);" title="نسخ رقم الطلب">
+                <i class="bi bi-clipboard"></i> نسخ
+              </button>
+            </div>
+          </div>
+
+          <!-- WhatsApp Support Box -->
+          <div class="funnel-whatsapp-support-card p-4 rounded-4 border mx-auto mb-4 shadow-sm" style="max-width: 540px;">
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+              <i class="bi bi-whatsapp text-success fs-2"></i>
+              <h5 class="fw-bold text-dark m-0">هل لديك أي سؤال أو ترغب في تعديل طلبك؟</h5>
+            </div>
+            <p class="text-muted small mb-3">
+              فريق خدمة العملاء متواجد لمساعدتك والإجابة على استفساراتك مباشرة على واتساب:
+              <strong class="text-dark d-block fs-5 mt-1" dir="ltr">${waPhone}</strong>
+            </p>
+            <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-lg rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow">
+              <i class="bi bi-whatsapp fs-4"></i>
+              <span>تواصل معنا عبر واتساب الآن</span>
+            </a>
+          </div>
+
+          <div>
+            <a href="/" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
+              <i class="bi bi-house-door me-1"></i> العودة إلى الصفحة الرئيسية
+            </a>
+          </div>
+        </div>
+      `;
+
+      orderBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 
   } catch (err) {
     console.error('Order submission error:', err);

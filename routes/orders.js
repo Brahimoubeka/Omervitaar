@@ -82,31 +82,49 @@ router.get('/admin/orders', verifyToken, async (req, res) => {
             .order('order_date', { ascending: false });
         if (error) throw error;
         // Map userName, userEmail, productName, price, and rename id to orderId
-        const rows = (data || []).map(o => ({
-            order_group: o.order_group,
-            orderId: o.id,
-            quantity: o.quantity,
-            order_date: o.order_date,
-            status: o.status,
-            shipping_name: o.shipping_name,
-            shipping_address: o.shipping_address,
-            city: o.city,
-            province: o.province,
-            street: o.street,
-            department: o.department,
-            postal_code: o.postal_code,
-            first_name: o.first_name,
-            last_name: o.last_name,
-            products_price: o.products_price,
-            delivery_price: o.delivery_price,
-            total_price: o.total_price,
-            promo_code: o.promo_code,
-            discount_amount: o.discount_amount || 0,
-            userName: o.Users?.name,
-            userEmail: o.Users?.email,
-            productName: o.Products?.name || (o.shipping_address && o.shipping_address.includes('[') ? o.shipping_address.match(/\[(.*?)\]/)?.[1] : null) || 'طلب مباشر (صفحة الهبوط)',
-            price: o.Products?.price || o.products_price
-        }));
+        const rows = (data || []).map(o => {
+            let productName = o.Products?.name;
+            if (o.shipping_address && o.shipping_address.includes('[مسار الطلب:')) {
+                const match = o.shipping_address.match(/\[مسار الطلب:\s*([^\]]+)\]/);
+                if (match && match[1]) {
+                    productName = match[1];
+                }
+            } else if (!productName && o.shipping_address && o.shipping_address.includes('[')) {
+                const match = o.shipping_address.match(/\[(.*?)\]/);
+                if (match && match[1]) {
+                    productName = match[1];
+                }
+            }
+            if (!productName) {
+                productName = 'طلب مباشر (صفحة الهبوط)';
+            }
+
+            return {
+                order_group: o.order_group,
+                orderId: o.id,
+                quantity: o.quantity,
+                order_date: o.order_date,
+                status: o.status,
+                shipping_name: o.shipping_name,
+                shipping_address: o.shipping_address,
+                city: o.city,
+                province: o.province,
+                street: o.street,
+                department: o.department,
+                postal_code: o.postal_code,
+                first_name: o.first_name,
+                last_name: o.last_name,
+                products_price: o.products_price,
+                delivery_price: o.delivery_price,
+                total_price: o.total_price,
+                promo_code: o.promo_code,
+                discount_amount: o.discount_amount || 0,
+                userName: o.Users?.name,
+                userEmail: o.Users?.email,
+                productName: productName,
+                price: o.Products?.price || o.products_price
+            };
+        });
         res.json(rows);
     } catch (err) {
         console.error('خطأ أثناء أخذ الطلبيات!', err);

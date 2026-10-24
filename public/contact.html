@@ -379,8 +379,17 @@ async function updateContactInfo() {
       let html = '';
       Object.entries(sl).forEach(([platform, url]) => {
         if (!url) return;
+        let finalUrl = String(url).trim();
+        if (platform === 'whatsapp') {
+          if (!finalUrl.startsWith('http')) {
+            const digits = finalUrl.replace(/\D/g, '');
+            finalUrl = digits ? `https://wa.me/${digits}` : '#';
+          }
+        } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+          finalUrl = 'https://' + finalUrl;
+        }
         const icon = icons[platform] || 'bi-link-45deg';
-        html += `<a href="${url}" class="social-btn-large social-${platform}" target="_blank" rel="noopener" aria-label="${platform}">
+        html += `<a href="${finalUrl}" class="social-btn-large social-${platform}" target="_blank" rel="noopener noreferrer" aria-label="${platform}">
                    <i class="bi ${icon}"></i>
                  </a>`;
       });

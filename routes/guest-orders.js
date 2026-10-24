@@ -117,6 +117,13 @@ router.post('/guest-orders', async (req, res) => {
                 await supabase.from('Products').update({ stock: newStock }).eq('id', product.id);
             }
 
+            // Support landing page root path
+            const funnelPath = item.root_path || item.name || req.body.funnel_root_path;
+            let itemAddress = formattedAddress;
+            if (funnelPath && !itemAddress.includes('[مسار الطلب:')) {
+                itemAddress = `[مسار الطلب: ${funnelPath}] ${itemAddress}`.trim();
+            }
+
             // Insert the order record
             const { error: orderError } = await supabase
                 .from('Orders')
@@ -125,7 +132,7 @@ router.post('/guest-orders', async (req, res) => {
                     product_id: product ? product.id : null,
                     quantity: item.quantity || 1,
                     shipping_name: shippingName,
-                    shipping_address: formattedAddress || (item.name ? `[${item.name}]` : (city || '')),
+                    shipping_address: itemAddress || (city || ''),
                     order_date: orderDate,
                     status: 'pending',
                     order_group: orderGroup,

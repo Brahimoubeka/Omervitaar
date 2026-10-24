@@ -254,6 +254,94 @@ async function refreshGroupData(group) {
  * Populates the order details modal with information for a specific order group.
  * @param {string} group - The order_group ID.
  */
+// Algerian Wilayas dictionary for admin orders
+const ADMIN_WILAYAS_MAP = {
+  'adrar': 'أدرار (Adrar)', 'chlef': 'الشلف (Chlef)', 'laghouat': 'الأغواط (Laghouat)',
+  'oum el bouaghi': 'أم البواقي (Oum El Bouaghi)', 'batna': 'باتنة (Batna)',
+  'béjaïa': 'بجاية (Béjaïa)', 'bejaia': 'بجاية (Béjaïa)', 'biskra': 'بسكرة (Biskra)',
+  'béchar': 'بشار (Béchar)', 'bechar': 'بشار (Béchar)', 'blida': 'البليدة (Blida)',
+  'bouira': 'البويرة (Bouira)', 'tamanrasset': 'تمنراست (Tamanrasset)',
+  'tébessa': 'تبسة (Tébessa)', 'tebessa': 'تبسة (Tébessa)', 'tlemcen': 'تلمسان (Tlemcen)',
+  'tiaret': 'تيارت (Tiaret)', 'tizi ouzou': 'تيزي وزو (Tizi Ouzou)',
+  'algiers': 'الجزائر العاصمة (Alger)', 'alger': 'الجزائر العاصمة (Alger)',
+  'djelfa': 'الجلفة (Djelfa)', 'jijel': 'جيجل (Jijel)', 'sétif': 'سطيف (Sétif)',
+  'setif': 'سطيف (Sétif)', 'saïda': 'سعيدة (Saïda)', 'saida': 'سعيدة (Saïda)',
+  'skikda': 'سكيكدة (Skikda)', 'sidi bel abbès': 'سيدي بلعباس (Sidi Bel Abbès)',
+  'sidi bel abbes': 'سيدي بلعباس (Sidi Bel Abbès)', 'annaba': 'عنابة (Annaba)',
+  'guelma': 'قالمة (Guelma)', 'constantine': 'قسنطينة (Constantine)',
+  'médéa': 'المدية (Médéa)', 'medea': 'المدية (Médéa)', 'mostaganem': 'مستغانم (Mostaganem)',
+  'm\'sila': 'المسيلة (M\'Sila)', 'msila': 'المسيلة (M\'Sila)', 'mascara': 'معسكر (Mascara)',
+  'ouargla': 'ورقلة (Ouargla)', 'oran': 'وهران (Oran)', 'el bayadh': 'البيض (El Bayadh)',
+  'illizi': 'إليزي (Illizi)', 'bordj bou arréridj': 'برج بوعريريج (Bordj Bou Arréridj)',
+  'bordj bou arreridj': 'برج بوعريريج (Bordj Bou Arréridj)', 'boumerdès': 'بومرداس (Boumerdès)',
+  'boumerdes': 'بومرداس (Boumerdès)', 'el tarf': 'الطارف (El Tarf)',
+  'tindouf': 'تندوف (Tindouf)', 'tissemsilt': 'تيسمسيلت (Tissemsilt)',
+  'el oued': 'الوادي (El Oued)', 'khenchela': 'خنشلة (Khenchela)',
+  'souk ahras': 'سوق أهراس (Souk Ahras)', 'tipaza': 'تيبازة (Tipaza)',
+  'mila': 'ميلة (Mila)', 'aïn defla': 'عين الدفلى (Aïn Defla)',
+  'ain defla': 'عين الدفلى (Aïn Defla)', 'naâma': 'النعامة (Naâma)',
+  'naama': 'النعامة (Naâma)', 'aïn témouchent': 'عين تموشنت (Aïn Témouchent)',
+  'ain temouchent': 'عين تموشنت (Aïn Témouchent)', 'ghardaïa': 'غرداية (Ghardaïa)',
+  'ghardaia': 'غرداية (Ghardaïa)', 'relizane': 'غليزان (Relizane)',
+  'timimoun': 'تيميمون (Timimoun)', 'bordj badji mokhtar': 'برج باجي مختار (Bordj Badji Mokhtar)',
+  'ouled djellal': 'أولاد جلال (Ouled Djellal)', 'béni abbès': 'بني عباس (Béni Abbès)',
+  'beni abbes': 'بني عباس (Béni Abbès)', 'in salah': 'عين صالح (In Salah)',
+  'in guezzam': 'عين قزام (In Guezzam)', 'touggourt': 'تقرت (Touggourt)',
+  'djanet': 'جانت (Djanet)', 'el m\'ghair': 'المغير (El M\'Ghair)',
+  'el mghair': 'المغير (El M\'Ghair)', 'el meniaa': 'المنيعة (El Meniaa)'
+};
+
+function formatAdminWilaya(city) {
+  if (!city) return '--';
+  const clean = String(city).trim().toLowerCase();
+  return ADMIN_WILAYAS_MAP[clean] || city;
+}
+
+function parseOrderShippingDetails(rawAddress, city) {
+  let address = String(rawAddress || '').trim();
+  let company = '';
+  let type = 'توصيل للمنزل (Door to Door)';
+  let funnelPath = '';
+
+  const companyMatch = address.match(/\[شركة:\s*([^\]]+)\]/);
+  if (companyMatch) {
+    company = companyMatch[1].trim();
+    address = address.replace(companyMatch[0], '').trim();
+  }
+
+  if (address.includes('Stopdesk') || address.includes('المكتب')) {
+    type = 'استلام من المكتب (Stopdesk)';
+    address = address.replace(/\[استلام من المكتب - Stopdesk\]/g, '')
+                     .replace(/\[Stopdesk\]/g, '')
+                     .replace(/\[استلام من المكتب\]/g, '')
+                     .trim();
+  }
+
+  const pathMatch = address.match(/\[مسار الطلب:\s*([^\]]+)\]/);
+  if (pathMatch) {
+    funnelPath = pathMatch[1].trim();
+    address = address.replace(pathMatch[0], '').trim();
+  }
+
+  // Remove duplicate wilaya name if it equals city
+  if (city && address.toLowerCase() === city.toLowerCase()) {
+    address = '';
+  }
+
+  address = address.replace(/\[\s*\]/g, '').trim();
+
+  return {
+    company: company || 'Yalidine Express',
+    type,
+    funnelPath,
+    cleanAddress: address
+  };
+}
+
+/**
+ * Populates the order details modal with information for a specific order group.
+ * @param {string} group - The order_group ID.
+ */
 function populateOrderModal(group) {
     const groupOrders = allOrdersGrouped[group];
     const firstOrder = groupOrders[0];
@@ -266,40 +354,70 @@ function populateOrderModal(group) {
     const discountAmount = firstOrder.discount_amount || 0;
     const promoCode = firstOrder.promo_code;
 
+    const shippingInfo = parseOrderShippingDetails(firstOrder.shipping_address, firstOrder.city);
+    const wilayaDisplay = formatAdminWilaya(firstOrder.city);
+
     let headerHtml = `
-      <div class="row mb-3">
+      <div class="row mb-3" dir="rtl">
         <div class="col-md-6">
           <p class="mb-1"><strong>العميل:</strong> ${firstOrder.first_name || ''} ${firstOrder.last_name || ''}</p>
-          <p class="mb-1"><strong>الهاتف:</strong> <a href="tel:${firstOrder.shipping_name}" class="text-decoration-none fw-bold" style="color:var(--military-green); direction:ltr;">${firstOrder.shipping_name}</a></p>
-          <p class="mb-1"><strong>الولاية:</strong> ${firstOrder.city || '--'}</p>
-          ${firstOrder.shipping_address ? `<p class="mb-1"><strong>بيانات الشحن:</strong> ${firstOrder.shipping_address}</p>` : ''}
-          <p class="mb-1 text-muted small"><strong>الحساب:</strong> ${firstOrder.userEmail ? `${firstOrder.userName || ''} (${firstOrder.userEmail})` : 'طلب زائر (بدون تسجيل)'}</p>
+          <p class="mb-1"><strong>الهاتف:</strong> <a href="tel:${firstOrder.shipping_name}" class="text-decoration-none fw-bold" style="color:var(--military-green); direction:ltr; display:inline-block;">${firstOrder.shipping_name}</a></p>
+          <p class="mb-1"><strong>الولاية:</strong> <span class="fw-bold">${wilayaDisplay}</span></p>
+          <p class="mb-1"><strong>شركة التوصيل:</strong> <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1">${shippingInfo.company}</span></p>
+          <p class="mb-1"><strong>طريقة الاستلام:</strong> <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">${shippingInfo.type}</span></p>
+          
+          ${shippingInfo.funnelPath ? `
+            <div class="alert alert-info py-2 px-3 my-2 small">
+              <i class="bi bi-diagram-3-fill me-1 text-primary"></i>
+              <strong>مسار صفحة الهبوط:</strong>
+              <div class="fw-bold text-dark mt-1" style="word-break: break-word;">${escapeHtml(shippingInfo.funnelPath)}</div>
+            </div>
+          ` : ''}
+
+          ${shippingInfo.cleanAddress ? `<p class="mb-1"><strong>العنوان / ملاحظات:</strong> ${escapeHtml(shippingInfo.cleanAddress)}</p>` : ''}
+          <p class="mb-1 text-muted small"><strong>نوع الحساب:</strong> ${firstOrder.userEmail ? `${firstOrder.userName || ''} (${firstOrder.userEmail})` : 'طلب زائر (بدون تسجيل حساب)'}</p>
         </div>
         <div class="col-md-6 text-md-end">
             <p class="mb-1"><strong>تاريخ الطلب:</strong> ${new Date(firstOrder.order_date).toLocaleString('ar-DZ')}</p>
-            <p class="mb-1"><strong>مجموع المنتجات:</strong> دج${productsTotal.toFixed(2)}</p>
+            <p class="mb-1"><strong>مجموع المنتجات والعروض:</strong> دج${productsTotal.toFixed(2)}</p>
             ${discountAmount > 0 ? `
             <p class="mb-1 text-success fw-bold">
               <i class="bi bi-ticket-perforated me-1"></i>خصم الكوبون (${promoCode || 'PROMO'}): 
               <span>-دج${discountAmount.toFixed(2)}</span>
             </p>` : ''}
-            <p class="mb-1"><strong>تكلفة الشحن:</strong> ${deliveryPrice === 0 ? '<span class="badge bg-success">0 دج (مجاني 🚚)</span>' : `دج${deliveryPrice.toFixed(2)}`}</p>
-            <h5 class="mt-2 text-primary"><strong>المجموع النهائي:</strong> <span id="modal-current-total">دج${currentTotal.toFixed(2)}</span></h5>
+            <p class="mb-1"><strong>تكلفة التوصيل:</strong> ${deliveryPrice === 0 ? '<span class="badge bg-success">0 دج (مجاني 🚚)</span>' : `دج${deliveryPrice.toFixed(2)}`}</p>
+            <h5 class="mt-2 text-primary"><strong>المجموع النهائي الواجب تحصيله:</strong> <span id="modal-current-total">دج${currentTotal.toFixed(2)}</span></h5>
         </div>
       </div>
       <hr />
-      <h4>المنتجات المطلوبة</h4>
+      <h4>المنتجات والعروض المطلوبة</h4>
     `;
     modalBody.innerHTML = headerHtml;
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
     groupOrders.forEach(order => {
         const orderDiv = document.createElement('div');
         orderDiv.classList.add('mb-3', 'border-bottom', 'pb-2', 'order-item-row');
         orderDiv.id = `order-item-${order.orderId}`;
+        
+        const isFunnelRoot = order.productName && order.productName.includes(' / ');
+        const productDisplayHtml = isFunnelRoot 
+            ? `<span class="badge bg-success-subtle text-success-emphasis border border-success me-1"><i class="bi bi-diagram-3-fill me-1"></i>عرض صفحة هبوط:</span> <strong class="text-dark">${escapeHtml(order.productName)}</strong>`
+            : `<strong>${escapeHtml(order.productName)}</strong>`;
+
         orderDiv.innerHTML = `
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <p class="mb-1"><strong>معرف الطلب:</strong> ${order.orderId} | <strong>المنتج:</strong> ${order.productName}</p>
+                <p class="mb-1"><strong>معرف الطلب:</strong> ${order.orderId} | <strong>المنتج:</strong> ${productDisplayHtml}</p>
                 <p class="mb-1"><strong>الكمية:</strong> ${order.quantity} | <strong>سعر الوحدة:</strong> دج${(order.price || 0).toFixed(2)}</p>
             </div>
             <div>
@@ -375,28 +493,32 @@ function copyOrderDetails(group) {
     if (!groupOrders || groupOrders.length === 0) return;
     
     const firstOrder = groupOrders[0];
-    
-    // Create a formatted text representation of the order
-    let orderText = "=== تفاصيل الطلب ===\n\n";
+    const shippingInfo = parseOrderShippingDetails(firstOrder.shipping_address, firstOrder.city);
+    const wilayaDisplay = formatAdminWilaya(firstOrder.city);
+
+    // Create a clean, beautifully formatted Arabic text for copy/paste
+    let orderText = `=== تفاصيل الطلب #${group} ===\n\n`;
     
     // Customer information
-    orderText += "--- معلومات العميل ---\n";
-    orderText += `مجموعة الطلب: ${group}\n`;
-    orderText += `المستخدم: ${firstOrder.userName} (${firstOrder.userEmail})\n`;
+    orderText += "--- بيانات العميل والشحن ---\n";
     orderText += `الاسم الكامل: ${firstOrder.first_name || ''} ${firstOrder.last_name || ''}\n`;
-    orderText += `الهاتف: ${firstOrder.shipping_name}\n`;
-    orderText += `العنوان: ${firstOrder.shipping_address}\n`;
-    orderText += `المنطقة: ${firstOrder.city || ''}, ${firstOrder.province || ''}\n`;
-    orderText += `الرمز البريدي: ${firstOrder.postal_code}\n`;
-    orderText += `تاريخ الطلب: ${new Date(firstOrder.order_date).toLocaleString()}\n\n`;
+    orderText += `رقم الهاتف: ${firstOrder.shipping_name}\n`;
+    orderText += `الولاية: ${wilayaDisplay}\n`;
+    orderText += `شركة التوصيل: ${shippingInfo.company}\n`;
+    orderText += `طريقة الاستلام: ${shippingInfo.type}\n`;
+    if (shippingInfo.cleanAddress) {
+        orderText += `العنوان: ${shippingInfo.cleanAddress}\n`;
+    }
+    if (shippingInfo.funnelPath) {
+        orderText += `مسار صفحة الهبوط: ${shippingInfo.funnelPath}\n`;
+    }
+    orderText += `تاريخ الطلب: ${new Date(firstOrder.order_date).toLocaleString('ar-DZ')}\n\n`;
     
     // Order items
-    orderText += "--- المنتجات ---\n";
+    orderText += "--- المنتجات والعروض ---\n";
     groupOrders.forEach((order, index) => {
-        orderText += `${index + 1}. المنتج: ${order.productName}\n`;
-        orderText += `   معرف الطلب: ${order.orderId}\n`;
-        orderText += `   الكمية: ${order.quantity}\n`;
-        orderText += `   سعر الوحدة: دج${(order.price || 0).toFixed(2)}\n`;
+        orderText += `${index + 1}. ${order.productName}\n`;
+        orderText += `   الكمية: ${order.quantity} | السعر: دج${(order.price || 0).toFixed(2)}\n`;
         orderText += `   الحالة: ${order.status}\n\n`;
     });
     
@@ -407,18 +529,17 @@ function copyOrderDetails(group) {
     const discountAmount = firstOrder.discount_amount || 0;
     const promoCode = firstOrder.promo_code;
     
-    orderText += "--- الإجمالي المالي ---\n";
-    orderText += `إجمالي المنتجات: دج${productsTotal.toFixed(2)}\n`;
+    orderText += "--- الحساب المالي ---\n";
+    orderText += `مجموع المنتجات: دج${productsTotal.toFixed(2)}\n`;
     if (discountAmount > 0) {
         orderText += `خصم الكوبون (${promoCode || 'PROMO'}): -دج${discountAmount.toFixed(2)}\n`;
     }
-    orderText += `تكلفة الشحن: ${deliveryPrice === 0 ? 'مجاني (0 دج)' : `دج${deliveryPrice.toFixed(2)}`}\n`;
-    orderText += `المجموع النهائي الواجب دفعه: دج${currentTotal.toFixed(2)}\n`;
+    orderText += `تكلفة التوصيل: ${deliveryPrice === 0 ? 'مجاني (0 دج)' : `دج${deliveryPrice.toFixed(2)}`}\n`;
+    orderText += `المجموع النهائي المطلوب تحصيله: دج${currentTotal.toFixed(2)}\n`;
     
     // Copy to clipboard
     navigator.clipboard.writeText(orderText)
         .then(() => {
-            // Show success message
             showCopySuccessNotification();
         })
         .catch(err => {

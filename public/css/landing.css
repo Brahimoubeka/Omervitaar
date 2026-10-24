@@ -17,11 +17,15 @@
   --funnel-border: rgba(90, 99, 68, 0.12);
 }
 
+html {
+  overflow-x: clip;
+}
+
 body.funnel-page-body {
   background-color: var(--funnel-bg);
   color: var(--funnel-text);
   font-family: 'Cairo', 'Inter', sans-serif;
-  overflow-x: hidden;
+  overflow-x: clip;
   margin: 0;
   padding: 0;
   padding-top: 155px; /* Ample space for the fixed global navbar on desktop */
@@ -198,6 +202,7 @@ body.funnel-page-body {
   max-height: 2.6em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -223,6 +228,7 @@ body.funnel-page-body {
   max-height: 2.7em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -740,7 +746,8 @@ body.funnel-page-body {
   transition: border-color 0.25s ease, background 0.25s ease;
   display: flex;
   flex-direction: column;
-  text-align: center;
+  text-align: right;
+  direction: rtl;
 }
 
 /* Zero zoom or translateY on hover/selection */
@@ -808,6 +815,8 @@ body.funnel-page-body {
   color: #111827;
   margin-top: 0.35rem;
   margin-bottom: 0.35rem;
+  text-align: right;
+  direction: rtl;
 }
 
 @media (max-width: 576px) {
@@ -820,14 +829,18 @@ body.funnel-page-body {
   font-size: 0.9rem;
   color: var(--funnel-brand);
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
+  text-align: right;
+  direction: rtl;
 }
 
 .funnel-offer-price {
   font-size: 1.75rem;
   font-weight: 900;
   color: var(--funnel-primary-dark);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
+  text-align: right;
+  direction: rtl;
 }
 
 @media (max-width: 576px) {
@@ -836,23 +849,30 @@ body.funnel-page-body {
   }
 }
 
+/* Original price before discount - vibrant red as requested */
 .funnel-offer-orig-price {
   font-size: 0.95rem;
-  color: #9ca3af;
+  color: #dc2626 !important;
+  font-weight: 700;
   text-decoration: line-through;
   margin-bottom: 0.65rem;
+  text-align: right;
+  direction: rtl;
 }
 
 .funnel-offer-delivery-tag {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
+  justify-content: flex-start;
+  gap: 6px;
   font-size: 0.82rem;
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 8px;
-  margin-top: auto;
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+  align-self: flex-start;
+  direction: rtl;
 }
 
 .funnel-offer-delivery-tag.free {
@@ -897,6 +917,192 @@ body.funnel-page-body {
 
 .funnel-offer-card.selected .funnel-offer-radio-indicator::after {
   opacity: 1;
+}
+
+/* Offer Multi-Image Thumbnail Strip */
+.funnel-offer-thumbs-strip {
+  scrollbar-width: thin;
+}
+
+.funnel-offer-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.funnel-offer-thumb:hover,
+.funnel-offer-thumb.active {
+  border-color: var(--funnel-primary);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  transform: scale(1.05);
+}
+
+/* Offer Description & Features List - strict RTL */
+.funnel-offer-desc {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #4b5563;
+  margin: 0.5rem 0;
+  text-align: right;
+  direction: rtl;
+  word-break: break-word;
+}
+
+.funnel-offer-features-list {
+  text-align: right;
+  direction: rtl;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 0.5rem;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+.funnel-offer-features-list li {
+  line-height: 1.4;
+  word-break: break-word;
+  direction: rtl;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Offer Customizable Options - Droplist UI */
+.funnel-offer-options-wrap {
+  text-align: right;
+  direction: rtl;
+  background: #fbfcf9;
+  border-radius: 10px;
+  padding: 0.65rem;
+}
+
+.funnel-offer-select-dropdown {
+  background-color: #ffffff;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  direction: rtl;
+  text-align: right;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.funnel-offer-select-dropdown:focus {
+  border-color: var(--funnel-primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.funnel-offer-pill {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.funnel-offer-pill-remove {
+  cursor: pointer;
+  color: #dc2626;
+  transition: transform 0.15s ease;
+}
+
+.funnel-offer-pill-remove:hover {
+  transform: scale(1.2);
+}
+
+.funnel-offer-fixed-item-box {
+  font-size: 0.84rem;
+  line-height: 1.4;
+  direction: rtl;
+  text-align: right;
+}
+
+/* Input Pulsing Highlight after slow scroll */
+.funnel-input-highlight {
+  animation: funnelGlowPulse 1.2s ease-in-out 3 alternate;
+  border-color: var(--funnel-primary) !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.45) !important;
+  background-color: #f0fdf4 !important;
+  transition: all 0.3s ease;
+}
+
+@keyframes funnelGlowPulse {
+  0% {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.65);
+  }
+}
+
+/* Success Order Card */
+.funnel-success-order-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.funnel-success-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  animation: scaleInCheck 0.5s ease-out;
+}
+
+@keyframes scaleInCheck {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.funnel-order-id-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.funnel-whatsapp-support-card {
+  border-color: #d1fae5;
+  background: #f0fdf4;
+}
+
+/* Video Block */
+.funnel-video-block {
+  text-align: center;
+}
+
+.funnel-video-container {
+  width: 100%;
+}
+
+.funnel-video-wrapper {
+  width: 100%;
+  background: #000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.funnel-video-wrapper iframe,
+.funnel-video-wrapper video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.funnel-video-caption {
+  font-size: 0.9rem;
+  color: var(--funnel-muted);
 }
 
 /* ==========================================================================
@@ -1037,3 +1243,161 @@ body.funnel-page-body {
 .funnel-faq-item.open .funnel-faq-question i {
   transform: rotate(180deg);
 }
+
+/* Floating Order Prompt Bar (Bouncing Arrow & Guide) */
+.funnel-order-prompt-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(140%);
+  background: linear-gradient(135deg, #1f2937, #111827);
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 50px;
+  z-index: 1040;
+  min-width: 310px;
+  max-width: 92%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(245, 158, 11, 0.45);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  opacity: 0;
+  direction: rtl;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.funnel-order-prompt-bar.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.funnel-order-prompt-bar:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 2.5px rgba(245, 158, 11, 0.65);
+}
+
+.funnel-prompt-arrow-bounce {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: promptArrowBounce 1.4s infinite ease-in-out;
+}
+
+@keyframes promptArrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+.funnel-order-form-offer-select {
+  border-radius: 8px;
+  border-color: #a7f3d0 !important;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #065f46 !important;
+  background-color: #f0fdf4 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.funnel-order-form-offer-select:focus {
+  border-color: var(--funnel-primary) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Attractive Transparent Offers Hint Toast (shown for 5s on reaching offers cards) */
+.funnel-offers-hint-toast {
+  position: fixed;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-24px);
+  background: rgba(17, 24, 39, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 0 18px rgba(245, 158, 11, 0.35);
+  padding: 10px 22px;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  z-index: 1045;
+  direction: rtl;
+  pointer-events: none;
+  opacity: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.funnel-offers-hint-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.funnel-offers-hint-toast.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-18px);
+}
+
+/* Sticky Small "Back to Top" Button */
+.funnel-back-to-top-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  color: #715100;
+  border: 1.5px solid rgba(113, 81, 0, 0.28);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(113, 81, 0, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 1035;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px) scale(0.85);
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.funnel-back-to-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.funnel-back-to-top-btn:hover {
+  background: #715100;
+  color: #ffffff;
+  border-color: #715100;
+  box-shadow: 0 8px 24px rgba(113, 81, 0, 0.35);
+  transform: translateY(-3px) scale(1.08);
+}
+
+.funnel-back-to-top-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+@media (max-width: 576px) {
+  .funnel-offers-hint-toast {
+    top: 75px;
+    font-size: 0.85rem;
+    padding: 8px 18px;
+    max-width: 90%;
+  }
+
+  .funnel-back-to-top-btn {
+    bottom: 20px;
+    left: 18px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+}
+

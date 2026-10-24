@@ -548,11 +548,16 @@ router.put('/admin/funnels/offers/:nodeId', verifyAdmin, async (req, res) => {
     // Insert new offers
     for (let i = 0; i < offers.length; i++) {
       const o = offers[i];
+      const rawImages = Array.isArray(o.images) ? o.images : (o.image_url ? [o.image_url] : []);
+      const imagesJson = JSON.stringify(rawImages);
+      const settingsJson = JSON.stringify(o.settings && typeof o.settings === 'object' ? o.settings : {});
+      const primaryImg = rawImages.length > 0 ? rawImages[0] : (o.image_url || null);
+
       await client.query(`
         INSERT INTO public.landing_page_offers (
           node_id, product_id, title, badge, quantity, price, original_price,
-          free_delivery, is_popular, image_url, order_index
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          free_delivery, is_popular, image_url, images, settings, order_index
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       `, [
         nodeId,
         o.product_id ? parseInt(o.product_id, 10) : null,
@@ -563,7 +568,9 @@ router.put('/admin/funnels/offers/:nodeId', verifyAdmin, async (req, res) => {
         o.original_price ? parseFloat(o.original_price) : null,
         Boolean(o.free_delivery),
         Boolean(o.is_popular),
-        o.image_url || null,
+        primaryImg,
+        imagesJson,
+        settingsJson,
         i
       ]);
     }
@@ -642,6 +649,56 @@ router.post('/admin/funnels/upload-images', verifyAdmin, (req, res) => {
       message: 'تم رفع الصور بنجاح',
       urls: uploadedUrls,
       primaryUrl: uploadedUrls[0]
+    });
+  });
+});
+
+/**
+ * POST /api/admin/funnels/upload-video
+ * Accepts single video file (mp4, webm, mov, etc.) up to 100MB,
+ * saves to public/uploads/videos/, and returns public URL.
+ */
+router.post('/admin/funnels/upload-video', verifyAdmin, (req, res) => {
+  const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'videos');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const form = new formidable.IncomingForm({
+    uploadDir: uploadDir,
+    keepExtensions: true,
+    maxFileSize: 100 * 1024 * 1024, // 100MB max
+    multiples: false
+  });
+
+  form.parse(req, (err, fields, files) => {
+    if (err) {
+      console.error('Error parsing uploaded video:', err);
+      return res.status(500).json({ error: 'فشل في رفع ملف الفيديو. يرجى التأكد من الحجم (أقل من 100MB)' });
+    }
+
+    const videoFile = files.video || files.file;
+    let target = null;
+    if (Array.isArray(videoFile)) {
+      target = videoFile[0];
+    } else if (videoFile) {
+      target = videoFile;
+    }
+
+    if (!target) {
+      return res.status(400).json({ error: 'لم يتم استلام أي ملف فيديو' });
+    }
+
+    let videoUrl = '';
+    if (target.newFilename) {
+      videoUrl = `/uploads/videos/${target.newFilename}`;
+    } else if (target.filepath) {
+      videoUrl = `/uploads/videos/${path.basename(target.filepath)}`;
+    }
+
+    res.json({
+      message: 'تم رفع الفيديو بنجاح',
+      url: videoUrl
     });
   });
 });

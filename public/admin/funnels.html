@@ -655,8 +655,10 @@
                 <select class="form-select" id="blockType" onchange="onBlockTypeChange()">
                   <option value="hero">بانر البداية (Hero Header)</option>
                   <option value="heading">عنوان فاصل (Heading)</option>
+                  <option value="video">فيديو مرئي (Local Video / YouTube)</option>
                   <option value="text">نص تسويقي ومقال (Rich Text)</option>
                   <option value="image_text">صورة مع نص توضيحي (Image + Text)</option>
+                  <option value="carousel">معرض صور سلايدر (Carousel Slider)</option>
                   <option value="features">مميزات ونقاط قوة (Features Grid)</option>
                   <option value="product_card">بطاقة منتج من قاعدة البيانات (Product Card)</option>
                   <option value="offers">قسم الباقات والعروض (Offers & Bundles)</option>
@@ -880,14 +882,15 @@
             <table class="table table-bordered align-middle">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 18%;">عنوان الباقة</th>
-                  <th style="width: 8%;">الكمية</th>
-                  <th style="width: 12%;">السعر (دج)</th>
-                  <th style="width: 12%;">الأصلي (دج)</th>
-                  <th style="width: 14%;">شارة مميزة</th>
-                  <th style="width: 22%;">صورة العرض</th>
-                  <th style="width: 8%;">شحن مجاني</th>
-                  <th style="width: 6%;">حذف</th>
+                  <th style="width: 15%;">عنوان الباقة</th>
+                  <th style="width: 7%;">الكمية</th>
+                  <th style="width: 10%;">السعر (دج)</th>
+                  <th style="width: 10%;">الأصلي (دج)</th>
+                  <th style="width: 12%;">شارة مميزة</th>
+                  <th style="width: 16%;">صورة العرض</th>
+                  <th style="width: 18%;">تخصيص العرض والخيارات</th>
+                  <th style="width: 7%;">شحن مجاني</th>
+                  <th style="width: 5%;">حذف</th>
                 </tr>
               </thead>
               <tbody id="offersTableBody">
@@ -904,6 +907,173 @@
           <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
           <button type="button" class="btn btn-success rounded-pill px-4 fw-bold" onclick="saveOffersFromModal()">
             <i class="bi bi-save me-1"></i> حفظ الباقات والعروض
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SUB-MODAL: ADVANCED OFFER CUSTOMIZER (IMAGES, ICONS, OPTIONS) -->
+  <!-- ======================================================== -->
+  <div class="modal fade" id="offerCustomizerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="offerCustomizerTitle">
+            <i class="bi bi-sliders me-2"></i>تخصيص وتفاصيل العرض المتقدمة
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <!-- Navigation Tabs -->
+          <ul class="nav nav-pills nav-fill mb-3 p-1 bg-light rounded-pill border" id="offerCustomizerTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active rounded-pill fw-bold small" id="tab-offer-images-btn" data-bs-toggle="pill" data-bs-target="#tab-offer-images" type="button" role="tab">
+                <i class="bi bi-images me-1 text-primary"></i>صور العرض والمعرض
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-pill fw-bold small" id="tab-offer-content-btn" data-bs-toggle="pill" data-bs-target="#tab-offer-content" type="button" role="tab">
+                <i class="bi bi-card-text me-1 text-success"></i>الوصف وقائمة الميزات
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-pill fw-bold small" id="tab-offer-options-btn" data-bs-toggle="pill" data-bs-target="#tab-offer-options" type="button" role="tab">
+                <i class="bi bi-check2-square me-1 text-warning"></i>خيارات قابلة للاختيار
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-2">
+            <!-- TAB 1: IMAGES GALLERY -->
+            <div class="tab-pane fade show active" id="tab-offer-images" role="tabpanel">
+              <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label class="form-label fw-bold small mb-0"><i class="bi bi-cloud-arrow-up me-1 text-primary"></i>رفع صور متعددة لهذا العرض من جهازك:</label>
+                  <span class="badge bg-primary-subtle text-primary small">يمكن رفع أكثر من صورة</span>
+                </div>
+                <div class="input-group mb-2">
+                  <input type="file" class="form-control form-control-sm" accept="image/*" multiple id="offerMultiFileInput" onchange="uploadMultipleOfferImages(event)">
+                </div>
+                <div id="offerUploadSpinner" style="display:none;" class="text-primary small mb-2">
+                  <span class="spinner-border spinner-border-sm me-1"></span> جاري رفع الصور...
+                </div>
+                <div class="d-flex gap-2">
+                  <input type="text" class="form-control form-control-sm" id="offerSingleImageUrlInput" placeholder="أو الصق رابط صورة هنا واضغط إضافة">
+                  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" onclick="addOfferImageFromUrl()">إضافة رابط</button>
+                </div>
+              </div>
+
+              <div class="small fw-bold text-secondary mb-2">معاينة صور هذا العرض:</div>
+              <div class="d-flex flex-wrap gap-2 p-3 bg-white rounded-3 border min-vh-10" id="offerImagesGalleryPreview">
+                <!-- Injected dynamically -->
+              </div>
+              <div class="form-text small mt-1">ملاحظة: الصورة الأولى ستكون هي الصورة الرئيسية الظاهرة في بطاقة العرض، وبقية الصور تظهر كمعرض متتابع للزبون.</div>
+            </div>
+
+            <!-- TAB 2: DESCRIPTION & ICON LISTS -->
+            <div class="tab-pane fade" id="tab-offer-content" role="tabpanel">
+              <!-- Paragraph Description -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold"><i class="bi bi-paragraph me-1 text-success"></i>وصف وفقرة العرض التوضيحية (اختياري):</label>
+                <textarea class="form-control" id="customOfferDesc" rows="3" placeholder="اشرح تفاصيل الباقة والفوائد التي يحصل عليها الزبون..."></textarea>
+              </div>
+
+              <!-- Colors & Sizes Customization -->
+              <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="small fw-bold text-secondary mb-2"><i class="bi bi-palette me-1"></i>تخصيص مظهر عنوان وسعر العرض:</div>
+                <div class="row g-2">
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">لون العنوان:</label>
+                    <input type="color" class="form-control form-control-color form-control-sm w-100" id="customOfferTitleColor" value="#111827">
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">حجم العنوان:</label>
+                    <select class="form-select form-select-sm" id="customOfferTitleSize">
+                      <option value="1.0rem">صغير (1.0rem)</option>
+                      <option value="1.15rem" selected>متوسط عادي (1.15rem)</option>
+                      <option value="1.35rem">كبير بارز (1.35rem)</option>
+                      <option value="1.6rem">ضخم مميز (1.6rem)</option>
+                    </select>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">لون السعر:</label>
+                    <input type="color" class="form-control form-control-color form-control-sm w-100" id="customOfferPriceColor" value="#5a6344">
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small mb-1">حجم السعر:</label>
+                    <select class="form-select form-select-sm" id="customOfferPriceSize">
+                      <option value="1.1rem">صغير (1.1rem)</option>
+                      <option value="1.35rem" selected>متوسط عادي (1.35rem)</option>
+                      <option value="1.6rem">كبير بارز (1.6rem)</option>
+                      <option value="1.9rem">ضخم جداً (1.9rem)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bullet Points with Icons -->
+              <div class="p-3 bg-light rounded-3 border">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label class="form-label fw-bold small mb-0"><i class="bi bi-list-check me-1 text-success"></i>قائمة الميزات والنقاط مع الأيقونات والألوان:</label>
+                  <button type="button" class="btn btn-sm btn-outline-success rounded-pill" onclick="addOfferFeatureItem()">
+                    <i class="bi bi-plus-lg me-1"></i>إضافة نقطة
+                  </button>
+                </div>
+                <div id="offerFeaturesListContainer" class="d-flex flex-column gap-2">
+                  <!-- Dynamic items -->
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: CUSTOMIZABLE OPTIONS WITH PRICES -->
+            <div class="tab-pane fade" id="tab-offer-options" role="tabpanel">
+              <div class="form-check form-switch mb-3 p-3 bg-light rounded-3 border">
+                <input class="form-check-input ms-2" type="checkbox" id="customOfferHasOptions" onchange="toggleCustomOfferOptionsFields()">
+                <label class="form-check-label fw-bold" for="customOfferHasOptions">
+                  تفعيل الخيارات الإضافية القابلة للتحديد لهذا العرض (Customizable Options)
+                </label>
+                <div class="text-muted small mt-1">يتيح للزبون الحصول على خيار أساسي ثابت، مع إمكانية تحديد خيارات إضافية من القائمة لكل منها سعره الخاص.</div>
+              </div>
+
+              <div id="customOfferOptionsFieldsWrap" style="display:none;">
+                <!-- Fixed Option -->
+                <div class="mb-3">
+                  <label class="form-label small fw-bold"><i class="bi bi-pin-angle-fill me-1 text-danger"></i>الخيار الثابت الأساسي المشمول في العرض:</label>
+                  <input type="text" class="form-control" id="customOfferFixedItem" placeholder="مثال: الجهاز الرئيسي مع كابل الشحن وحقيبة مخصصة (مشمول دائماً)">
+                  <div class="form-text small">هذا الخيار يكون مضمناً تلقائياً في الباقة دون إمكانية إلغائه.</div>
+                </div>
+
+                <!-- Selection Mode -->
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">طريقة تحديد الخيارات الإضافية:</label>
+                  <select class="form-select form-select-sm" id="customOfferSelectionMode">
+                    <option value="multiple">اختيار متعدد (يمكن للزبون تحديد خيار أو أكثر عبر مربعات الاختيار)</option>
+                    <option value="single">اختيار فردي فقط (يختار الزبون خياراً واحداً فقط عبر أزرار الراديو)</option>
+                  </select>
+                </div>
+
+                <!-- Dynamic Options List -->
+                <div class="p-3 bg-light rounded-3 border">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <label class="form-label fw-bold small mb-0"><i class="bi bi-plus-square me-1 text-primary"></i>قائمة الخيارات المتاحة وأسعارها الإضافية:</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="addOfferSelectableChoice()">
+                      <i class="bi bi-plus-lg me-1"></i>إضافة خيار
+                    </button>
+                  </div>
+                  <div id="offerChoicesContainer" class="d-flex flex-column gap-2">
+                    <!-- Dynamic choice rows -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إغلاق</button>
+          <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="saveOfferCustomizerChanges()">
+            <i class="bi bi-check-circle me-1"></i> تطبيق التخصيص على العرض
           </button>
         </div>
       </div>

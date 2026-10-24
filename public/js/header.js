@@ -401,9 +401,19 @@ function renderFooter(settings) {
     let socialLinksHtml = '';
     Object.entries(sl).forEach(([platform, url]) => {
         if (!url) return;
+        let finalUrl = String(url).trim();
+        if (platform === 'whatsapp') {
+            if (!finalUrl.startsWith('http')) {
+                const digits = finalUrl.replace(/\D/g, '');
+                finalUrl = digits ? `https://wa.me/${digits}` : '#';
+            }
+        } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+            finalUrl = 'https://' + finalUrl;
+        }
+
         const icon = socialIcons[platform] || 'bi-link-45deg';
         const color = socialColors[platform] || '#555';
-        socialLinksHtml += `<a href="${url}" class="social-btn social-${platform}" aria-label="${platform}" target="_blank" rel="noopener" style="color:${color}; font-size:1.5rem; margin-right:10px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"><i class="bi ${icon}"></i></a>`;
+        socialLinksHtml += `<a href="${finalUrl}" class="social-btn social-${platform}" aria-label="${platform}" target="_blank" rel="noopener noreferrer" style="color:${color}; font-size:1.5rem; margin-right:10px; transition:opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"><i class="bi ${icon}"></i></a>`;
     });
     if (!socialLinksHtml) {
         // Fallback placeholder if no social links set
