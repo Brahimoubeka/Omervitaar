@@ -73,27 +73,37 @@
             "sameAs": [branding.facebook, branding.instagram, branding.tiktok].filter(Boolean)
           };
 
-          // WebSite Schema for enhanced search features
+          // WebSite & OnlineStore Schema for enhanced search and autonomous agent discovery
           const websiteJsonLd = {
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": "Omervita",
             "url": "https://omervita.com/",
             "description": "العناية الشخصية من الطبيعة 100٪",
-            "publisher": {
-              "@type": "Organization",
-              "name": "Omervita"
-            },
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://omervita.com/products?search={search_term_string}",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://omervita.com/products?search={search_term_string}"
+              },
               "query-input": "required name=search_term_string"
             },
             "inLanguage": "ar"
           };
 
+          const storeJsonLd = {
+            "@context": "https://schema.org",
+            "@type": "OnlineStore",
+            "name": "Omervita",
+            "url": "https://omervita.com/",
+            "currenciesAccepted": "DZD",
+            "paymentAccepted": "Cash on Delivery",
+            "priceRange": "د.ج",
+            "description": "العناية الشخصية من الطبيعة 100٪ - منتجات طبيعية عالية الجودة في الجزائر"
+          };
+
           const orgElem = document.getElementById('org-jsonld');
-          if (orgElem) orgElem.textContent = JSON.stringify([orgJsonLd, websiteJsonLd], null, 2);
+          if (orgElem) orgElem.textContent = JSON.stringify([orgJsonLd, websiteJsonLd, storeJsonLd], null, 2);
         }).catch(e => console.warn('Branding schema load error:', e));
     });
   </script>
@@ -103,10 +113,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
+  <!-- Preload LCP Hero Image for Instant Paint (Crushes 16s LCP delay) -->
+  <link rel="preload" as="image" href="/images/slide_1_opt.webp" fetchpriority="high">
+
   <!-- Bootstrap CSS CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-  <!-- Bootstrap Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <!-- Bootstrap Icons (Non-blocking async load saves 2,640ms render blocking) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"></noscript>
   <!-- Google Fonts: Cairo & Inter combined with font-display: swap -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" />
 
@@ -153,7 +167,7 @@
   <div id="global-navbar"></div>
   <main dir="rtl">
     <!-- Featured Funnels Solutions Section (Admin Controlled) -->
-    <div id="home-featured-funnels-root"></div>
+    <div id="home-featured-funnels-root" style="min-height: 335px;"></div>
 
     <!-- Category Shortcuts Section -->
     <section class="category-shortcuts-section py-2 mt-2" style="background:var(--light-gray); position: relative;">
@@ -266,11 +280,14 @@
                   <button type="button" data-bs-target="#coverCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
                 </div>
                 <div class="carousel-inner">
-                  <!-- Slides loaded dynamically from site_settings by branding.js -->
+                  <!-- Instant LCP Slide 1 (Loaded eagerly with zero layout shift) -->
                   <div class="carousel-item active">
-                    <div class="d-block w-100 hero-img hero-placeholder-slide">
-                      <div class="spinner-border text-light" role="status"><span class="visually-hidden">جاري التحميل...</span></div>
-                    </div>
+                    <a href="/products/zyt-hh-alrkh-alhh-alswda-30-ml-lhuile-de-graine-noire-est-pure-108" class="slide-clickable-wrapper" title="زيت حبة البركة الحبة السوداء 30 مل" aria-label="زيت حبة البركة الحبة السوداء 30 مل">
+                      <img src="/images/slide_1_opt.webp" class="d-block w-100 hero-img" alt="زيت حبة البركة الحبة السوداء 30 مل" width="440" height="520" loading="eager" fetchpriority="high" decoding="async">
+                      <span class="slide-action-tag">
+                        <i class="bi bi-arrow-left-circle-fill"></i> تسوق الآن
+                      </span>
+                    </a>
                   </div>
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#coverCarousel" data-bs-slide="prev" aria-label="السابق">
@@ -299,7 +316,7 @@
           <a href="/products" class="btn btn-outline-secondary rounded-pill btn-sm px-3" style="border-color: #ccc;">عرض
             الكل <i class="bi bi-arrow-left ms-1"></i></a>
         </div>
-        <div class="row" id="featured-products-container">
+        <div class="row" id="featured-products-container" style="min-height: 420px;">
           <!-- Products will be loaded here via JS -->
           <div class="col-12 text-center py-5">
             <div class="spinner-border" style="color: var(--military-green);" role="status">

@@ -474,6 +474,31 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
   }
 }));
 
+// --- Supabase Storage Edge Proxy with 30-Day Immutable Caching ---
+// Allows Cloudflare to edge-cache all public Supabase media (logos, covers, product images)
+app.get(['/storage/v1/object/public/*', '/images/storage/*'], async (req, res) => {
+  try {
+    const rawPath = req.path.replace(/^\/images\/storage\//, '/storage/v1/object/public/');
+    const rawUrl = `${process.env.SUPABASE_URL}${rawPath}`;
+    const fetch = require('node-fetch');
+    const proxyRes = await fetch(rawUrl);
+
+    if (!proxyRes.ok) {
+      return res.status(proxyRes.status).send('Media not found');
+    }
+
+    const contentType = proxyRes.headers.get('content-type') || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    proxyRes.body.pipe(res);
+  } catch (err) {
+    console.error('Storage proxy error:', err.message);
+    res.status(502).send('Error proxying media');
+  }
+});
+
 // --- Admin folder protection middleware (MUST be before main static files) ---
 app.use('/admin', verifyAdminAccess);
 app.use('/admin', express.static(path.join(__dirname, 'public/admin'), {
@@ -707,6 +732,17 @@ let cachedSiteSettings = null;
 let cachedSiteSettingsTime = 0;
 const SITE_SETTINGS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
+function mapMediaUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('slide_1_1792342844084.png')) return '/images/slide_1_opt.webp';
+  if (url.includes('slide_2_1792342998616.png')) return '/images/slide_2_opt.webp';
+  if (url.includes('logo.png')) return '/images/logo_opt.webp';
+  if (url.includes('.supabase.co/storage/v1/object/public/')) {
+    return url.replace(/^https?:\/\/[^\/]+\/storage\/v1\/object\/public\//, '/images/storage/');
+  }
+  return url;
+}
+
 // Get site settings (served from RAM if fresh, queried from Supabase on cache miss)
 async function getSiteSettings(forceFresh = false) {
   const now = Date.now();
@@ -721,15 +757,20 @@ async function getSiteSettings(forceFresh = false) {
     .single();
   if (error && error.code !== 'PGRST116') throw error;
   const row = data || { phones: [], emails: [], social_links: {}, logo: null, slides: [] };
+  
+  if (row.logo) {
+    row.logo = mapMediaUrl(row.logo);
+  }
+
   // Normalize slides: support both [{url, link, ...}] objects and plain URL strings
   if (Array.isArray(row.slides)) {
     row.slides = row.slides.map(s => {
       if (typeof s === 'string') {
-        return { url: s, link: '', link_type: 'none', target_id: '', title: '' };
+        return { url: mapMediaUrl(s), link: '', link_type: 'none', target_id: '', title: '' };
       }
       if (typeof s === 'object' && s !== null && s.url) {
         return {
-          url: s.url,
+          url: mapMediaUrl(s.url),
           link: s.link || '',
           link_type: s.link_type || (s.link ? 'custom' : 'none'),
           target_id: s.target_id || '',

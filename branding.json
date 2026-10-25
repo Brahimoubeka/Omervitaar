@@ -4,8 +4,8 @@
   "tiktok": "https://www.tiktok.com/@Omervita?fbclid=IwY2xjawLBJJlleHRuA2FlbQIxMABicmlkETFzS0VOc0poV1NTVTljNHZtAR6km1LOmripr508STp2URrjO5lUV94u0xLF_yP3Rw33-uls7ZE_ULnpxmvChQ_aem_0jFG8DGxHzZfDQSMSZ8NEw",
   "phone": "+905518560018",
   "email": "brahimzino9@gmail.com",
-  "logo": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png",
-  "cover1": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover1.webp",
-  "cover2": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover2.webp",
-  "cover3": "https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/cover3.webp"
+  "logo": "/images/logo_opt.webp",
+  "cover1": "/images/slide_1_opt.webp",
+  "cover2": "/images/slide_2_opt.webp",
+  "cover3": "/images/slide_1_opt.webp"
 }

@@ -45,6 +45,14 @@ function generateSlug(text) {
     .replace(/-+$/, '') || ('item-' + Date.now());
 }
 
+function toLocalMedia(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('.supabase.co/storage/v1/object/public/')) {
+    return url.replace(/^https?:\/\/[^\/]+\/storage\/v1\/object\/public\//, '/images/storage/');
+  }
+  return url;
+}
+
 // ==========================================
 // PUBLIC ENDPOINTS
 // ==========================================
@@ -73,7 +81,8 @@ router.get('/funnels/home-featured', async (req, res) => {
       `, [node.id]);
       return {
         ...node,
-        sub_sections: subNodes
+        image_url: toLocalMedia(node.image_url),
+        sub_sections: subNodes.map(s => ({ ...s, image_url: toLocalMedia(s.image_url) }))
       };
     }));
 

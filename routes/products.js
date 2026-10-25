@@ -3,6 +3,14 @@ const router = express.Router();
 const supabase = require('../supabase');
 const SlugUtil = require('../utils/slug-util');
 
+function toLocalMedia(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('.supabase.co/storage/v1/object/public/')) {
+    return url.replace(/^https?:\/\/[^\/]+\/storage\/v1\/object\/public\//, '/images/storage/');
+  }
+  return url;
+}
+
 // Helper: Get categories for product
 async function getCategoriesForProduct(productId) {
   const { data, error } = await supabase
@@ -93,9 +101,9 @@ async function enrichProducts(products) {
   // Attach to each product
   products.forEach(product => {
     product.categories = catMap[product.id] || [];
-    const images = (imgMap[product.id] || []).sort((a, b) => a.id - b.id).map(i => i.imagePath);
-    product.images = images.length > 0 ? images : (product.imagePath ? [product.imagePath] : []);
-    product.thumbnail = product.images[0] || product.imagePath || 'images/default-product.jpg';
+    const images = (imgMap[product.id] || []).sort((a, b) => a.id - b.id).map(i => toLocalMedia(i.imagePath));
+    product.images = images.length > 0 ? images : (product.imagePath ? [toLocalMedia(product.imagePath)] : []);
+    product.thumbnail = product.images[0] || toLocalMedia(product.imagePath) || 'images/default-product.jpg';
     const ratings = ratingMap[product.id] || [];
     product.avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
     product.reviewCount = ratings.length;
@@ -243,9 +251,9 @@ router.get('/products/:identifier', async (req, res) => {
     // Categories
     row.categories = (catRows.data || []).filter(r => r.Categories).map(r => ({ id: r.Categories.id, name: r.Categories.name }));
     // Images
-    const images = (imgRows.data || []).sort((a, b) => a.id - b.id).map(i => i.imagePath);
-    row.images = images.length > 0 ? images : (row.imagePath ? [row.imagePath] : []);
-    row.thumbnail = row.images[0] || row.imagePath || 'images/default-product.jpg';
+    const images = (imgRows.data || []).sort((a, b) => a.id - b.id).map(i => toLocalMedia(i.imagePath));
+    row.images = images.length > 0 ? images : (row.imagePath ? [toLocalMedia(row.imagePath)] : []);
+    row.thumbnail = row.images[0] || toLocalMedia(row.imagePath) || 'images/default-product.jpg';
     // Ratings
     const ratings = (ratingRows.data || []).map(r => Number(r.rating)).filter(r => !isNaN(r));
     row.avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;

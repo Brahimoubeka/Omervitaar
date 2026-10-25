@@ -6,10 +6,18 @@ async function loadBrandingAssets() {
     if (!resp.ok) return;
     const settings = await resp.json();
 
+    function getOptimizedSlideUrl(rawUrl, idx) {
+      if (!rawUrl) return rawUrl;
+      if (rawUrl.includes('slide_1_1792342844084.png')) return '/images/slide_1_opt.webp';
+      if (rawUrl.includes('slide_2_1792342998616.png')) return '/images/slide_2_opt.webp';
+      return rawUrl;
+    }
+
     // Update all logo images
     if (settings.logo) {
+      const optLogo = settings.logo.includes('logo.png') ? '/images/logo_opt.webp' : settings.logo;
       document.querySelectorAll('img[data-dynamic-logo], img.logo-dynamic').forEach(img => {
-        img.src = settings.logo;
+        img.src = optLogo;
       });
     }
 
@@ -19,14 +27,15 @@ async function loadBrandingAssets() {
     const slides = (settings.slides && settings.slides.length > 0) ? settings.slides : [];
 
     if (carouselInner && slides.length > 0) {
-      // Rebuild carousel items
+      // Rebuild carousel items using optimized WebP paths with explicit dimensions
       carouselInner.innerHTML = slides.map((slide, i) => {
-        const url = (typeof slide === 'object' && slide !== null) ? slide.url : slide;
+        const rawUrl = (typeof slide === 'object' && slide !== null) ? slide.url : slide;
+        const url = getOptimizedSlideUrl(rawUrl, i);
         const link = (typeof slide === 'object' && slide !== null && slide.link) ? slide.link : '';
         const title = (typeof slide === 'object' && slide !== null && slide.title) ? slide.title : `سلايد ${i + 1}`;
         const escapedTitle = title.replace(/"/g, '&quot;');
         const imgHtml = `<img src="${url}" class="d-block w-100 hero-img" alt="${escapedTitle}"
-               loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">`;
+               width="440" height="520" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">`;
 
         const contentHtml = link
           ? `<a href="${link}" class="slide-clickable-wrapper" title="${escapedTitle}" aria-label="${escapedTitle}">
