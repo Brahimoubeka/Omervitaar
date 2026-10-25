@@ -1,12 +1,12 @@
-# robots.txt for SEO with clean URLs support
-# Allow all search engines to crawl everything public
+# robots.txt for SEO and AI Agentic Browsing
 User-agent: *
 Disallow:
 
-# Clean URLs are preferred (primary pages)
+# Clean URLs & Public Pages
 Allow: /products
 Allow: /products/
 Allow: /categories/
+Allow: /solutions/
 Allow: /cart
 Allow: /checkout
 Allow: /contact
@@ -14,22 +14,33 @@ Allow: /login
 Allow: /register
 Allow: /orders
 Allow: /reset-password
-
-# Special pages
 Allow: /product-detail.html
+Allow: /llms.txt
+Allow: /branding.json
+Allow: /manifest.json
 
-# Disallow admin areas and sensitive files
+# AI Agent Specific Allowances
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+
+# Disallow admin areas and sensitive internal files
 Disallow: /admin/
 Disallow: /admin-*
 Disallow: /api/admin/
 Disallow: /*.sqlite
-Disallow: /*.json$
-Disallow: /uploads/
-
-# Do NOT block Meta Pixel, Google Console, or Gemini API endpoints
-# (No Disallow rules for these resources)
+Disallow: /scratch/
 
 Sitemap: https://omervita.com/sitemap.xml
-
-# Crawl delay for respectful crawling
-Crawl-delay: 1

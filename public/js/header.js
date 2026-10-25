@@ -98,7 +98,7 @@ function checkTokenExpiry() {
 // Build a modern nav link (with icons) for Desktop
 function buildIconLink({ href, icon, text, counter = null, extraClass = "" }) {
     return `
-        <a class="nav-link d-flex flex-column align-items-center ${extraClass}" href="${href}" title="${text}" style="color: var(--dark-charcoal); padding: 0.5rem; transition: color 0.2s;">
+        <a class="nav-link d-flex flex-column align-items-center ${extraClass}" href="${href}" title="${text}" aria-label="${text}" style="color: var(--dark-charcoal); padding: 0.5rem; transition: color 0.2s;">
             <div class="position-relative">
                 <i class="bi ${icon}" style="font-size: 1.35rem;"></i>
                 ${counter !== null ? `<span class="cart-counter-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none; font-size: 0.65rem;">0</span>` : ""}
@@ -251,7 +251,7 @@ function renderNavbar(userData) {
       
       <!-- Mobile View (Toggler, Logo, Quick Cart) -->
       <div class="d-flex align-items-center d-lg-none w-100 justify-content-between">
-        <button class="navbar-toggler border-0 px-0 focus-ring focus-ring-light bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler border-0 px-0 focus-ring focus-ring-light bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="قائمة التصفح الرئيسية">
           <i class="bi bi-list" style="font-size: 2.2rem; color: var(--dark-charcoal);"></i>
         </button>
         
@@ -260,7 +260,7 @@ function renderNavbar(userData) {
           <span style="color: var(--military-green); font-size: 1.3rem; letter-spacing: 0.5px;">omervita</span>
         </a>
         
-        <a href="/cart" class="nav-link" style="color: var(--dark-charcoal); padding: 0.5rem;">
+        <a href="/cart" class="nav-link" aria-label="سلة المشتريات" style="color: var(--dark-charcoal); padding: 0.5rem;">
             <div class="position-relative d-inline-block">
               <i class="bi bi-cart3" style="font-size: 1.6rem;"></i>
               <span class="cart-counter-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none; font-size: 0.65rem;">0</span>
@@ -272,8 +272,8 @@ function renderNavbar(userData) {
       <div class="d-lg-none w-100 mt-2 mb-1">
         <form action="/products" method="GET">
           <div class="input-group shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1.5px solid var(--orange-accent);">
-            <input type="text" class="form-control border-0 px-3 py-2" name="search" placeholder="ما الذي تبحث عنه؟" style="box-shadow: none;">
-            <button class="btn border-0" type="submit" style="background-color: var(--orange-accent); color: var(--dark-charcoal);"><i class="bi bi-search fs-5"></i></button>
+            <input type="text" class="form-control border-0 px-3 py-2" name="search" placeholder="ما الذي تبحث عنه؟" aria-label="ابحث عن منتج" style="box-shadow: none;">
+            <button class="btn border-0" type="submit" aria-label="بحث" style="background-color: var(--orange-accent); color: var(--dark-charcoal);"><i class="bi bi-search fs-5"></i></button>
           </div>
         </form>
       </div>
@@ -287,8 +287,8 @@ function renderNavbar(userData) {
       <!-- Global Search Bar (Desktop Center) -->
       <form class="d-none d-lg-flex flex-grow-1 mx-4 mx-xl-5 position-relative" action="/products" method="GET">
         <div class="input-group" style="border-radius: 24px; overflow: hidden; border: 2px solid var(--orange-accent); box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-          <input type="text" class="form-control border-0 px-4 py-2" name="search" placeholder="ابحث عن منتج ..." aria-label="Search" style="box-shadow: none; font-size: 1.05rem; background: #fafafa;">
-          <button class="btn border-0 px-4" type="submit" style="background-color: var(--orange-accent); color: var(--dark-charcoal); border-radius: 0; transition: background 0.2s;" onmouseover="this.style.background='var(--military-green)'; this.style.color='white';" onmouseout="this.style.background='var(--orange-accent)'; this.style.color='var(--dark-charcoal)';">
+          <input type="text" class="form-control border-0 px-4 py-2" name="search" placeholder="ابحث عن منتج ..." aria-label="ابحث عن منتج" style="box-shadow: none; font-size: 1.05rem; background: #fafafa;">
+          <button class="btn border-0 px-4" type="submit" aria-label="بحث" style="background-color: var(--orange-accent); color: var(--dark-charcoal); border-radius: 0; transition: background 0.2s;" onmouseover="this.style.background='var(--military-green)'; this.style.color='white';" onmouseout="this.style.background='var(--orange-accent)'; this.style.color='var(--dark-charcoal)';">
             <i class="bi bi-search" style="font-size: 1.2rem;"></i>
           </button>
         </div>

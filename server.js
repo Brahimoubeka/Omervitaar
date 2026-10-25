@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const app = express();
@@ -32,9 +33,17 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[UnhandledRejection] at:', promise, 'reason:', reason);
 });
 
+// Enable Gzip/Brotli compression for all compressible responses
+app.use(compression());
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Lightweight health check route for keep-alive monitoring (prevents Render free-tier cold sleep)
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 const PORT = process.env.PORT || 3000;
 const BRANDING_PATH = path.join(__dirname, 'branding.json');
@@ -63,7 +72,7 @@ app.get('/product-detail.html', async (req, res) => {
       const content = await fs.promises.readFile(htmlPath, 'utf-8');
       const injected = await injectTrackingIntoHtml(content);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       return res.send(injected);
     } catch (err) {
       return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
@@ -122,7 +131,7 @@ app.get(['/solutions/:slug', '/landing/:slug', '/landing.html'], async (req, res
     const content = await fs.promises.readFile(htmlPath, 'utf-8');
     const injected = await injectTrackingIntoHtml(content);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     return res.send(injected);
   } catch (err) {
     return res.sendFile(path.join(__dirname, 'public', 'landing.html'));
@@ -425,50 +434,42 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- Static file serving without caching ---
+// --- Static file serving with production caching (CDN & Browser friendly) ---
 app.use('/css', express.static(path.join(__dirname, 'public/css'), {
-  maxAge: 0, // No caching
-  etag: false,
-  lastModified: false,
+  maxAge: '7d',
+  etag: true,
+  lastModified: true,
   setHeaders: (res, filepath) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
   }
 }));
 
 app.use('/js', express.static(path.join(__dirname, 'public/js'), {
-  maxAge: 0, // No caching
-  etag: false,
-  lastModified: false,
+  maxAge: '7d',
+  etag: true,
+  lastModified: true,
   setHeaders: (res, filepath) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
   }
 }));
 
 app.use('/images', express.static(path.join(__dirname, 'public/images'), {
-  maxAge: 0, // No caching
-  etag: false,
-  lastModified: false,
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
   setHeaders: (res, filepath) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
     // Enable CORS for images
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
 }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
-  maxAge: 0, // No caching
-  etag: false,
-  lastModified: false,
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
   setHeaders: (res, filepath) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
 }));
@@ -629,7 +630,7 @@ app.use(async (req, res, next) => {
       const content = await fs.promises.readFile(filePath, 'utf8');
       const injected = await injectTrackingIntoHtml(content);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       return res.send(injected);
     } catch (err) {
       return next();
@@ -648,14 +649,15 @@ app.use((req, res, next) => {
   
   // Use a more specific static middleware that doesn't interfere with routes
   const staticMiddleware = express.static(path.join(__dirname, 'public'), {
-    maxAge: 0, // No caching
-    etag: false,
-    lastModified: false,
+    maxAge: '1d',
+    etag: true,
+    lastModified: true,
     setHeaders: (res, filepath) => {
       if (filepath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
+        // HTML pages use must-revalidate so updates reflect immediately while leveraging 304 ETags
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
       }
     }
   });
@@ -700,10 +702,18 @@ app.use('/api', funnelsRoutes);
 
 
 
-// --- site_settings Table Helpers ---
+// --- site_settings Table Helpers with In-Memory Caching (Protects Supabase Free Tier) ---
+let cachedSiteSettings = null;
+let cachedSiteSettingsTime = 0;
+const SITE_SETTINGS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-// Get site settings from Supabase (single row, id=1)
-async function getSiteSettings() {
+// Get site settings (served from RAM if fresh, queried from Supabase on cache miss)
+async function getSiteSettings(forceFresh = false) {
+  const now = Date.now();
+  if (!forceFresh && cachedSiteSettings && (now - cachedSiteSettingsTime < SITE_SETTINGS_CACHE_TTL)) {
+    return cachedSiteSettings;
+  }
+
   const { data, error } = await supabase
     .from('site_settings')
     .select('*')
@@ -735,10 +745,13 @@ async function getSiteSettings() {
   if (!Array.isArray(row.phones)) row.phones = row.phones ? [row.phones] : [];
   if (!Array.isArray(row.emails)) row.emails = row.emails ? [row.emails] : [];
   if (!row.social_links || typeof row.social_links !== 'object') row.social_links = {};
+
+  cachedSiteSettings = row;
+  cachedSiteSettingsTime = now;
   return row;
 }
 
-// Update site settings in Supabase (upsert single row id=1)
+// Update site settings in Supabase (upsert single row id=1) and invalidate RAM cache
 async function updateSiteSettings(fields) {
   const { data, error } = await supabase
     .from('site_settings')
@@ -748,6 +761,9 @@ async function updateSiteSettings(fields) {
     console.error('[updateSiteSettings] Supabase error:', JSON.stringify(error));
     throw error;
   }
+  // Invalidate cache immediately on update so changes reflect immediately
+  cachedSiteSettings = null;
+  cachedSiteSettingsTime = 0;
   return data && data[0] ? data[0] : fields;
 }
 

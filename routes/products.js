@@ -280,9 +280,19 @@ router.get('/products/:id/images', async (req, res) => {
   }
 });
 
+// In-memory cache for public categories (Protects Supabase Free Tier)
+let cachedCategories = null;
+let cachedCategoriesTime = 0;
+const CATEGORIES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 // GET /api/categories
 router.get('/categories', async (req, res) => {
   try {
+    const now = Date.now();
+    if (cachedCategories && (now - cachedCategoriesTime < CATEGORIES_CACHE_TTL)) {
+      return res.json(cachedCategories);
+    }
+
     const { data, error } = await supabase
       .from('Categories')
       .select('id, name, icon, color, display_order, is_active')
@@ -298,6 +308,9 @@ router.get('/categories', async (req, res) => {
       color: category.color || 'orange',
       slug: SlugUtil.generateCategorySlug(category)
     }));
+
+    cachedCategories = categoriesWithSlugs;
+    cachedCategoriesTime = now;
 
     res.json(categoriesWithSlugs);
   } catch (err) {
