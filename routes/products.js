@@ -182,6 +182,7 @@ router.get('/products/paginate', async (req, res) => {
       products = data;
     }
     const enriched = await enrichProducts(products);
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
     res.json(enriched);
   } catch (err) {
     console.error('Error in /products/paginate:', err);
@@ -298,6 +299,7 @@ router.get('/categories', async (req, res) => {
   try {
     const now = Date.now();
     if (cachedCategories && (now - cachedCategoriesTime < CATEGORIES_CACHE_TTL)) {
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
       return res.json(cachedCategories);
     }
 
@@ -320,6 +322,7 @@ router.get('/categories', async (req, res) => {
     cachedCategories = categoriesWithSlugs;
     cachedCategoriesTime = now;
 
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
     res.json(categoriesWithSlugs);
   } catch (err) {
     console.error('Error fetching categories:', err);

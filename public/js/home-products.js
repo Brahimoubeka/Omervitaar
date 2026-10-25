@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="product-card">
               <div class="product-badge">${hasDiscount ? 'تخفيض' : 'جديد'}</div>
               <a href="/products/${product.slug}" class="product-img-wrapper">
-                <img src="${product.thumbnail}" alt="${product.name}" class="product-img lazy-image" loading="lazy" width="300" height="250" decoding="async">
+                <img src="${product.thumbnail}" alt="${product.name}" class="product-img lazy-image" loading="lazy" width="280" height="280" style="aspect-ratio: 1/1; object-fit: cover;" decoding="async">
               </a>
               <div class="product-details">
                 <div class="d-flex justify-content-between align-items-start mb-2">

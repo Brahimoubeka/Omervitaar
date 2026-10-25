@@ -837,6 +837,7 @@ async function removeFromSupabaseBranding(publicUrl) {
 app.get('/api/site-settings', async (req, res) => {
   try {
     const settings = await getSiteSettings();
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
     res.json(settings);
   } catch (e) {
     res.status(500).json({ error: 'خطأ في تحميل إعدادات الموقع', details: e.message });
@@ -847,6 +848,7 @@ app.get('/api/site-settings', async (req, res) => {
 app.get('/api/branding', async (req, res) => {
   try {
     const settings = await getSiteSettings();
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
     const sl = settings.social_links || {};
     const phones = settings.phones || [];
     const emails = settings.emails || [];

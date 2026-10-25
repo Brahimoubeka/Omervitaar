@@ -116,13 +116,18 @@
   <!-- Preload LCP Hero Image for Instant Paint (Crushes 16s LCP delay) -->
   <link rel="preload" as="image" href="/images/slide_1_opt.webp" fetchpriority="high">
 
-  <!-- Bootstrap CSS CDN -->
+  <!-- Bootstrap CSS CDN with Preload -->
+  <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  
   <!-- Bootstrap Icons (Non-blocking async load saves 2,640ms render blocking) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"></noscript>
-  <!-- Google Fonts: Cairo & Inter combined with font-display: swap -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" />
+
+  <!-- Google Fonts: Cairo & Inter combined (Preloaded & Non-blocking to eliminate render-blocking delay) -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
 
   <!-- Global UI CSS -->
   <link rel="stylesheet" href="/css/global-ui.css">
@@ -136,10 +141,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Omervita">
-  <link rel="apple-touch-icon"
-    href="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png">
-  <meta name="msapplication-TileImage"
-    content="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png">
+  <link rel="apple-touch-icon" href="/images/logo_opt.webp">
+  <meta name="msapplication-TileImage" content="/images/logo_opt.webp">
   <meta name="msapplication-TileColor" content="#715100">
 
   <style>
@@ -512,104 +515,65 @@
 
   <!-- Global Footer -->
   <div id="global-footer"></div>
-  <!-- Bootstrap JS Bundle CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/js/slug-util.js?v=1736152800"></script>
-  <script src="/js/header.js?v=1736152800"></script>
-  <script src="/js/branding.js?v=1736152800"></script>
+  <!-- Scripts deferred to unblock DOM rendering -->
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script defer src="/js/slug-util.js?v=1736152800"></script>
+  <script defer src="/js/header.js?v=1736152800"></script>
+  <script defer src="/js/branding.js?v=1736152800"></script>
+  <script defer src="/js/home-products.js"></script>
+  <script defer src="/js/home-funnels.js"></script>
+  
   <script>
-    // Simple carousel setup
+    // Lightweight Carousel & UI Initializer
     document.addEventListener('DOMContentLoaded', function () {
       const carousel = document.getElementById('coverCarousel');
-      if (carousel) {
-        const carouselInstance = new bootstrap.Carousel(carousel, {
+      if (carousel && typeof bootstrap !== 'undefined' && bootstrap.Carousel) {
+        new bootstrap.Carousel(carousel, {
           interval: 4000,
           ride: 'carousel',
           pause: 'hover',
           wrap: true,
-          touch: false // Disable touch to prevent conflicts
+          touch: false
         });
       }
-    });
 
-
-
-    // Counter animation for stats
-    function animateCounters() {
-      const counters = document.querySelectorAll('.stat-number');
-      counters.forEach(counter => {
-        const target = counter.innerText;
-        const numericTarget = parseInt(target.replace(/[^0-9]/g, ''));
-        let count = 0;
-        const increment = numericTarget / 100;
-
-        const timer = setInterval(() => {
-          count += increment;
-          if (count >= numericTarget) {
-            counter.innerText = target;
-            clearInterval(timer);
+      // Scroll to Top Button with passive scroll listener
+      const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+      if (scrollToTopBtn) {
+        window.addEventListener('scroll', function () {
+          if (window.scrollY > 250) {
+            scrollToTopBtn.style.display = 'block';
           } else {
-            if (target.includes('K')) {
-              counter.innerText = Math.floor(count / 1000) + 'K+';
-            } else if (target.includes('%')) {
-              counter.innerText = Math.floor(count) + '%';
-            } else {
-              counter.innerText = target;
-            }
+            scrollToTopBtn.style.display = 'none';
           }
-        }, 20);
-      });
-    }
+        }, { passive: true });
 
-
-  </script>
-  <script>
-    // Scroll to Top Button
-    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-    window.addEventListener('scroll', function () {
-      if (window.scrollY > 200) {
-        scrollToTopBtn.style.display = 'block';
-      } else {
-        scrollToTopBtn.style.display = 'none';
-      }
-    });
-    scrollToTopBtn.addEventListener('click', function () {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    // Hint scroll for category section on mobile
-    if (window.innerWidth <= 768) {
-      const categoryScroll = document.querySelector('.category-shortcuts-scroll');
-      if (categoryScroll) {
-        // After page load, slightly scroll the category container to show there's more content
-        window.addEventListener('load', function () {
-          setTimeout(() => {
-            categoryScroll.scrollTo({
-              left: 60,
-              behavior: 'smooth'
-            });
-            // Then scroll back to start after a delay
-            setTimeout(() => {
-              categoryScroll.scrollTo({
-                left: 0,
-                behavior: 'smooth'
-              });
-            }, 800);
-          }, 1500);
+        scrollToTopBtn.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
-    }
+
+      // Hint scroll for category section on mobile (idle callback)
+      if (window.innerWidth <= 768) {
+        const categoryScroll = document.querySelector('.category-shortcuts-scroll');
+        if (categoryScroll) {
+          const runScrollHint = () => {
+            setTimeout(() => {
+              categoryScroll.scrollTo({ left: 50, behavior: 'smooth' });
+              setTimeout(() => {
+                categoryScroll.scrollTo({ left: 0, behavior: 'smooth' });
+              }, 700);
+            }, 1000);
+          };
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(runScrollHint);
+          } else {
+            setTimeout(runScrollHint, 1500);
+          }
+        }
+      }
+    });
   </script>
-
-
-
-
-  <script>
-    // Debug carousel images loading — removed (now dynamic via branding.js)
-    console.log('Carousel images loaded dynamically from site_settings.');
-  </script>
-  <script src="/js/home-products.js"></script>
-  <script src="/js/home-funnels.js"></script>
 </body>
 
 </html>

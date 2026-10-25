@@ -256,7 +256,7 @@ function renderNavbar(userData) {
         </button>
         
         <a class="navbar-brand d-flex align-items-center mx-auto fw-bold" href="/" style="text-decoration:none;">
-          <img data-dynamic-logo src="/images/logo_opt.webp" alt="omervita Logo" style="max-height: 42px; margin-left: 8px;" class="logo-image">
+          <img data-dynamic-logo src="/images/logo_opt.webp" alt="omervita Logo" width="42" height="42" style="max-height: 42px; width: 42px; height: 42px; aspect-ratio: 1/1; margin-left: 8px;" class="logo-image" loading="eager" decoding="async">
           <span style="color: var(--military-green); font-size: 1.3rem; letter-spacing: 0.5px;">omervita</span>
         </a>
         
@@ -280,7 +280,7 @@ function renderNavbar(userData) {
 
       <!-- Desktop Logo -->
       <a class="navbar-brand d-none d-lg-flex align-items-center fw-bold me-0 pe-0" href="/" style="text-decoration:none; min-width: 180px;">
-        <img data-dynamic-logo src="/images/logo_opt.webp" alt="omervita Logo" style="max-height: 52px; margin-left: 12px;" class="logo-image" loading="eager">
+        <img data-dynamic-logo src="/images/logo_opt.webp" alt="omervita Logo" width="52" height="52" style="max-height: 52px; width: 52px; height: 52px; aspect-ratio: 1/1; margin-left: 12px;" class="logo-image" loading="eager" decoding="async">
         <span style="color: var(--military-green); font-size: 1.6rem; letter-spacing: 0.5px;">omervita</span>
       </a>
 
@@ -444,7 +444,7 @@ function renderFooter(settings) {
       <div class="row text-start">
         <div class="col-md-3 col-12 mb-4">
           <a href="/" class="d-block mb-3">
-            <img data-dynamic-logo src="https://lpflwkuvxwuigifmzaxb.supabase.co/storage/v1/object/public/branding/logo.png" alt="omervita Logo" class="img-fluid" style="max-width: 120px;" />
+            <img data-dynamic-logo src="/images/logo_opt.webp" alt="omervita Logo" width="120" height="120" class="img-fluid" style="max-width: 120px; aspect-ratio: 1/1;" loading="lazy" decoding="async" />
           </a>
           <p class="text-muted" style="opacity: 0.9;">رضا العملاء أولويتنا</p>
         </div>

@@ -50,6 +50,13 @@ function toLocalMedia(url) {
   if (url.includes('.supabase.co/storage/v1/object/public/')) {
     return url.replace(/^https?:\/\/[^\/]+\/storage\/v1\/object\/public\//, '/images/storage/');
   }
+  if (url.startsWith('/uploads/funnels/')) {
+    const webpPath = url.replace(/\.(jpeg|jpg|png|jfif)$/i, '.webp');
+    const localFsPath = path.join(__dirname, '..', 'public', webpPath);
+    if (fs.existsSync(localFsPath)) {
+      return webpPath;
+    }
+  }
   return url;
 }
 
@@ -86,6 +93,7 @@ router.get('/funnels/home-featured', async (req, res) => {
       };
     }));
 
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
     res.json(enriched);
   } catch (err) {
     console.error('Error fetching home featured funnels:', err);

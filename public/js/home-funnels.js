@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               return `
                 <div class="home-funnel-card" data-funnel-id="${item.id}">
                   <div class="home-funnel-img-wrap" style="width: 100%; aspect-ratio: 1/1; overflow: hidden; position: relative;">
-                    <img src="${imgUrl}" alt="${item.title}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="300" height="300" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy">
+                    <img src="${imgUrl}" alt="${item.title}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="185" height="185" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy" decoding="async">
                   </div>
                   <div class="home-funnel-content">
                     <h3 class="home-funnel-title" ${titleStyle}>${item.title}</h3>
