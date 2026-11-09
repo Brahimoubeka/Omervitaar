@@ -27,7 +27,8 @@
   border: 1px solid rgba(90, 99, 68, 0.14);
   display: flex !important;
   flex-direction: column !important;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  transition: none !important;
   /* Desktop default: compact smaller card, fixed uniform longitude/height */
   flex: 0 0 185px !important;
   max-width: 185px !important;
@@ -38,11 +39,11 @@
   box-sizing: border-box;
 }
 
-/* Zero zoom or translateY on hover */
+/* Zero hover effect on card */
 .home-funnel-card:hover {
   transform: none !important;
-  box-shadow: 0 5px 15px rgba(90, 99, 68, 0.12);
-  border-color: rgba(90, 99, 68, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(90, 99, 68, 0.14) !important;
 }
 
 .home-funnel-img-wrap {
@@ -197,14 +198,14 @@
   border-radius: 14px;
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(90, 99, 68, 0.15);
-  transition: background 0.25s ease, box-shadow 0.25s ease;
+  transition: none !important;
   align-self: flex-start;
   margin-top: auto;
 }
 
 .home-funnel-cta-btn:hover {
-  background: linear-gradient(135deg, #d6a848 0%, #ba8e34 100%);
-  box-shadow: 0 4px 10px rgba(214, 168, 72, 0.25);
+  background: linear-gradient(135deg, #5a6344 0%, #3e442f 100%);
+  box-shadow: 0 2px 6px rgba(90, 99, 68, 0.15);
   transform: none !important;
 }
 

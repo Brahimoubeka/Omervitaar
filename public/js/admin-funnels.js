@@ -420,6 +420,9 @@ function openCreateNodeModal() {
   if (document.getElementById('nodePageBgColor')) document.getElementById('nodePageBgColor').value = '#ffffff';
   document.getElementById('nodeTagColor').value = '#5a6344';
   document.getElementById('nodeTagBgColor').value = '#f4f6f1';
+  if (document.getElementById('nodeTickerText')) document.getElementById('nodeTickerText').value = '';
+  if (document.getElementById('nodeTickerBgColor')) document.getElementById('nodeTickerBgColor').value = '#5a6344';
+  if (document.getElementById('nodeTickerTextColor')) document.getElementById('nodeTickerTextColor').value = '#ffffff';
 
   nodeGalleryImages = [];
   renderNodeGallery();
@@ -450,6 +453,9 @@ function openAddChildNodeModal(parentId, parentTitle) {
   if (document.getElementById('nodePageBgColor')) document.getElementById('nodePageBgColor').value = '#ffffff';
   document.getElementById('nodeTagColor').value = '#5a6344';
   document.getElementById('nodeTagBgColor').value = '#f4f6f1';
+  if (document.getElementById('nodeTickerText')) document.getElementById('nodeTickerText').value = '';
+  if (document.getElementById('nodeTickerBgColor')) document.getElementById('nodeTickerBgColor').value = '#5a6344';
+  if (document.getElementById('nodeTickerTextColor')) document.getElementById('nodeTickerTextColor').value = '#ffffff';
 
   nodeGalleryImages = [];
   renderNodeGallery();
@@ -486,6 +492,9 @@ function openEditNodeModal(nodeId) {
   if (document.getElementById('nodePageBgColor')) document.getElementById('nodePageBgColor').value = nodeSettings.page_bg_color || '#ffffff';
   document.getElementById('nodeTagColor').value = nodeSettings.tag_color || '#5a6344';
   document.getElementById('nodeTagBgColor').value = nodeSettings.tag_bg_color || '#f4f6f1';
+  if (document.getElementById('nodeTickerText')) document.getElementById('nodeTickerText').value = nodeSettings.ticker_text || '';
+  if (document.getElementById('nodeTickerBgColor')) document.getElementById('nodeTickerBgColor').value = nodeSettings.ticker_bg_color || '#5a6344';
+  if (document.getElementById('nodeTickerTextColor')) document.getElementById('nodeTickerTextColor').value = nodeSettings.ticker_text_color || '#ffffff';
 
   if (Array.isArray(nodeSettings.images) && nodeSettings.images.length > 0) {
     nodeGalleryImages = [...nodeSettings.images];
@@ -542,7 +551,10 @@ async function handleNodeFormSubmit(e) {
       price_color: document.getElementById('nodePriceColor')?.value || '',
       page_bg_color: document.getElementById('nodePageBgColor')?.value || '',
       tag_color: document.getElementById('nodeTagColor').value || '',
-      tag_bg_color: document.getElementById('nodeTagBgColor').value || ''
+      tag_bg_color: document.getElementById('nodeTagBgColor').value || '',
+      ticker_text: document.getElementById('nodeTickerText')?.value.trim() || '',
+      ticker_bg_color: document.getElementById('nodeTickerBgColor')?.value || '#5a6344',
+      ticker_text_color: document.getElementById('nodeTickerTextColor')?.value || '#ffffff'
     }
   };
 
@@ -862,9 +874,53 @@ function onBlockTypeChange() {
           </div>
           <input type="text" id="fieldHeroImg" class="form-control form-control-sm" placeholder="/images/category-banner-oil.jpg">
         </div>
-        <div class="mb-3">
-          <label class="form-label small fw-bold">نص زر الدعوة للشراء (CTA):</label>
-          <input type="text" id="fieldHeroCta" class="form-control" value="أطلب الآن واستفد من العرض ➔">
+        <div class="mb-3 p-3 bg-light rounded border">
+          <label class="form-label small fw-bold"><i class="bi bi-cursor-fill me-1 text-success"></i>إعدادات وألوان أزرار الطلب (زر البانر + الزر العائم):</label>
+          <div class="mb-2">
+            <label class="form-label small mb-1">نص زر الدعوة للشراء (CTA):</label>
+            <input type="text" id="fieldHeroCta" class="form-control form-control-sm" value="أطلب الآن واستفد من العرض ➔">
+          </div>
+          <div class="row g-2 align-items-end">
+            <div class="col-4">
+              <label class="form-label small fw-bold mb-1">لون زر البانر (Hero):</label>
+              <input type="color" id="fieldHeroBtnBgColor" class="form-control form-control-color w-100" value="#10b981" title="لون زر الطلب الزجاجي داخل البانر" oninput="if(document.getElementById('fieldHeroStickySync')?.checked){document.getElementById('fieldHeroStickyBtnColor').value=this.value;}">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold mb-1">لون زر "أطلب الآن" العائم:</label>
+              <input type="color" id="fieldHeroStickyBtnColor" class="form-control form-control-color w-100" value="#10b981" title="لون زر أطلب الآن العائم عند التمرير" oninput="if(document.getElementById('fieldHeroStickySync')){document.getElementById('fieldHeroStickySync').checked=false;}">
+            </div>
+            <div class="col-4">
+              <label class="form-label small fw-bold mb-1">لون نص الأزرار:</label>
+              <input type="color" id="fieldHeroBtnTextColor" class="form-control form-control-color w-100" value="#ffffff" title="لون النص والأيقونة داخل أزرار الطلب">
+            </div>
+            <div class="col-12 mt-1">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="fieldHeroStickySync" checked onchange="if(this.checked){document.getElementById('fieldHeroStickyBtnColor').value=document.getElementById('fieldHeroBtnBgColor').value;}">
+                <label class="form-check-label small text-muted" for="fieldHeroStickySync">توحيد لون الزر العائم مع لون زر البانر تلقائياً</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-3 p-3 bg-light rounded border">
+          <div class="small fw-bold text-dark mb-2"><i class="bi bi-layers-half me-1 text-success"></i>تصميم البنر المدمج (العناصر والإضاءة المتدرجة فوق الصورة):</div>
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+              <label class="form-label small fw-bold mb-1">موضع العناصر فوق الصورة:</label>
+              <select id="fieldHeroPosition" class="form-select form-select-sm">
+                <option value="bottom" selected>أسفل الصورة (Bottom)</option>
+                <option value="center">وسط الصورة (Middle)</option>
+                <option value="top">أعلى الصورة (Top)</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small fw-bold mb-1">لون الإضاءة المتدرجة:</label>
+              <input type="color" id="fieldHeroOverlayColor" class="form-control form-control-color w-100" value="#0f172a" title="اختر لون الإضاءة المتدرجة فوق الصورة وتحت النصوص">
+            </div>
+            <div class="col-6 col-md-4">
+              <label class="form-label small fw-bold mb-1">قوة الإضاءة المتدرجة (%):</label>
+              <input type="number" id="fieldHeroOverlayOpacity" class="form-control form-control-sm" min="0" max="95" step="5" value="75">
+            </div>
+          </div>
         </div>
       `;
       break;
@@ -1194,6 +1250,16 @@ function populateBlockDynamicFields(block) {
     if (document.getElementById('fieldHeroDesc')) document.getElementById('fieldHeroDesc').value = content.description || '';
     if (document.getElementById('fieldHeroImg')) document.getElementById('fieldHeroImg').value = content.image_url || '';
     if (document.getElementById('fieldHeroCta')) document.getElementById('fieldHeroCta').value = content.cta_text || '';
+    if (document.getElementById('fieldHeroPosition')) document.getElementById('fieldHeroPosition').value = content.content_position || 'bottom';
+    if (document.getElementById('fieldHeroOverlayColor')) document.getElementById('fieldHeroOverlayColor').value = content.overlay_color || '#0f172a';
+    if (document.getElementById('fieldHeroOverlayOpacity')) document.getElementById('fieldHeroOverlayOpacity').value = content.overlay_opacity !== undefined ? content.overlay_opacity : 75;
+    const heroBtnBg = content.cta_bg_color || block.styles?.btn_bg_color || '#10b981';
+    const stickyBtnBg = content.sticky_btn_color || heroBtnBg;
+    const heroBtnText = content.cta_text_color || block.styles?.btn_text_color || '#ffffff';
+    if (document.getElementById('fieldHeroBtnBgColor')) document.getElementById('fieldHeroBtnBgColor').value = heroBtnBg;
+    if (document.getElementById('fieldHeroStickyBtnColor')) document.getElementById('fieldHeroStickyBtnColor').value = stickyBtnBg;
+    if (document.getElementById('fieldHeroBtnTextColor')) document.getElementById('fieldHeroBtnTextColor').value = heroBtnText;
+    if (document.getElementById('fieldHeroStickySync')) document.getElementById('fieldHeroStickySync').checked = (heroBtnBg === stickyBtnBg);
   } else if (type === 'heading') {
     if (document.getElementById('fieldHeadingSub')) document.getElementById('fieldHeadingSub').value = content.subtitle || '';
   } else if (type === 'video') {
@@ -1275,6 +1341,15 @@ function handleBlockFormSubmit(e) {
     content.description = document.getElementById('fieldHeroDesc')?.value.trim() || '';
     content.image_url = document.getElementById('fieldHeroImg')?.value.trim() || '';
     content.cta_text = document.getElementById('fieldHeroCta')?.value.trim() || 'أطلب الآن واستفد من العرض ➔';
+    content.content_position = document.getElementById('fieldHeroPosition')?.value || 'bottom';
+    content.overlay_color = document.getElementById('fieldHeroOverlayColor')?.value || '#0f172a';
+    const rawOp = parseInt(document.getElementById('fieldHeroOverlayOpacity')?.value, 10);
+    content.overlay_opacity = isNaN(rawOp) ? 75 : Math.min(95, Math.max(0, rawOp));
+    content.cta_bg_color = document.getElementById('fieldHeroBtnBgColor')?.value || '#10b981';
+    content.sticky_btn_color = document.getElementById('fieldHeroStickyBtnColor')?.value || content.cta_bg_color;
+    content.cta_text_color = document.getElementById('fieldHeroBtnTextColor')?.value || '#ffffff';
+    styles.btn_bg_color = content.cta_bg_color;
+    styles.btn_text_color = content.cta_text_color;
   } else if (type === 'heading') {
     content.subtitle = document.getElementById('fieldHeadingSub')?.value.trim() || '';
   } else if (type === 'video') {

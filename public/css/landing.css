@@ -44,6 +44,95 @@ body.funnel-page-body {
   }
 }
 
+/* ==========================================================================
+   TOP FIXED INFINITE LEFT-TO-RIGHT ROLLING TICKER BAR
+   ========================================================================== */
+.funnel-top-ticker-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 32px;
+  z-index: 1035;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start !important;
+  direction: ltr !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 0.82rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+body.has-funnel-ticker header.fixed-top,
+body.has-funnel-ticker .navbar.fixed-top {
+  top: 32px !important;
+}
+
+body.has-funnel-ticker.funnel-page-body {
+  padding-top: 187px !important;
+}
+
+@media (max-width: 991px) {
+  body.has-funnel-ticker.funnel-page-body {
+    padding-top: 152px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .funnel-top-ticker-bar {
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  body.has-funnel-ticker header.fixed-top,
+  body.has-funnel-ticker .navbar.fixed-top {
+    top: 28px !important;
+  }
+  body.has-funnel-ticker.funnel-page-body {
+    padding-top: 138px !important;
+  }
+}
+
+.funnel-ticker-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: max-content;
+  direction: ltr !important;
+  will-change: transform;
+  animation: funnelTickerLTR 32s linear infinite;
+}
+
+.funnel-ticker-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-around;
+  flex-shrink: 0;
+  min-width: 100vw;
+}
+
+.funnel-ticker-item {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 0 2.2rem;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+/* Infinite Left-to-Right Seamless Roll */
+@keyframes funnelTickerLTR {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0%, 0, 0);
+  }
+}
+
 /* Breadcrumbs & Top Bar */
 .funnel-breadcrumbs {
   padding: 0.25rem 0;
@@ -90,18 +179,19 @@ body.funnel-page-body {
   height: 340px !important;
   min-height: 340px !important;
   max-height: 340px !important;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  transition: none !important;
   flex: 0 0 195px !important;
   max-width: 195px !important;
   width: 195px !important;
   box-sizing: border-box;
 }
 
-/* Zero zoom or translateY on card hover */
+/* Zero hover effect on card */
 .subsection-card:hover {
   transform: none !important;
-  box-shadow: 0 6px 16px rgba(90, 99, 68, 0.12);
-  border-color: rgba(90, 99, 68, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  border-color: var(--funnel-border) !important;
 }
 
 .subsection-card-img-wrap {
@@ -257,7 +347,7 @@ body.funnel-page-body {
   justify-content: center;
   gap: 5px;
   font-size: 0.74rem;
-  transition: background 0.25s ease, box-shadow 0.25s ease;
+  transition: none !important;
   align-self: flex-start;
   margin-top: auto;
 }
@@ -272,7 +362,7 @@ body.funnel-page-body {
 }
 
 .subsection-card-btn:hover {
-  background: linear-gradient(135deg, var(--funnel-gold) 0%, var(--funnel-gold-dark) 100%);
+  background: linear-gradient(135deg, var(--funnel-brand) 0%, #3e442f 100%);
   transform: none !important;
 }
 
@@ -406,63 +496,158 @@ body.funnel-page-body {
 }
 
 /* Block: Hero */
+/* Block: Hero (Layered Image + Fading Colored Light + Top/Middle/Bottom Placement) */
 .funnel-hero-block {
   text-align: center;
   background: radial-gradient(circle at 50% 0%, rgba(90, 99, 68, 0.08) 0%, #ffffff 70%);
+}
+
+.funnel-hero-block.funnel-hero-overlay-mode {
+  position: relative;
+  padding: 0 !important;
+  overflow: hidden !important;
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border: none;
+}
+
+@media (max-width: 576px) {
+  .funnel-hero-block.funnel-hero-overlay-mode {
+    min-height: 390px;
+    border-radius: 18px !important;
+    padding: 0 !important;
+  }
+}
+
+.funnel-hero-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  z-index: 1;
+  display: block;
+}
+
+.funnel-hero-light-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.funnel-hero-overlay-content {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  min-height: inherit;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.2rem 1.5rem;
+  text-align: center;
+}
+
+.funnel-hero-overlay-content.pos-top {
+  justify-content: flex-start;
+}
+
+.funnel-hero-overlay-content.pos-center {
+  justify-content: center;
+}
+
+.funnel-hero-overlay-content.pos-bottom {
+  justify-content: flex-end;
+}
+
+@media (max-width: 576px) {
+  .funnel-hero-overlay-content {
+    padding: 1.35rem 1rem;
+  }
 }
 
 .funnel-hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #ecfdf5;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
   color: #065f46;
-  border: 1px solid #a7f3d0;
-  padding: 6px 18px;
+  border: 1px solid rgba(167, 243, 208, 0.8);
+  padding: 5px 16px;
   border-radius: 50px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  margin-bottom: 1.25rem;
+  font-weight: 800;
+  font-size: 0.86rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 @media (max-width: 576px) {
   .funnel-hero-badge {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     padding: 4px 12px;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.65rem;
   }
 }
 
 .funnel-hero-title {
-  font-size: 2.2rem;
+  font-size: 2.1rem;
   font-weight: 900;
-  color: #111827;
+  color: #ffffff;
   line-height: 1.3;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
   word-break: break-word;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
 }
 
 @media (max-width: 576px) {
   .funnel-hero-title {
-    font-size: 1.45rem !important;
+    font-size: 1.4rem !important;
     line-height: 1.35;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.55rem;
   }
 }
 
 .funnel-hero-desc {
-  font-size: 1.15rem;
-  color: #4b5563;
-  line-height: 1.8;
-  max-width: 720px;
-  margin: 0 auto 1.5rem auto;
+  font-size: 1.08rem;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.7;
+  max-width: 680px;
+  margin: 0 auto 1rem auto;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
 @media (max-width: 576px) {
   .funnel-hero-desc {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.funnel-hero-cta-btn {
+  width: 100% !important;
+  max-width: 400px !important;
+  padding: 15px 38px !important;
+  font-size: 1.18rem !important;
+  font-weight: 800 !important;
+  border-radius: 50px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.32), inset 0 1.5px 2px rgba(255, 255, 255, 0.45), 0 0 18px rgba(16, 185, 129, 0.35) !important;
+  letter-spacing: 0.2px;
+}
+
+@media (max-width: 576px) {
+  .funnel-hero-cta-btn {
+    max-width: 330px !important;
+    padding: 13px 28px !important;
+    font-size: 1.05rem !important;
   }
 }
 
@@ -1390,6 +1575,75 @@ body.funnel-page-body {
     width: 40px;
     height: 40px;
     font-size: 1.1rem;
+  }
+}
+
+/* Sticky Small Glowing Animated "Order Now" Button (Centered) */
+.funnel-sticky-order-btn {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  right: auto;
+  z-index: 1038;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 26px;
+  border-radius: 50px;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, var(--funnel-primary) 0%, var(--funnel-primary-dark) 100%);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(20px) scale(0.9);
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: stickyOrderGlowPulse 2s infinite ease-in-out;
+}
+
+.funnel-sticky-order-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.funnel-sticky-order-btn i {
+  font-size: 1.05rem;
+  animation: stickyOrderBolt 1.4s infinite ease-in-out;
+}
+
+@keyframes stickyOrderGlowPulse {
+  0%, 100% {
+    box-shadow: 0 6px 18px var(--sticky-order-glow-soft, rgba(16, 185, 129, 0.45)), 0 0 0 0 var(--sticky-order-glow, rgba(16, 185, 129, 0.55));
+  }
+  50% {
+    box-shadow: 0 8px 26px var(--sticky-order-glow, rgba(16, 185, 129, 0.75)), 0 0 18px 5px var(--sticky-order-glow-soft, rgba(214, 168, 72, 0.42));
+  }
+}
+
+@keyframes stickyOrderBolt {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.22);
+  }
+}
+
+@media (max-width: 576px) {
+  .funnel-sticky-order-btn {
+    bottom: 18px;
+    left: 50%;
+    right: auto;
+    padding: 9px 22px;
+    font-size: 0.88rem;
   }
 }
 

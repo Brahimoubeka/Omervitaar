@@ -1,10 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const supabase = require('../supabase');
+const sharp = require('sharp');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const formidable = require('formidable');
+
+// Upload buffer to Supabase Storage (product-images bucket) and return public URL
+async function uploadFunnelMediaToSupabase(fileName, buffer, mimetype) {
+  const { error } = await supabase.storage.from('product-images').upload(fileName, buffer, {
+    contentType: mimetype,
+    upsert: true
+  });
+  if (error) throw error;
+  const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+  return urlData.publicUrl;
+}
 
 // Robust verifyAdmin helper that checks cookies, authorization headers, and raw cookie headers
 function verifyAdmin(req, res, next) {
@@ -58,6 +71,43 @@ function toLocalMedia(url) {
     }
   }
   return url;
+}
+
+function normalizeBlockMedia(block) {
+  if (!block || typeof block !== 'object') return block;
+  if (block.content && typeof block.content === 'object') {
+    const c = block.content;
+    if (c.image_url) c.image_url = toLocalMedia(c.image_url);
+    if (c.video_url) c.video_url = toLocalMedia(c.video_url);
+    if (c.before_image) c.before_image = toLocalMedia(c.before_image);
+    if (c.after_image) c.after_image = toLocalMedia(c.after_image);
+    if (Array.isArray(c.images)) {
+      c.images = c.images.map(img => (typeof img === 'string' ? toLocalMedia(img) : (img && img.url ? { ...img, url: toLocalMedia(img.url) } : img)));
+    }
+    if (Array.isArray(c.items)) {
+      c.items = c.items.map(item => {
+        if (!item || typeof item !== 'object') return item;
+        const copy = { ...item };
+        if (copy.image_url) copy.image_url = toLocalMedia(copy.image_url);
+        if (copy.avatar_url) copy.avatar_url = toLocalMedia(copy.avatar_url);
+        return copy;
+      });
+    }
+  }
+  if (block.product_data && block.product_data.image) {
+    block.product_data.image = toLocalMedia(block.product_data.image);
+  }
+  return block;
+}
+
+function normalizeOfferMedia(offer) {
+  if (!offer || typeof offer !== 'object') return offer;
+  if (offer.image_url) offer.image_url = toLocalMedia(offer.image_url);
+  if (offer.product_image) offer.product_image = toLocalMedia(offer.product_image);
+  if (Array.isArray(offer.images)) {
+    offer.images = offer.images.map(img => toLocalMedia(img));
+  }
+  return offer;
 }
 
 // ==========================================
@@ -214,6 +264,11 @@ router.get('/funnels/node/:slug', async (req, res) => {
       `, [node.id]);
       offers = offerRows;
     }
+
+    node.image_url = toLocalMedia(node.image_url);
+    children = children.map(c => ({ ...c, image_url: toLocalMedia(c.image_url) }));
+    blocks = blocks.map(normalizeBlockMedia);
+    offers = offers.map(normalizeOfferMedia);
 
     res.json({
       node,
@@ -614,8 +669,8 @@ router.put('/admin/funnels/offers/:nodeId', verifyAdmin, async (req, res) => {
 
 /**
  * POST /api/admin/funnels/upload-images
- * Accepts single or multiple images from device, saves them to public/uploads/funnels/,
- * and returns their public access URLs.
+ * Accepts single or multiple images from device, optimizes them to WebP via sharp,
+ * uploads them to permanent Supabase Storage, and returns edge-cached URLs.
  */
 router.post('/admin/funnels/upload-images', verifyAdmin, (req, res) => {
   const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'funnels');
@@ -630,16 +685,13 @@ router.post('/admin/funnels/upload-images', verifyAdmin, (req, res) => {
     multiples: true
   });
 
-  form.parse(req, (err, fields, files) => {
+  form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('Error parsing uploaded images:', err);
       return res.status(500).json({ error: 'فشل في معالجة الصور المرفوعة' });
     }
 
-    const uploadedUrls = [];
     const allFiles = [];
-
-    // Collect all file entries from files object
     Object.keys(files).forEach(key => {
       const item = files[key];
       if (Array.isArray(item)) {
@@ -649,31 +701,73 @@ router.post('/admin/funnels/upload-images', verifyAdmin, (req, res) => {
       }
     });
 
-    allFiles.forEach(f => {
-      if (f && f.newFilename) {
-        uploadedUrls.push(`/uploads/funnels/${f.newFilename}`);
-      } else if (f && f.filepath) {
-        const basename = path.basename(f.filepath);
-        uploadedUrls.push(`/uploads/funnels/${basename}`);
-      }
-    });
-
-    if (uploadedUrls.length === 0) {
+    if (allFiles.length === 0) {
       return res.status(400).json({ error: 'لم يتم استلام أي صور صالحة' });
     }
 
-    res.json({
-      message: 'تم رفع الصور بنجاح',
-      urls: uploadedUrls,
-      primaryUrl: uploadedUrls[0]
-    });
+    const allowedImageTypes = /^image\/(jpeg|jpg|png|webp|gif|avif|bmp|tiff)$/i;
+    const uploadedUrls = [];
+
+    try {
+      for (const f of allFiles) {
+        if (!f || !f.filepath) continue;
+        const mime = f.mimetype || '';
+        const origName = f.originalFilename || f.newFilename || '';
+        const isAllowedExt = /\.(jpe?g|png|webp|gif|jfif|avif)$/i.test(origName);
+
+        if (mime && !allowedImageTypes.test(mime) && !isAllowedExt) {
+          fs.unlink(f.filepath, () => {});
+          continue;
+        }
+
+        const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        let buffer;
+        let storageFileName;
+        let contentType = 'image/webp';
+
+        if (/\.gif$/i.test(origName) || mime === 'image/gif') {
+          buffer = await fs.promises.readFile(f.filepath);
+          storageFileName = `funnels/funnel_${uniqueId}.gif`;
+          contentType = 'image/gif';
+        } else {
+          buffer = await sharp(f.filepath)
+            .rotate()
+            .resize({ width: 1200, withoutEnlargement: true })
+            .webp({ quality: 82 })
+            .toBuffer();
+          storageFileName = `funnels/funnel_${uniqueId}.webp`;
+        }
+
+        const publicUrl = await uploadFunnelMediaToSupabase(storageFileName, buffer, contentType);
+        uploadedUrls.push(toLocalMedia(publicUrl));
+
+        // Clean up temporary local file
+        fs.unlink(f.filepath, () => {});
+      }
+
+      if (uploadedUrls.length === 0) {
+        return res.status(400).json({ error: 'لم يتم استلام أي صور بصيغة مدعومة' });
+      }
+
+      res.json({
+        message: 'تم رفع الصور بنجاح',
+        urls: uploadedUrls,
+        primaryUrl: uploadedUrls[0]
+      });
+    } catch (uploadErr) {
+      console.error('Error uploading funnel images to Supabase Storage:', uploadErr);
+      allFiles.forEach(f => {
+        if (f && f.filepath) fs.unlink(f.filepath, () => {});
+      });
+      res.status(500).json({ error: 'حدث خطأ أثناء حفظ الصور في التخزين السحابي' });
+    }
   });
 });
 
 /**
  * POST /api/admin/funnels/upload-video
- * Accepts single video file (mp4, webm, mov, etc.) up to 100MB,
- * saves to public/uploads/videos/, and returns public URL.
+ * Accepts single video file (mp4, webm, mov, etc.) up to 50MB,
+ * uploads to permanent Supabase Storage, and returns edge-cached URL.
  */
 router.post('/admin/funnels/upload-video', verifyAdmin, (req, res) => {
   const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'videos');
@@ -684,14 +778,14 @@ router.post('/admin/funnels/upload-video', verifyAdmin, (req, res) => {
   const form = new formidable.IncomingForm({
     uploadDir: uploadDir,
     keepExtensions: true,
-    maxFileSize: 100 * 1024 * 1024, // 100MB max
+    maxFileSize: 50 * 1024 * 1024, // 50MB max for cloud storage safety
     multiples: false
   });
 
-  form.parse(req, (err, fields, files) => {
+  form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('Error parsing uploaded video:', err);
-      return res.status(500).json({ error: 'فشل في رفع ملف الفيديو. يرجى التأكد من الحجم (أقل من 100MB)' });
+      return res.status(500).json({ error: 'فشل في رفع ملف الفيديو. يرجى التأكد من الحجم (أقل من 50MB)' });
     }
 
     const videoFile = files.video || files.file;
@@ -702,21 +796,36 @@ router.post('/admin/funnels/upload-video', verifyAdmin, (req, res) => {
       target = videoFile;
     }
 
-    if (!target) {
+    if (!target || !target.filepath) {
       return res.status(400).json({ error: 'لم يتم استلام أي ملف فيديو' });
     }
 
-    let videoUrl = '';
-    if (target.newFilename) {
-      videoUrl = `/uploads/videos/${target.newFilename}`;
-    } else if (target.filepath) {
-      videoUrl = `/uploads/videos/${path.basename(target.filepath)}`;
+    const mime = target.mimetype || 'video/mp4';
+    const origName = target.originalFilename || target.newFilename || 'video.mp4';
+    const extMatch = origName.match(/\.(mp4|webm|ogg|mov)$/i);
+    if (!/^video\//i.test(mime) && !extMatch) {
+      fs.unlink(target.filepath, () => {});
+      return res.status(400).json({ error: 'صيغة الفيديو غير مدعومة' });
     }
 
-    res.json({
-      message: 'تم رفع الفيديو بنجاح',
-      url: videoUrl
-    });
+    try {
+      const ext = extMatch ? extMatch[0].toLowerCase() : '.mp4';
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const storageFileName = `funnels/videos/video_${uniqueId}${ext}`;
+      const buffer = await fs.promises.readFile(target.filepath);
+
+      const publicUrl = await uploadFunnelMediaToSupabase(storageFileName, buffer, mime);
+      fs.unlink(target.filepath, () => {});
+
+      res.json({
+        message: 'تم رفع الفيديو بنجاح',
+        url: toLocalMedia(publicUrl)
+      });
+    } catch (uploadErr) {
+      console.error('Error uploading funnel video to Supabase Storage:', uploadErr);
+      fs.unlink(target.filepath, () => {});
+      res.status(500).json({ error: 'حدث خطأ أثناء حفظ الفيديو في التخزين السحابي' });
+    }
   });
 });
 

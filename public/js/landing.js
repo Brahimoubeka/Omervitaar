@@ -162,7 +162,7 @@ function getCurrentSlug() {
       if (decoded === raw) break;
       raw = decoded;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   return raw.trim();
 }
@@ -256,6 +256,9 @@ function renderPage(data) {
     document.documentElement.style.setProperty('--landing-price-color', nodeSettings.price_color);
   }
 
+  // Render Top Fixed Rolling Ticker Bar for Landing Pages
+  renderTopTickerBar(node);
+
   const root = document.getElementById('landing-page-root');
 
   // 3. Render Section View or Landing Page View
@@ -264,6 +267,48 @@ function renderPage(data) {
   } else {
     renderLandingPageView(root, node, blocks, offers);
   }
+}
+
+// Render Fixed Left-to-Right Infinite Rolling Top Bar
+function renderTopTickerBar(node) {
+  let tickerBar = document.getElementById('funnelTopTickerBar');
+  const nodeSettings = typeof node.settings === 'object' && node.settings !== null ? node.settings : {};
+
+  // Show on landing pages (use custom text if set, or default promotional text unless explicitly cleared with '-')
+  const rawTickerText = nodeSettings.ticker_text !== undefined
+    ? String(nodeSettings.ticker_text).trim()
+    : (node.type === 'landing_page' ? '✨ منتجات طبيعية 100% • توصيل سريع لـ 58 ولاية • الدفع عند الاستلام ✨' : '');
+
+  if (!rawTickerText || rawTickerText === '-' || node.type === 'section') {
+    if (tickerBar) tickerBar.remove();
+    document.body.classList.remove('has-funnel-ticker');
+    return;
+  }
+
+  const bgColor = nodeSettings.ticker_bg_color || nodeSettings.button_color || '#5a6344';
+  const textColor = nodeSettings.ticker_text_color || nodeSettings.button_text_color || '#ffffff';
+
+  if (!tickerBar) {
+    tickerBar = document.createElement('div');
+    tickerBar.id = 'funnelTopTickerBar';
+    tickerBar.className = 'funnel-top-ticker-bar';
+    document.body.prepend(tickerBar);
+  }
+
+  tickerBar.style.backgroundColor = bgColor;
+  tickerBar.style.color = textColor;
+
+  const unitHtml = `<span class="funnel-ticker-item">${escapeHtml(rawTickerText)}</span>`;
+  const repeatedUnits = Array(10).fill(unitHtml).join('');
+
+  tickerBar.innerHTML = `
+    <div class="funnel-ticker-track" dir="ltr">
+      <div class="funnel-ticker-group">${repeatedUnits}</div>
+      <div class="funnel-ticker-group" aria-hidden="true">${repeatedUnits}</div>
+    </div>
+  `;
+
+  document.body.classList.add('has-funnel-ticker');
 }
 
 // Render Breadcrumbs
@@ -317,21 +362,21 @@ function renderSectionView(root, node, children) {
       ` : `
         <div class="subsections-grid">
           ${children.map(child => {
-            const childImg = child.image_url || bannerImg;
-            const btnText = child.button_text || 'اكتشف الحل والعروض ➔';
-            const link = `/solutions/${child.slug}`;
+    const childImg = child.image_url || bannerImg;
+    const btnText = child.button_text || 'اكتشف الحل والعروض ➔';
+    const link = `/solutions/${child.slug}`;
 
-            const childSettings = typeof child.settings === 'object' && child.settings !== null ? child.settings : {};
+    const childSettings = typeof child.settings === 'object' && child.settings !== null ? child.settings : {};
 
-            let titleStyle = childSettings.title_color ? `style="color: ${childSettings.title_color} !important;"` : '';
-            let textStyle = childSettings.text_color ? `style="color: ${childSettings.text_color} !important;"` : '';
+    let titleStyle = childSettings.title_color ? `style="color: ${childSettings.title_color} !important;"` : '';
+    let textStyle = childSettings.text_color ? `style="color: ${childSettings.text_color} !important;"` : '';
 
-            let btnStyle = '';
-            if (childSettings.button_color) btnStyle += `background: ${childSettings.button_color} !important; `;
-            if (childSettings.button_text_color) btnStyle += `color: ${childSettings.button_text_color} !important; `;
+    let btnStyle = '';
+    if (childSettings.button_color) btnStyle += `background: ${childSettings.button_color} !important; `;
+    if (childSettings.button_text_color) btnStyle += `color: ${childSettings.button_text_color} !important; `;
 
-            return `
-              <div class="subsection-card">
+    return `
+              <div class="subsection-card" data-href="${link}" style="cursor: pointer;">
                 <div class="subsection-card-img-wrap position-relative" style="aspect-ratio: 1/1;">
                   <img src="${childImg}" alt="${child.title}" class="subsection-card-img" width="400" height="400" style="aspect-ratio: 1/1; object-fit: cover;" loading="lazy">
                 </div>
@@ -344,13 +389,21 @@ function renderSectionView(root, node, children) {
                 </div>
               </div>
             `;
-          }).join('')}
+  }).join('')}
         </div>
       `}
     </div>
   `;
 
   root.innerHTML = html;
+
+  root.querySelectorAll('.subsection-card[data-href]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('a')) return;
+      const href = card.getAttribute('data-href');
+      if (href) window.location.href = href;
+    });
+  });
 }
 
 // --------------------------------------------------------------------------
@@ -392,6 +445,20 @@ function renderLandingPageView(root, node, blocks, offers) {
   initOffersScrollGlow();
   initOrderFormScrollObserver();
   initStickyScrollToTop();
+  initStickyOrderNowBtn(node, sortedBlocks);
+}
+
+function hexToRgba(hex, alpha = 0.75) {
+  let c = String(hex || '#0f172a').replace('#', '').trim();
+  if (c.length === 3) {
+    c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+  }
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return `rgba(15, 23, 42, ${alpha})`;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 // Helpers for dynamic typography, colors, symbols, and dimensions
@@ -470,24 +537,57 @@ function renderBlock(block, offers, node) {
   const priceStyle = getBlockPriceStyle(styles, node);
 
   switch (block.block_type) {
-    case 'hero':
+    case 'hero': {
+      const heroImg = content.image_url || node.image_url || '/images/category-banner-oil.jpg';
+      const pos = content.content_position || 'bottom'; // 'top' | 'center' | 'bottom'
+      const overlayHex = content.overlay_color || '#0f172a';
+      const rawOpacity = content.overlay_opacity !== undefined ? Number(content.overlay_opacity) : 75;
+      const mainAlpha = Math.min(0.95, Math.max(0, rawOpacity / 100));
+      const midAlpha = +(mainAlpha * 0.55).toFixed(2);
+      const softAlpha = +(mainAlpha * 0.15).toFixed(2);
+
+      let gradientCss = '';
+      if (pos === 'top') {
+        gradientCss = `linear-gradient(180deg, ${hexToRgba(overlayHex, mainAlpha)} 0%, ${hexToRgba(overlayHex, midAlpha)} 52%, ${hexToRgba(overlayHex, softAlpha)} 100%)`;
+      } else if (pos === 'center') {
+        gradientCss = `radial-gradient(circle at 50% 50%, ${hexToRgba(overlayHex, mainAlpha)} 0%, ${hexToRgba(overlayHex, midAlpha)} 65%, ${hexToRgba(overlayHex, softAlpha)} 100%)`;
+      } else {
+        gradientCss = `linear-gradient(0deg, ${hexToRgba(overlayHex, mainAlpha)} 0%, ${hexToRgba(overlayHex, midAlpha)} 52%, ${hexToRgba(overlayHex, softAlpha)} 100%)`;
+      }
+
+      const heroRatio = styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto'
+        ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', ' / ')};`
+        : '';
+
+      const heroStyles = {
+        ...styles,
+        title_color: (styles.title_color && styles.title_color !== '#222222') ? styles.title_color : '#ffffff',
+        text_color: (styles.text_color && styles.text_color !== '#555555') ? styles.text_color : 'rgba(255, 255, 255, 0.92)'
+      };
+
+      const nodeSettings = typeof node?.settings === 'object' && node.settings !== null ? node.settings : {};
+      const rawBtnBg = content.cta_bg_color || styles.btn_bg_color || nodeSettings.button_color || '#10b981';
+      const rawBtnText = content.cta_text_color || styles.btn_text_color || nodeSettings.button_text_color || '#ffffff';
+      const glassyBtnStyle = `background: linear-gradient(135deg, ${hexToRgba(rawBtnBg, 0.82)} 0%, ${hexToRgba(rawBtnBg, 0.56)} 100%) !important; color: ${rawBtnText} !important; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.32), inset 0 1.5px 2px rgba(255, 255, 255, 0.45), 0 0 22px ${hexToRgba(rawBtnBg, 0.48)} !important;`;
+
       return `
-        <div class="funnel-block funnel-hero-block" style="${customStyle}">
-          ${formatBlockTitle(block.title || node.title, styles, 'h1', 'funnel-hero-title')}
-          ${formatBlockText(content.description, styles, 'p', 'funnel-hero-desc')}
-          ${content.image_url ? `
-            <div class="funnel-hero-img-wrap" style="${styles.image_aspect_ratio && styles.image_aspect_ratio !== 'auto' ? `aspect-ratio: ${styles.image_aspect_ratio.replace(':', '/')}; height: auto; max-height: none;` : ''}">
-              <img src="${content.image_url}" alt="${block.title || ''}" class="funnel-hero-img" style="${imgRatioStyle}" loading="lazy">
+        <div class="funnel-block funnel-hero-block funnel-hero-overlay-mode" id="funnelHeroBlock" style="${customStyle} ${heroRatio}">
+          <img src="${heroImg}" alt="${escapeHtml(block.title || node.title || '')}" class="funnel-hero-bg-img" style="object-fit: ${styles.image_fit || 'cover'};" loading="eager" fetchpriority="high">
+          <div class="funnel-hero-light-overlay" style="background: ${gradientCss};"></div>
+          <div class="funnel-hero-overlay-content pos-${pos}">
+            ${content.badge ? `<div class="funnel-hero-badge">${escapeHtml(content.badge)}</div>` : ''}
+            ${formatBlockTitle(block.title || node.title, heroStyles, 'h1', 'funnel-hero-title')}
+            ${formatBlockText(content.description, heroStyles, 'p', 'funnel-hero-desc')}
+            <div class="w-100 mt-3 d-flex justify-content-center">
+              <a href="#orderFormBlock" onclick="event.preventDefault(); smoothScrollToOrderForm();" class="funnel-submit-btn funnel-hero-cta-btn px-5 py-3 text-decoration-none" style="width: 100%; max-width: 400px; margin: 0 auto; ${glassyBtnStyle}">
+                <i class="bi bi-lightning-charge-fill"></i>
+                <span>${content.cta_text || 'أطلب الآن واستفد من العرض'}</span>
+              </a>
             </div>
-          ` : ''}
-          <div>
-            <a href="#orderFormBlock" class="funnel-submit-btn d-inline-flex px-5 py-3 text-decoration-none mt-3" style="max-width:380px; margin: 0 auto; ${btnStyle}">
-              <i class="bi bi-lightning-charge-fill"></i>
-              <span>${content.cta_text || 'أطلب الآن واستفد من العرض'}</span>
-            </a>
           </div>
         </div>
       `;
+    }
 
     case 'heading':
       return `
@@ -897,29 +997,29 @@ function renderOffersBlock(block, offers, node) {
 
       <div class="funnel-offers-grid">
         ${offers.map((offer, idx) => {
-          const isSelected = selectedOffer && selectedOffer.id === offer.id;
-          const isPopular = offer.is_popular;
-          const settings = typeof offer.settings === 'object' && offer.settings !== null ? offer.settings : {};
+    const isSelected = selectedOffer && selectedOffer.id === offer.id;
+    const isPopular = offer.is_popular;
+    const settings = typeof offer.settings === 'object' && offer.settings !== null ? offer.settings : {};
 
-          // Image Gallery Handling
-          const offerImages = Array.isArray(offer.images) && offer.images.length > 0
-            ? offer.images
-            : (offer.image_url ? [offer.image_url] : []);
-          const primaryImg = offerImages[0] || offer.image_url;
+    // Image Gallery Handling
+    const offerImages = Array.isArray(offer.images) && offer.images.length > 0
+      ? offer.images
+      : (offer.image_url ? [offer.image_url] : []);
+    const primaryImg = offerImages[0] || offer.image_url;
 
-          // Custom Typography & Colors
-          let titleStyle = '';
-          if (settings.title_color) titleStyle += `color: ${settings.title_color} !important; `;
-          if (settings.title_size) titleStyle += `font-size: ${settings.title_size} !important; `;
+    // Custom Typography & Colors
+    let titleStyle = '';
+    if (settings.title_color) titleStyle += `color: ${settings.title_color} !important; `;
+    if (settings.title_size) titleStyle += `font-size: ${settings.title_size} !important; `;
 
-          let offerPriceStyle = priceStyle;
-          if (settings.price_color) offerPriceStyle += `color: ${settings.price_color} !important; `;
-          if (settings.price_size) offerPriceStyle += `font-size: ${settings.price_size} !important; `;
+    let offerPriceStyle = priceStyle;
+    if (settings.price_color) offerPriceStyle += `color: ${settings.price_color} !important; `;
+    if (settings.price_size) offerPriceStyle += `font-size: ${settings.price_size} !important; `;
 
-          const computedPrice = getComputedOfferPrice(offer);
-          const chosenOpts = getOfferSelectedOptions(offer);
+    const computedPrice = getComputedOfferPrice(offer);
+    const chosenOpts = getOfferSelectedOptions(offer);
 
-          return `
+    return `
             <div class="funnel-offer-card ${isSelected ? 'selected' : ''}" data-offer-id="${offer.id}">
               ${offer.badge ? `
                 <div class="funnel-offer-badge ${isPopular ? 'popular' : ''}">
@@ -988,9 +1088,9 @@ function renderOffersBlock(block, offers, node) {
                       <select class="form-select form-select-sm funnel-offer-select-dropdown" onchange="onOfferOptionDropdownChanged(${offer.id}, this.value, true)" dir="rtl">
                         <option value="">-- اختر خياراً إضافياً (اختياري) --</option>
                         ${settings.options.map(opt => {
-                          const isChecked = isOptionSelected(offer.id, opt);
-                          return `<option value="${opt.id}" ${isChecked ? 'selected' : ''}>${escapeHtml(opt.name)} (+${opt.price} دج)</option>`;
-                        }).join('')}
+      const isChecked = isOptionSelected(offer.id, opt);
+      return `<option value="${opt.id}" ${isChecked ? 'selected' : ''}>${escapeHtml(opt.name)} (+${opt.price} دج)</option>`;
+    }).join('')}
                       </select>
                     ` : `
                       <!-- Multi-Selection Droplist with interactive Selected Badges -->
@@ -1016,7 +1116,7 @@ function renderOffersBlock(block, offers, node) {
               <div class="funnel-offer-radio-indicator mt-2"></div>
             </div>
           `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
   `;
@@ -1134,6 +1234,71 @@ function initStickyScrollToTop() {
       btn.classList.remove('visible');
     }
   }, { passive: true });
+}
+
+// Sticky Small Glowing Animated "Order Now" Button (Appears after scrolling below Hero, disappears at Order Form)
+function initStickyOrderNowBtn(node, blocks = []) {
+  let btn = document.getElementById('funnelStickyOrderBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'funnelStickyOrderBtn';
+    btn.type = 'button';
+    btn.className = 'funnel-sticky-order-btn';
+    btn.addEventListener('click', () => {
+      smoothScrollToOrderForm();
+    });
+    document.body.appendChild(btn);
+  }
+
+  const nodeSettings = typeof node?.settings === 'object' && node.settings !== null ? node.settings : {};
+  const heroBlock = Array.isArray(blocks) ? blocks.find(b => b.block_type === 'hero') : null;
+  const heroContent = (heroBlock && typeof heroBlock.content === 'object' && heroBlock.content !== null) ? heroBlock.content : {};
+  const heroStyles = (heroBlock && typeof heroBlock.styles === 'object' && heroBlock.styles !== null) ? heroBlock.styles : {};
+
+  const stickyBg = heroContent.sticky_btn_color || heroContent.cta_bg_color || heroStyles.btn_bg_color || nodeSettings.button_color || '#10b981';
+  const stickyText = heroContent.cta_text_color || heroStyles.btn_text_color || nodeSettings.button_text_color || '#ffffff';
+
+  btn.style.background = `linear-gradient(135deg, ${hexToRgba(stickyBg, 0.92)} 0%, ${hexToRgba(stickyBg, 0.75)} 100%)`;
+  btn.style.color = stickyText;
+  btn.style.setProperty('--sticky-order-glow', hexToRgba(stickyBg, 0.65));
+  btn.style.setProperty('--sticky-order-glow-soft', hexToRgba(stickyBg, 0.38));
+
+  btn.innerHTML = `
+    <i class="bi bi-lightning-charge-fill"></i>
+    <span>أطلبي الآن</span>
+  `;
+
+  const updateStickyVisibility = () => {
+    const heroEl = document.getElementById('funnelHeroBlock') || document.querySelector('.funnel-hero-block');
+    const formEl = document.getElementById('orderFormBlock');
+    const promptBar = document.getElementById('funnelOrderPromptBar');
+
+    // Check if scrolled past hero section
+    let passedHero = window.scrollY > 280;
+    if (heroEl) {
+      const heroRect = heroEl.getBoundingClientRect();
+      passedHero = heroRect.bottom <= 80;
+    }
+
+    // Check if reached order form
+    let reachedOrderForm = false;
+    if (formEl) {
+      const formRect = formEl.getBoundingClientRect();
+      reachedOrderForm = formRect.top <= window.innerHeight * 0.85 && formRect.bottom >= 0;
+    }
+
+    // Hide if offer prompt bar is currently active
+    const promptActive = promptBar && promptBar.classList.contains('show');
+
+    if (passedHero && !reachedOrderForm && !promptActive) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  };
+
+  window.addEventListener('scroll', updateStickyVisibility, { passive: true });
+  updateStickyVisibility();
 }
 
 // Show animated floating prompt with bouncing arrow guiding user to order form
@@ -1783,7 +1948,7 @@ async function submitFunnelOrder(e) {
 
   const wilayaObj = ALGERIAN_WILAYAS.find(w => w.en === wilaya);
   const deliveryType = document.querySelector('input[name="funnelDeliveryType"]:checked')?.value || 'home';
-  
+
   let deliveryCost = 0;
   if (wilayaObj) {
     let homePrice = wilayaObj.home;
@@ -1893,7 +2058,7 @@ async function submitFunnelOrder(e) {
             formattedWa = formatWhatsAppTargetNumber(targetWa);
           }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const orderId = result.orderId || result.orderGroup || 'OMV-' + Date.now().toString().slice(-6);
       const waText = encodeURIComponent(`السلام عليكم! قمت بتأكيد طلبي رقم #${orderId} من خلال صفحة (${currentFunnelData?.node?.title || 'الموقع'}). أود الاستفسار والتأكيد.`);

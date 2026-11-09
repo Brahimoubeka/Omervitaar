@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               if (settings.button_text_color) btnStyle += `color: ${settings.button_text_color} !important; `;
 
               return `
-                <div class="home-funnel-card" data-funnel-id="${item.id}">
+                <div class="home-funnel-card" data-funnel-id="${item.id}" data-href="${linkUrl}" style="cursor: pointer;">
                   <div class="home-funnel-img-wrap" style="width: 100%; aspect-ratio: 1/1; overflow: hidden; position: relative;">
                     <img src="${imgUrl}" alt="${item.title}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="185" height="185" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy" decoding="async">
                   </div>
@@ -71,6 +71,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
 
     root.innerHTML = html;
+
+    root.querySelectorAll('.home-funnel-card[data-href]').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const href = card.getAttribute('data-href');
+        if (href) window.location.href = href;
+      });
+    });
   } catch (err) {
     console.error('Failed to load home featured funnels:', err);
   }
