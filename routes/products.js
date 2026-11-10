@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabase');
 const SlugUtil = require('../utils/slug-util');
+const { sendCachedJson } = require('../utils/cache');
 
 function toLocalMedia(url) {
   if (!url || typeof url !== 'string') return url;
@@ -120,29 +121,31 @@ async function enrichProducts(products) {
 // GET /api/products
 router.get('/products', async (req, res) => {
   const { category, limit } = req.query;
+  const cacheKey = `list:${category || 'all'}:${limit || 'all'}`;
   try {
-    let products = [];
-    if (category) {
-      const { data: pcData } = await supabase
-        .from('ProductCategories')
-        .select('product_id')
-        .eq('category_id', category);
-      const productIds = (pcData || []).map(pc => pc.product_id);
-      if (productIds.length === 0) return res.json([]);
-      const { data } = await supabase
-        .from('Products')
-        .select('*')
-        .in('id', productIds)
-        .neq('is_active', false)
-        .order('id', { ascending: false })
-        .limit(limit || 3);
-      products = data;
-    } else {
-      const { data } = await supabase.from('Products').select('*').neq('is_active', false);
-      products = data;
-    }
-    const enriched = await enrichProducts(products);
-    res.json(enriched);
+    await sendCachedJson(req, res, 'products', cacheKey, async () => {
+      let products = [];
+      if (category) {
+        const { data: pcData } = await supabase
+          .from('ProductCategories')
+          .select('product_id')
+          .eq('category_id', category);
+        const productIds = (pcData || []).map(pc => pc.product_id);
+        if (productIds.length === 0) return [];
+        const { data } = await supabase
+          .from('Products')
+          .select('*')
+          .in('id', productIds)
+          .neq('is_active', false)
+          .order('id', { ascending: false })
+          .limit(limit || 3);
+        products = data;
+      } else {
+        const { data } = await supabase.from('Products').select('*').neq('is_active', false);
+        products = data;
+      }
+      return await enrichProducts(products);
+    });
   } catch (err) {
     console.error('Error retrieving product:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });
@@ -154,36 +157,37 @@ router.get('/products/paginate', async (req, res) => {
   let { offset, limit, category } = req.query;
   offset = parseInt(offset, 10) || 0;
   limit = parseInt(limit, 10) || 8;
+  const cacheKey = `paginate:${category || 'all'}:${offset}:${limit}`;
   try {
-    let products = [];
-    if (category) {
-      const { data: pcData } = await supabase
-        .from('ProductCategories')
-        .select('product_id')
-        .eq('category_id', category);
-      let productIds = (pcData || []).map(pc => pc.product_id);
-      if (productIds.length === 0) return res.json([]);
-      const pagedIds = productIds.slice(offset, offset + limit);
-      if (pagedIds.length === 0) return res.json([]);
-      const { data } = await supabase
-        .from('Products')
-        .select('*')
-        .in('id', pagedIds)
-        .neq('is_active', false)
-        .order('id', { ascending: false });
-      products = pagedIds.map(id => data.find(p => p.id === id)).filter(Boolean);
-    } else {
-      const { data } = await supabase
-        .from('Products')
-        .select('*')
-        .neq('is_active', false)
-        .order('id', { ascending: false })
-        .range(offset, offset + limit - 1);
-      products = data;
-    }
-    const enriched = await enrichProducts(products);
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
-    res.json(enriched);
+    await sendCachedJson(req, res, 'products', cacheKey, async () => {
+      let products = [];
+      if (category) {
+        const { data: pcData } = await supabase
+          .from('ProductCategories')
+          .select('product_id')
+          .eq('category_id', category);
+        let productIds = (pcData || []).map(pc => pc.product_id);
+        if (productIds.length === 0) return [];
+        const pagedIds = productIds.slice(offset, offset + limit);
+        if (pagedIds.length === 0) return [];
+        const { data } = await supabase
+          .from('Products')
+          .select('*')
+          .in('id', pagedIds)
+          .neq('is_active', false)
+          .order('id', { ascending: false });
+        products = pagedIds.map(id => data.find(p => p.id === id)).filter(Boolean);
+      } else {
+        const { data } = await supabase
+          .from('Products')
+          .select('*')
+          .neq('is_active', false)
+          .order('id', { ascending: false })
+          .range(offset, offset + limit - 1);
+        products = data;
+      }
+      return await enrichProducts(products);
+    });
   } catch (err) {
     console.error('Error in /products/paginate:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });
@@ -193,14 +197,16 @@ router.get('/products/paginate', async (req, res) => {
 // GET /api/products/latest
 router.get('/products/latest', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('Products')
-      .select('*')
-      .neq('is_active', false)
-      .order('id', { ascending: false })
-      .limit(2);
-    if (error) throw error;
-    res.json(data);
+    await sendCachedJson(req, res, 'products', 'latest', async () => {
+      const { data, error } = await supabase
+        .from('Products')
+        .select('*')
+        .neq('is_active', false)
+        .order('id', { ascending: false })
+        .limit(2);
+      if (error) throw error;
+      return data;
+    });
   } catch (err) {
     res.status(500).json({ error: 'Son ürünler alınırken veritabanı hatası.' });
   }
@@ -223,50 +229,55 @@ router.get('/products/:identifier', async (req, res) => {
   }
 
   try {
-    // Fetch product row
-    const { data: prodRows, error: prodError } = await supabase
-      .from('Products')
-      .select('*')
-      .eq('id', productId);
-    if (prodError) throw prodError;
-    const row = prodRows[0];
-    if (!row) return res.status(404).json({ error: 'لم يتم العثور على المنتج' });
+    await sendCachedJson(req, res, 'products', `item:${productId}`, async () => {
+      // Fetch product row
+      const { data: prodRows, error: prodError } = await supabase
+        .from('Products')
+        .select('*')
+        .eq('id', productId);
+      if (prodError) throw prodError;
+      const row = prodRows[0];
+      if (!row) {
+        res.status(404).json({ error: 'لم يتم العثور على المنتج' });
+        return undefined;
+      }
 
-    // Batch fetch related data
-    const [catRows, imgRows, ratingRows] = await Promise.all([
-      supabase
-        .from('ProductCategories')
-        .select('category_id, Categories(id, name)')
-        .eq('product_id', productId),
-      supabase
-        .from('ProductImages')
-        .select('imagePath, id')
-        .eq('product_id', productId)
-        .order('id', { ascending: true }),
-      supabase
-        .from('Reviews')
-        .select('rating')
-        .eq('product_id', productId)
-    ]);
+      // Batch fetch related data
+      const [catRows, imgRows, ratingRows] = await Promise.all([
+        supabase
+          .from('ProductCategories')
+          .select('category_id, Categories(id, name)')
+          .eq('product_id', productId),
+        supabase
+          .from('ProductImages')
+          .select('imagePath, id')
+          .eq('product_id', productId)
+          .order('id', { ascending: true }),
+        supabase
+          .from('Reviews')
+          .select('rating')
+          .eq('product_id', productId)
+      ]);
 
-    // Categories
-    row.categories = (catRows.data || []).filter(r => r.Categories).map(r => ({ id: r.Categories.id, name: r.Categories.name }));
-    // Images
-    const images = (imgRows.data || []).sort((a, b) => a.id - b.id).map(i => toLocalMedia(i.imagePath));
-    row.images = images.length > 0 ? images : (row.imagePath ? [toLocalMedia(row.imagePath)] : []);
-    row.thumbnail = row.images[0] || toLocalMedia(row.imagePath) || 'images/default-product.jpg';
-    // Ratings
-    const ratings = (ratingRows.data || []).map(r => Number(r.rating)).filter(r => !isNaN(r));
-    row.avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
-    row.reviewCount = ratings.length;
-    // Ensure name/description are strings
-    row.name = Array.isArray(row.name) ? (row.name[0] || '') : (row.name || '');
-    row.description = Array.isArray(row.description) ? (row.description[0] || '') : (row.description || '');
+      // Categories
+      row.categories = (catRows.data || []).filter(r => r.Categories).map(r => ({ id: r.Categories.id, name: r.Categories.name }));
+      // Images
+      const images = (imgRows.data || []).sort((a, b) => a.id - b.id).map(i => toLocalMedia(i.imagePath));
+      row.images = images.length > 0 ? images : (row.imagePath ? [toLocalMedia(row.imagePath)] : []);
+      row.thumbnail = row.images[0] || toLocalMedia(row.imagePath) || 'images/default-product.jpg';
+      // Ratings
+      const ratings = (ratingRows.data || []).map(r => Number(r.rating)).filter(r => !isNaN(r));
+      row.avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
+      row.reviewCount = ratings.length;
+      // Ensure name/description are strings
+      row.name = Array.isArray(row.name) ? (row.name[0] || '') : (row.name || '');
+      row.description = Array.isArray(row.description) ? (row.description[0] || '') : (row.description || '');
 
-    // Add slug to response
-    row.slug = SlugUtil.generateProductSlug(row);
+      // Add slug to response
+      row.slug = SlugUtil.generateProductSlug(row);
 
-    res.json(row);
+      return row;
+    });
   } catch (err) {
     console.error('Error retrieving product:', err);
     res.status(500).json({ error: 'خطأ أثناء جلب المنتج' });
@@ -277,53 +288,39 @@ router.get('/products/:identifier', async (req, res) => {
 router.get('/products/:id/images', async (req, res) => {
   const productId = req.params.id;
   try {
-    const { data, error } = await supabase
-      .from('ProductImages')
-      .select('imagePath')
-      .eq('product_id', productId)
-      .order('id', { ascending: true });
-    if (error) throw error;
-    res.json((data || []).map(row => row.imagePath));
+    await sendCachedJson(req, res, 'products', `images:${productId}`, async () => {
+      const { data, error } = await supabase
+        .from('ProductImages')
+        .select('imagePath')
+        .eq('product_id', productId)
+        .order('id', { ascending: true });
+      if (error) throw error;
+      return (data || []).map(row => row.imagePath);
+    });
   } catch (err) {
     res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
 
-// In-memory cache for public categories (Protects Supabase Free Tier)
-let cachedCategories = null;
-let cachedCategoriesTime = 0;
-const CATEGORIES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
 // GET /api/categories
 router.get('/categories', async (req, res) => {
   try {
-    const now = Date.now();
-    if (cachedCategories && (now - cachedCategoriesTime < CATEGORIES_CACHE_TTL)) {
-      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
-      return res.json(cachedCategories);
-    }
+    await sendCachedJson(req, res, 'categories', 'public-categories', async () => {
+      const { data, error } = await supabase
+        .from('Categories')
+        .select('id, name, icon, color, display_order, is_active')
+        .neq('is_active', false)
+        .order('display_order', { ascending: true })
+        .order('id', { ascending: true });
+      if (error) throw error;
 
-    const { data, error } = await supabase
-      .from('Categories')
-      .select('id, name, icon, color, display_order, is_active')
-      .neq('is_active', false)
-      .order('display_order', { ascending: true })
-      .order('id', { ascending: true });
-    if (error) throw error;
-
-    // Add slugs and defaults to categories
-    const categoriesWithSlugs = (data || []).map(category => ({
-      ...category,
-      icon: category.icon || 'bi-tag',
-      color: category.color || 'orange',
-      slug: SlugUtil.generateCategorySlug(category)
-    }));
-
-    cachedCategories = categoriesWithSlugs;
-    cachedCategoriesTime = now;
-
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
-    res.json(categoriesWithSlugs);
+      return (data || []).map(category => ({
+        ...category,
+        icon: category.icon || 'bi-tag',
+        color: category.color || 'orange',
+        slug: SlugUtil.generateCategorySlug(category)
+      }));
+    });
   } catch (err) {
     console.error('Error fetching categories:', err);
     res.status(500).json({ error: 'خطأ في جلب الفئات.' });

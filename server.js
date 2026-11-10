@@ -9,12 +9,14 @@ const fs = require('fs');
 const supabase = require('./supabase');
 const jwt = require('jsonwebtoken');
 const { router: trackingRoutes, getCompiledTrackingScripts } = require('./routes/tracking');
+const { injectAssetVersionIntoHtml } = require('./utils/cache');
 
-// Helper to inject custom tracking scripts before </head> and </body>
+// Helper to inject custom tracking scripts before </head> and </body> + version static CSS/JS assets
 async function injectTrackingIntoHtml(html) {
+  const versionedHtml = injectAssetVersionIntoHtml(html);
   try {
     const { headScripts, bodyScripts } = await getCompiledTrackingScripts();
-    let result = html;
+    let result = versionedHtml;
     if (headScripts && headScripts.trim()) {
       result = result.replace('</head>', `\n<!-- [Custom Tracking Scripts Head] -->\n${headScripts}\n</head>`);
     }
@@ -24,7 +26,7 @@ async function injectTrackingIntoHtml(html) {
     return result;
   } catch (err) {
     console.error('Error injecting tracking scripts:', err);
-    return html;
+    return versionedHtml;
   }
 }
 
@@ -501,6 +503,22 @@ app.get(['/storage/v1/object/public/*', '/images/storage/*'], async (req, res) =
 
 // --- Admin folder protection middleware (MUST be before main static files) ---
 app.use('/admin', verifyAdminAccess);
+app.use('/admin', async (req, res, next) => {
+  if ((req.method === 'GET' || req.method === 'HEAD') && req.path.endsWith('.html')) {
+    try {
+      const adminFilePath = path.join(__dirname, 'public/admin', req.path.replace(/^\//, ''));
+      const content = await fs.promises.readFile(adminFilePath, 'utf8');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      return res.send(injectAssetVersionIntoHtml(content));
+    } catch (err) {
+      return next();
+    }
+  }
+  next();
+});
 app.use('/admin', express.static(path.join(__dirname, 'public/admin'), {
   maxAge: 0, // No caching
   etag: false,
@@ -631,14 +649,31 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Middleware to serve HTML pages with dynamic tracking scripts injected
+// Middleware to serve HTML pages with dynamic tracking scripts & asset versions injected
 app.use(async (req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
 
   const urlPath = req.path;
 
-  // Don't intercept admin pages or API routes
-  if (urlPath.startsWith('/admin') || urlPath.startsWith('/api')) {
+  // Don't intercept API routes
+  if (urlPath.startsWith('/api')) {
+    return next();
+  }
+
+  // Serve Admin HTML pages with versioned CSS/JS assets and strict no-cache
+  if (urlPath.startsWith('/admin/') && urlPath.endsWith('.html')) {
+    try {
+      const adminFilePath = path.join(__dirname, 'public', urlPath.replace(/^\//, ''));
+      const content = await fs.promises.readFile(adminFilePath, 'utf8');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.send(injectAssetVersionIntoHtml(content));
+    } catch (err) {
+      return next();
+    }
+  }
+
+  if (urlPath.startsWith('/admin')) {
     return next();
   }
 
@@ -837,7 +872,7 @@ async function removeFromSupabaseBranding(publicUrl) {
 app.get('/api/site-settings', async (req, res) => {
   try {
     const settings = await getSiteSettings();
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.json(settings);
   } catch (e) {
     res.status(500).json({ error: 'خطأ في تحميل إعدادات الموقع', details: e.message });
@@ -848,7 +883,7 @@ app.get('/api/site-settings', async (req, res) => {
 app.get('/api/branding', async (req, res) => {
   try {
     const settings = await getSiteSettings();
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     const sl = settings.social_links || {};
     const phones = settings.phones || [];
     const emails = settings.emails || [];

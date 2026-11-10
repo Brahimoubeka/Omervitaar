@@ -3,6 +3,7 @@ const router = express.Router();
 const supabase = require('../supabase');
 const pool = require('../db');
 const SlugUtil = require('../utils/slug-util');
+const { invalidateProductsCache, invalidateCategoriesCache } = require('../utils/cache');
 const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
 const secret = process.env.JWT_SECRET;
@@ -101,6 +102,7 @@ router.post('/admin/categories', verifyAdmin, async (req, res) => {
         created.slug = SlugUtil.generateCategorySlug(created);
         created.products_count = 0;
 
+        invalidateCategoriesCache();
         res.status(201).json({
             message: 'تم إنشاء الفئة بنجاح',
             category: created
@@ -144,6 +146,7 @@ router.put('/admin/categories/:id', verifyAdmin, async (req, res) => {
         const updated = rows[0];
         updated.slug = SlugUtil.generateCategorySlug(updated);
 
+        invalidateCategoriesCache();
         res.json({
             message: 'تم تحديث الفئة بنجاح',
             category: updated
@@ -177,6 +180,7 @@ router.put('/admin/categories/:id/toggle', verifyAdmin, async (req, res) => {
             return res.status(404).json({ error: 'الفئة غير موجودة' });
         }
 
+        invalidateCategoriesCache();
         res.json({
             message: 'تم تغيير حالة الفئة بنجاح',
             category: rows[0]
@@ -204,6 +208,7 @@ router.delete('/admin/categories/:id', verifyAdmin, async (req, res) => {
             return res.status(404).json({ error: 'الفئة غير موجودة' });
         }
 
+        invalidateCategoriesCache();
         res.json({ message: 'تم حذف الفئة بنجاح' });
     } catch (err) {
         console.error('Error deleting category:', err);
@@ -294,8 +299,10 @@ router.post('/admin/products', verifyAdmin, async (req, res) => {
                         .insert([{ product_id: productId, imagePath: publicUrl }]);
                     if (imgError) throw imgError;
                 }
+                invalidateProductsCache();
                 res.json({ message: 'تم اضافة المنتج.', productId });
             } else {
+                invalidateProductsCache();
                 res.json({ message: 'تم اضافة منتج من دون صور', productId });
             }
         } catch (err) {
@@ -401,6 +408,7 @@ router.put('/admin/products/:id', verifyAdmin, async (req, res) => {
                     if (imgInsertError) throw imgInsertError;
                 }
             }
+            invalidateProductsCache();
             res.json({ message: 'تم تحديث المنتج بنجاح' });
         } catch (err) {
             console.error(err);
@@ -445,6 +453,7 @@ router.delete('/admin/products/:id', verifyAdmin, async (req, res) => {
         await supabase.from('ProductCategories').delete().eq('product_id', productId);
         // Remove product
         await supabase.from('Products').delete().eq('id', productId);
+        invalidateProductsCache();
         res.json({ message: 'تم حذف المنتج وجميع البيانات المرتبطة به بنجاح.' });
     } catch (err) {
         console.error('Error deleting product:', err);
@@ -474,6 +483,7 @@ router.put('/admin/products/:id/toggle-active', verifyAdmin, async (req, res) =>
             .update({ is_active })
             .eq('id', productId);
         if (error) throw error;
+        invalidateProductsCache();
         res.json({ message: 'تم تحديث حالة المنتج بنجاح' });
     } catch (err) {
         console.error('Error toggling product active status:', err);

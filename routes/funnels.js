@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
 const formidable = require('formidable');
+const { sendCachedJson, invalidateFunnelsCache } = require('../utils/cache');
 
 // Upload buffer to Supabase Storage (product-images bucket) and return public URL
 async function uploadFunnelMediaToSupabase(fileName, buffer, mimetype) {
@@ -120,31 +121,30 @@ function normalizeOfferMedia(offer) {
  */
 router.get('/funnels/home-featured', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT id, parent_id, slug, title, subtitle, image_url, button_text, type, settings, order_index
-      FROM public.funnel_nodes
-      WHERE parent_id IS NULL AND is_active = true AND show_on_home = true
-      ORDER BY order_index ASC, id ASC
-    `);
-
-    // For each root node, also fetch direct active sub-sections to display as quick tags or count
-    const enriched = await Promise.all(rows.map(async (node) => {
-      const { rows: subNodes } = await pool.query(`
-        SELECT id, slug, title, subtitle, image_url, button_text, type
+    await sendCachedJson(req, res, 'funnels', 'home-featured', async () => {
+      const { rows } = await pool.query(`
+        SELECT id, parent_id, slug, title, subtitle, image_url, button_text, type, settings, order_index
         FROM public.funnel_nodes
-        WHERE parent_id = $1 AND is_active = true
+        WHERE parent_id IS NULL AND is_active = true AND show_on_home = true
         ORDER BY order_index ASC, id ASC
-        LIMIT 6
-      `, [node.id]);
-      return {
-        ...node,
-        image_url: toLocalMedia(node.image_url),
-        sub_sections: subNodes.map(s => ({ ...s, image_url: toLocalMedia(s.image_url) }))
-      };
-    }));
+      `);
 
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=1800');
-    res.json(enriched);
+      // For each root node, also fetch direct active sub-sections to display as quick tags or count
+      return await Promise.all(rows.map(async (node) => {
+        const { rows: subNodes } = await pool.query(`
+          SELECT id, slug, title, subtitle, image_url, button_text, type
+          FROM public.funnel_nodes
+          WHERE parent_id = $1 AND is_active = true
+          ORDER BY order_index ASC, id ASC
+          LIMIT 6
+        `, [node.id]);
+        return {
+          ...node,
+          image_url: toLocalMedia(node.image_url),
+          sub_sections: subNodes.map(s => ({ ...s, image_url: toLocalMedia(s.image_url) }))
+        };
+      }));
+    });
   } catch (err) {
     console.error('Error fetching home featured funnels:', err);
     res.status(500).json({ error: 'حدث خطأ أثناء تحميل الأقسام المميزة' });
@@ -173,109 +173,112 @@ router.get('/funnels/node/:slug', async (req, res) => {
   } catch (e) {}
 
   try {
-    // 1. Fetch node by matching raw, decoded, or encoded slug
-    const { rows: nodeRows } = await pool.query(`
-      SELECT * FROM public.funnel_nodes
-      WHERE (slug = $1 OR slug = $2 OR slug = $3 OR slug ILIKE $2) AND is_active = true
-      LIMIT 1
-    `, [rawSlug, decodedSlug, encodedSlug]);
+    await sendCachedJson(req, res, 'funnels', `node:${decodedSlug}`, async () => {
+      // 1. Fetch node by matching raw, decoded, or encoded slug
+      const { rows: nodeRows } = await pool.query(`
+        SELECT * FROM public.funnel_nodes
+        WHERE (slug = $1 OR slug = $2 OR slug = $3 OR slug ILIKE $2) AND is_active = true
+        LIMIT 1
+      `, [rawSlug, decodedSlug, encodedSlug]);
 
-    if (nodeRows.length === 0) {
-      return res.status(404).json({ error: 'القسم أو صفحة الهبوط غير موجودة' });
-    }
-
-    const node = nodeRows[0];
-
-    // 2. Build breadcrumb chain (traverse parents)
-    const breadcrumbs = [];
-    let currentParentId = node.parent_id;
-    while (currentParentId) {
-      const { rows: parentRows } = await pool.query(`
-        SELECT id, parent_id, slug, title, type
-        FROM public.funnel_nodes
-        WHERE id = $1
-      `, [currentParentId]);
-      if (parentRows.length === 0) break;
-      breadcrumbs.unshift(parentRows[0]);
-      currentParentId = parentRows[0].parent_id;
-    }
-
-    let children = [];
-    let blocks = [];
-    let offers = [];
-
-    if (node.type === 'section') {
-      // 3a. If section, fetch child nodes with settings
-      const { rows: childRows } = await pool.query(`
-        SELECT id, parent_id, slug, title, subtitle, image_url, button_text, type, order_index, settings
-        FROM public.funnel_nodes
-        WHERE parent_id = $1 AND is_active = true
-        ORDER BY order_index ASC, id ASC
-      `, [node.id]);
-      children = childRows;
-    } else {
-      // 3b. If landing_page, fetch blocks
-      const { rows: blockRows } = await pool.query(`
-        SELECT id, node_id, block_type, title, content, styles, order_index
-        FROM public.landing_page_blocks
-        WHERE node_id = $1 AND is_active = true
-        ORDER BY order_index ASC, id ASC
-      `, [node.id]);
-      blocks = blockRows;
-
-      // Enrich product_card blocks with real-time product data if product_id is specified
-      for (const block of blocks) {
-        if (block.block_type === 'product_card' && block.content?.product_id) {
-          try {
-            const { rows: prodRows } = await pool.query(`
-              SELECT 
-                p.id, p.name, p.price,
-                COALESCE(p."imagePath", (SELECT "imagePath" FROM public."ProductImages" WHERE product_id = p.id LIMIT 1), '/images/category-banner-oil.jpg') as image,
-                p.stock, p.is_free_delivery, p.description,
-                COALESCE(ROUND(AVG(r.rating)::numeric, 1), 5.0) as avg_rating,
-                COUNT(r.id)::int as review_count,
-                (
-                  SELECT string_agg(c.name, ' • ')
-                  FROM public."ProductCategories" pc
-                  JOIN public."Categories" c ON c.id = pc.category_id
-                  WHERE pc.product_id = p.id
-                ) as category_names
-              FROM public."Products" p
-              LEFT JOIN public."Reviews" r ON r.product_id = p.id
-              WHERE p.id = $1
-              GROUP BY p.id
-            `, [block.content.product_id]);
-            if (prodRows.length > 0) {
-              block.product_data = prodRows[0];
-            }
-          } catch (e) {
-            console.warn('Could not fetch product for block:', e.message);
-          }
-        }
+      if (nodeRows.length === 0) {
+        res.status(404).json({ error: 'القسم أو صفحة الهبوط غير موجودة' });
+        return undefined;
       }
 
-      // 4. Fetch offers
-      const { rows: offerRows } = await pool.query(`
-        SELECT o.*, p.name as product_name, p."imagePath" as product_image
-        FROM public.landing_page_offers o
-        LEFT JOIN public."Products" p ON p.id = o.product_id
-        WHERE o.node_id = $1
-        ORDER BY o.order_index ASC, o.id ASC
-      `, [node.id]);
-      offers = offerRows;
-    }
+      const node = nodeRows[0];
 
-    node.image_url = toLocalMedia(node.image_url);
-    children = children.map(c => ({ ...c, image_url: toLocalMedia(c.image_url) }));
-    blocks = blocks.map(normalizeBlockMedia);
-    offers = offers.map(normalizeOfferMedia);
+      // 2. Build breadcrumb chain (traverse parents)
+      const breadcrumbs = [];
+      let currentParentId = node.parent_id;
+      while (currentParentId) {
+        const { rows: parentRows } = await pool.query(`
+          SELECT id, parent_id, slug, title, type
+          FROM public.funnel_nodes
+          WHERE id = $1
+        `, [currentParentId]);
+        if (parentRows.length === 0) break;
+        breadcrumbs.unshift(parentRows[0]);
+        currentParentId = parentRows[0].parent_id;
+      }
 
-    res.json({
-      node,
-      breadcrumbs,
-      children,
-      blocks,
-      offers
+      let children = [];
+      let blocks = [];
+      let offers = [];
+
+      if (node.type === 'section') {
+        // 3a. If section, fetch child nodes with settings
+        const { rows: childRows } = await pool.query(`
+          SELECT id, parent_id, slug, title, subtitle, image_url, button_text, type, order_index, settings
+          FROM public.funnel_nodes
+          WHERE parent_id = $1 AND is_active = true
+          ORDER BY order_index ASC, id ASC
+        `, [node.id]);
+        children = childRows;
+      } else {
+        // 3b. If landing_page, fetch blocks
+        const { rows: blockRows } = await pool.query(`
+          SELECT id, node_id, block_type, title, content, styles, order_index
+          FROM public.landing_page_blocks
+          WHERE node_id = $1 AND is_active = true
+          ORDER BY order_index ASC, id ASC
+        `, [node.id]);
+        blocks = blockRows;
+
+        // Enrich product_card blocks with real-time product data if product_id is specified
+        for (const block of blocks) {
+          if (block.block_type === 'product_card' && block.content?.product_id) {
+            try {
+              const { rows: prodRows } = await pool.query(`
+                SELECT 
+                  p.id, p.name, p.price,
+                  COALESCE(p."imagePath", (SELECT "imagePath" FROM public."ProductImages" WHERE product_id = p.id LIMIT 1), '/images/category-banner-oil.jpg') as image,
+                  p.stock, p.is_free_delivery, p.description,
+                  COALESCE(ROUND(AVG(r.rating)::numeric, 1), 5.0) as avg_rating,
+                  COUNT(r.id)::int as review_count,
+                  (
+                    SELECT string_agg(c.name, ' • ')
+                    FROM public."ProductCategories" pc
+                    JOIN public."Categories" c ON c.id = pc.category_id
+                    WHERE pc.product_id = p.id
+                  ) as category_names
+                FROM public."Products" p
+                LEFT JOIN public."Reviews" r ON r.product_id = p.id
+                WHERE p.id = $1
+                GROUP BY p.id
+              `, [block.content.product_id]);
+              if (prodRows.length > 0) {
+                block.product_data = prodRows[0];
+              }
+            } catch (e) {
+              console.warn('Could not fetch product for block:', e.message);
+            }
+          }
+        }
+
+        // 4. Fetch offers
+        const { rows: offerRows } = await pool.query(`
+          SELECT o.*, p.name as product_name, p."imagePath" as product_image
+          FROM public.landing_page_offers o
+          LEFT JOIN public."Products" p ON p.id = o.product_id
+          WHERE o.node_id = $1
+          ORDER BY o.order_index ASC, o.id ASC
+        `, [node.id]);
+        offers = offerRows;
+      }
+
+      node.image_url = toLocalMedia(node.image_url);
+      children = children.map(c => ({ ...c, image_url: toLocalMedia(c.image_url) }));
+      blocks = blocks.map(normalizeBlockMedia);
+      offers = offers.map(normalizeOfferMedia);
+
+      return {
+        node,
+        breadcrumbs,
+        children,
+        blocks,
+        offers
+      };
     });
   } catch (err) {
     console.error('Error fetching funnel node:', err);
@@ -429,6 +432,7 @@ router.post('/admin/funnels/node', verifyAdmin, async (req, res) => {
     ]);
 
     const newNode = rows[0];
+    invalidateFunnelsCache();
 
     // New landing pages start completely blank as requested
     res.status(201).json(newNode);
@@ -516,6 +520,7 @@ router.put('/admin/funnels/node/:id', verifyAdmin, async (req, res) => {
       return res.status(404).json({ error: 'القسم غير موجود' });
     }
 
+    invalidateFunnelsCache();
     res.json(rows[0]);
   } catch (err) {
     console.error('Error updating funnel node:', err);
@@ -537,6 +542,7 @@ router.delete('/admin/funnels/node/:id', verifyAdmin, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'القسم غير موجود' });
     }
+    invalidateFunnelsCache();
     res.json({ message: 'تم حذف القسم وجميع العناصر المرتبطة به بنجاح', deleted: rows[0] });
   } catch (err) {
     console.error('Error deleting funnel node:', err);
@@ -588,6 +594,7 @@ router.put('/admin/funnels/blocks/:nodeId', verifyAdmin, async (req, res) => {
       [nodeId]
     );
 
+    invalidateFunnelsCache();
     res.json({ message: 'تم حفظ وتحديث كتل صفحة الهبوط بنجاح', blocks: savedBlocks });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -657,6 +664,7 @@ router.put('/admin/funnels/offers/:nodeId', verifyAdmin, async (req, res) => {
       ORDER BY o.order_index ASC
     `, [nodeId]);
 
+    invalidateFunnelsCache();
     res.json({ message: 'تم حفظ وتحديث باقات العروض بنجاح', offers: savedOffers });
   } catch (err) {
     await client.query('ROLLBACK');
