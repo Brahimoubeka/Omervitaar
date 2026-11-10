@@ -62,7 +62,9 @@ async function sendCachedJson(req, res, group, key, fetcher, ttlMs = DEFAULT_TTL
     store.set(key, entry);
   }
 
-  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
   res.setHeader('ETag', entry.etag);
 
   const ifNoneMatch = req.headers['if-none-match'];

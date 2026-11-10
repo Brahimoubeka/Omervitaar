@@ -342,6 +342,8 @@ function removeNodeImage(idx) {
   renderNodeGallery();
 }
 
+let nodeUploadPromise = null;
+
 // Upload multiple images from device for node
 async function uploadNodeImagesFromDevice() {
   const fileInput = document.getElementById('nodeDeviceFileInput');
@@ -349,7 +351,6 @@ async function uploadNodeImagesFromDevice() {
   const uploadBtn = document.getElementById('nodeUploadBtn');
 
   if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-    alert('يرجى اختيار صورة واحدة على الأقل من جهازك');
     return;
   }
 
@@ -361,40 +362,46 @@ async function uploadNodeImagesFromDevice() {
   if (spinner) spinner.style.display = 'block';
   if (uploadBtn) uploadBtn.disabled = true;
 
-  try {
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
-    const res = await fetch('/api/admin/funnels/upload-images', {
-      method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : ''
-      },
-      body: formData
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'فشل رفع الصور');
-
-    if (Array.isArray(data.urls)) {
-      data.urls.forEach(u => {
-        if (!nodeGalleryImages.includes(u)) {
-          nodeGalleryImages.push(u);
-        }
+  nodeUploadPromise = (async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/admin/funnels/upload-images', {
+        method: 'POST',
+        headers: {
+          Authorization: token ? `Bearer ${token}` : ''
+        },
+        body: formData
       });
-      const primaryInput = document.getElementById('nodeImageUrl');
-      if (primaryInput && !primaryInput.value) {
-        primaryInput.value = nodeGalleryImages[0] || '';
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'فشل رفع الصور');
+
+      if (Array.isArray(data.urls) && data.urls.length > 0) {
+        // Place newly uploaded images at the front and set the first one as primary immediately
+        const newUrls = data.urls.filter(Boolean);
+        nodeGalleryImages = [
+          ...newUrls,
+          ...nodeGalleryImages.filter(u => !newUrls.includes(u))
+        ];
+        const primaryInput = document.getElementById('nodeImageUrl');
+        if (primaryInput) {
+          primaryInput.value = newUrls[0];
+        }
+        renderNodeGallery();
+        showToast(`تم رفع الصورة وتعيينها كرئيسية بنجاح! 🎉`);
+        fileInput.value = '';
       }
-      renderNodeGallery();
-      showToast(`تم رفع ${data.urls.length} صور بنجاح! 🎉`);
-      fileInput.value = '';
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert(`حدث خطأ أثناء رفع الصور: ${err.message}`);
+    } finally {
+      if (spinner) spinner.style.display = 'none';
+      if (uploadBtn) uploadBtn.disabled = false;
+      nodeUploadPromise = null;
     }
-  } catch (err) {
-    console.error('Upload error:', err);
-    alert(`حدث خطأ أثناء رفع الصور: ${err.message}`);
-  } finally {
-    if (spinner) spinner.style.display = 'none';
-    if (uploadBtn) uploadBtn.disabled = false;
-  }
+  })();
+
+  return nodeUploadPromise;
 }
 
 // Open Modal: Add Root Node
@@ -520,6 +527,18 @@ function openEditNodeModal(nodeId) {
 // Submit Node Form (Create or Update)
 async function handleNodeFormSubmit(e) {
   e.preventDefault();
+  const btn = document.getElementById('nodeSubmitBtn');
+  btn.disabled = true;
+
+  if (nodeUploadPromise) {
+    await nodeUploadPromise;
+  } else {
+    const fileInput = document.getElementById('nodeDeviceFileInput');
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      await uploadNodeImagesFromDevice();
+    }
+  }
+
   const id = document.getElementById('nodeId').value;
   const parentId = document.getElementById('nodeParentId').value;
 
@@ -527,6 +546,9 @@ async function handleNodeFormSubmit(e) {
   const existingSettings = (existingNode && typeof existingNode.settings === 'object') ? existingNode.settings : {};
 
   const primaryImg = document.getElementById('nodeImageUrl').value.trim() || (nodeGalleryImages[0] || null);
+  if (primaryImg && !nodeGalleryImages.includes(primaryImg)) {
+    nodeGalleryImages.unshift(primaryImg);
+  }
 
   const payload = {
     parent_id: parentId ? parseInt(parentId, 10) : null,
@@ -557,9 +579,6 @@ async function handleNodeFormSubmit(e) {
       ticker_text_color: document.getElementById('nodeTickerTextColor')?.value || '#ffffff'
     }
   };
-
-  const btn = document.getElementById('nodeSubmitBtn');
-  btn.disabled = true;
 
   try {
     const url = id ? `/api/admin/funnels/node/${id}` : '/api/admin/funnels/node';
@@ -757,7 +776,7 @@ function renderBlockSummarySnippet(block) {
 }
 
 // Move Block Up or Down
-function moveBlock(index, direction) {
+async function moveBlock(index, direction) {
   const targetIndex = index + direction;
   if (targetIndex < 0 || targetIndex >= currentBlocks.length) return;
 
@@ -766,13 +785,15 @@ function moveBlock(index, direction) {
   currentBlocks[targetIndex] = temp;
 
   renderBlocksCanvas();
+  await saveLandingPageBlocksAndOffers();
 }
 
 // Remove Block
-function removeBlock(index) {
+async function removeBlock(index) {
   if (!confirm('هل أنت متأكد من حذف هذه الكتلة من الصفحة؟')) return;
   currentBlocks.splice(index, 1);
   renderBlocksCanvas();
+  await saveLandingPageBlocksAndOffers();
 }
 
 // ==========================================================================
@@ -1136,29 +1157,53 @@ function onBlockTypeChange() {
   }
 }
 
+let blockUploadPromise = null;
+
 // Helpers to upload images from device for blocks
 async function uploadSingleImageForBlock(input, targetFieldId) {
   if (!input.files || !input.files[0]) return;
   const formData = new FormData();
   formData.append('images', input.files[0]);
 
-  try {
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
-    const res = await fetch('/api/admin/funnels/upload-images', {
-      method: 'POST',
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-      body: formData
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'فشل رفع الصورة');
-    const field = document.getElementById(targetFieldId);
-    if (field && data.primaryUrl) {
-      field.value = data.primaryUrl;
-      showToast('تم رفع الصورة بنجاح من جهازك! 🎉');
+  const submitBtn = document.querySelector('#blockForm button[type="submit"]');
+  if (submitBtn) submitBtn.disabled = true;
+
+  blockUploadPromise = (async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || '';
+      const res = await fetch('/api/admin/funnels/upload-images', {
+        method: 'POST',
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'فشل رفع الصورة');
+      const field = document.getElementById(targetFieldId);
+      if (field && data.primaryUrl) {
+        field.value = data.primaryUrl;
+
+        // If editing an existing block, immediately persist the new image URL to the block & database
+        const editIdx = parseInt(document.getElementById('blockEditIndex')?.value, 10);
+        if (!isNaN(editIdx) && editIdx >= 0 && currentBlocks[editIdx]) {
+          currentBlocks[editIdx].content = {
+            ...(currentBlocks[editIdx].content || {}),
+            image_url: data.primaryUrl
+          };
+          renderBlocksCanvas();
+          await saveLandingPageBlocksAndOffers();
+        } else {
+          showToast('تم رفع الصورة بنجاح من جهازك! 🎉');
+        }
+      }
+    } catch (err) {
+      alert(`فشل رفع الصورة: ${err.message}`);
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+      blockUploadPromise = null;
     }
-  } catch (err) {
-    alert(`فشل رفع الصورة: ${err.message}`);
-  }
+  })();
+
+  return blockUploadPromise;
 }
 
 async function uploadMultipleImagesForBlock(input, targetFieldId) {
@@ -1310,8 +1355,11 @@ function populateBlockDynamicFields(block) {
 }
 
 // Handle Block Save in Form
-function handleBlockFormSubmit(e) {
+async function handleBlockFormSubmit(e) {
   e.preventDefault();
+  if (blockUploadPromise) {
+    await blockUploadPromise;
+  }
   const index = parseInt(document.getElementById('blockEditIndex').value, 10);
   const type = document.getElementById('blockType').value;
   const title = document.getElementById('blockTitleInput').value.trim();
@@ -1415,6 +1463,7 @@ function handleBlockFormSubmit(e) {
 
   blockModalInstance.hide();
   renderBlocksCanvas();
+  await saveLandingPageBlocksAndOffers();
 }
 
 // ==========================================================================
@@ -1442,9 +1491,10 @@ function harvestOffersFromDOM() {
     const imageUrl = tr.querySelector('[data-field="image_url"]')?.value.trim() || '';
     const freeDelivery = tr.querySelector('[data-field="free_delivery"]')?.checked || false;
 
-    const images = Array.isArray(existing.images) && existing.images.length > 0
-      ? existing.images
-      : (imageUrl ? [imageUrl] : []);
+    const prevImages = Array.isArray(existing.images) ? existing.images : [];
+    const images = imageUrl
+      ? [imageUrl, ...prevImages.filter(u => u && u !== imageUrl)]
+      : prevImages;
 
     harvested.push({
       ...existing,
@@ -1595,24 +1645,22 @@ async function uploadSingleOfferImage(event, idx) {
       harvestOffersFromDOM();
       if (currentOffers[idx]) {
         currentOffers[idx].image_url = data.urls[0];
-        if (!Array.isArray(currentOffers[idx].images) || currentOffers[idx].images.length === 0) {
-          currentOffers[idx].images = [data.urls[0]];
-        } else {
-          currentOffers[idx].images[0] = data.urls[0];
-        }
+        const prevImgs = Array.isArray(currentOffers[idx].images) ? currentOffers[idx].images : [];
+        currentOffers[idx].images = [data.urls[0], ...prevImgs.filter(u => u !== data.urls[0])];
       }
       renderOffersModalTable();
-      showToast('تم رفع صورة العرض بنجاح 🖼️');
+      await saveLandingPageBlocksAndOffers();
+      showToast('تم رفع وحفظ صورة العرض بنجاح 🖼️');
     }
   } catch (err) {
     alert(`خطأ أثناء رفع الصورة: ${err.message}`);
   }
 }
 
-function saveOffersFromModal() {
+async function saveOffersFromModal() {
   harvestOffersFromDOM();
   offersModalInstance.hide();
-  showToast('تم تحديث قائمة العروض. اضغط "حفظ جميع التعديلات" لحفظها نهائياً.');
+  await saveLandingPageBlocksAndOffers();
 }
 
 // ==========================================================================
@@ -1713,14 +1761,20 @@ async function uploadMultipleOfferImages(event) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'فشل رفع الصور');
 
-    if (Array.isArray(data.urls)) {
-      data.urls.forEach(u => {
-        if (!activeCustomizingOfferImages.includes(u)) {
-          activeCustomizingOfferImages.push(u);
-        }
-      });
+    if (Array.isArray(data.urls) && data.urls.length > 0) {
+      const newUrls = data.urls.filter(Boolean);
+      activeCustomizingOfferImages = [
+        ...newUrls,
+        ...activeCustomizingOfferImages.filter(u => !newUrls.includes(u))
+      ];
+      if (activeCustomizingOfferIdx !== null && currentOffers[activeCustomizingOfferIdx]) {
+        currentOffers[activeCustomizingOfferIdx].images = [...activeCustomizingOfferImages];
+        currentOffers[activeCustomizingOfferIdx].image_url = activeCustomizingOfferImages[0];
+        renderOffersModalTable();
+        await saveLandingPageBlocksAndOffers();
+      }
       renderOfferImagesGalleryPreview();
-      showToast(`تم رفع ${data.urls.length} صور للعرض بنجاح! 🖼️`);
+      showToast(`تم رفع وحفظ الصورة كرئيسية للعرض بنجاح! 🖼️`);
     }
   } catch (err) {
     alert(`خطأ أثناء رفع الصور: ${err.message}`);
@@ -2039,7 +2093,7 @@ function saveOfferCustomizerChanges() {
   }
 
   renderOffersModalTable();
-  showToast('تم حفظ وتطبيق التخصيصات على العرض بنجاح! 🎉');
+  saveLandingPageBlocksAndOffers();
 }
 
 // ==========================================================================

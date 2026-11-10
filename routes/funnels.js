@@ -66,9 +66,13 @@ function toLocalMedia(url) {
   }
   if (url.startsWith('/uploads/funnels/')) {
     const webpPath = url.replace(/\.(jpeg|jpg|png|jfif)$/i, '.webp');
-    const localFsPath = path.join(__dirname, '..', 'public', webpPath);
-    if (fs.existsSync(localFsPath)) {
+    const localWebpFsPath = path.join(__dirname, '..', 'public', webpPath);
+    if (fs.existsSync(localWebpFsPath)) {
       return webpPath;
+    }
+    const localOrigFsPath = path.join(__dirname, '..', 'public', url);
+    if (!fs.existsSync(localOrigFsPath)) {
+      return '';
     }
   }
   return url;
