@@ -14,6 +14,7 @@ let nodeModalInstance = null;
 let blockModalInstance = null;
 let offersModalInstance = null;
 let offerCustomizerModalInstance = null;
+let duplicateNodeModalInstance = null;
 
 // HTML Escaping Helper
 function escapeHtml(str) {
@@ -58,6 +59,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const offerCustEl = document.getElementById('offerCustomizerModal');
   if (offerCustEl) {
     offerCustomizerModalInstance = new bootstrap.Modal(offerCustEl);
+  }
+  const dupModalEl = document.getElementById('duplicateNodeModal');
+  if (dupModalEl) {
+    duplicateNodeModalInstance = new bootstrap.Modal(dupModalEl);
   }
 
   await loadProductsList();
@@ -268,7 +273,11 @@ function renderNodeItem(node, depth = 0, parentTitle = null) {
             <i class="bi bi-box-arrow-up-right"></i>
           </a>
 
-          <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openEditNodeModal(${node.id})" title="تعديل">
+          <button class="btn btn-sm btn-outline-success rounded-pill fw-bold" onclick="openDuplicateNodeModal(${node.id})" title="نسخ الصفحة إلى نفس القسم أو قسم آخر">
+            <i class="bi bi-files me-1"></i>نسخ
+          </button>
+
+          <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openEditNodeModal(${node.id})" title="تعديل أو نقل">
             <i class="bi bi-pencil"></i>
           </button>
 
@@ -404,12 +413,56 @@ async function uploadNodeImagesFromDevice() {
   return nodeUploadPromise;
 }
 
+// Helper: Populate Parent Sections Dropdown (supports infinite depth & excludes self/descendants)
+function populateParentSectionsDropdown(selectEl, excludeNodeId = null, selectedParentId = '') {
+  if (!selectEl) return;
+
+  // Collect excluded IDs (node itself + its descendants) so a section cannot be moved inside itself
+  const excludedIds = new Set();
+  if (excludeNodeId) {
+    excludedIds.add(Number(excludeNodeId));
+    let added = true;
+    while (added) {
+      added = false;
+      allNodesList.forEach(n => {
+        if (n.parent_id && excludedIds.has(Number(n.parent_id)) && !excludedIds.has(Number(n.id))) {
+          excludedIds.add(Number(n.id));
+          added = true;
+        }
+      });
+    }
+  }
+
+  selectEl.innerHTML = '<option value="">🏠 قسم رئيسي (بدون قسم أب - يظهر في المستوى الأول)</option>';
+
+  function walkSections(nodes, prefix = '') {
+    if (!Array.isArray(nodes)) return;
+    nodes.forEach(node => {
+      if (excludedIds.has(Number(node.id))) return;
+      if (node.type === 'section') {
+        const opt = document.createElement('option');
+        opt.value = node.id;
+        const label = prefix ? `${prefix} ➔ ${node.title}` : `📁 ${node.title}`;
+        opt.textContent = label;
+        selectEl.appendChild(opt);
+        if (Array.isArray(node.children) && node.children.length > 0) {
+          walkSections(node.children, label);
+        }
+      }
+    });
+  }
+
+  walkSections(funnelsTreeData, '');
+  selectEl.value = selectedParentId ? String(selectedParentId) : '';
+}
+
 // Open Modal: Add Root Node
 function openCreateNodeModal() {
   document.getElementById('nodeForm').reset();
   document.getElementById('nodeId').value = '';
   document.getElementById('nodeParentId').value = '';
-  document.getElementById('nodeParentRow').style.display = 'none';
+  const parentSelect = document.getElementById('nodeParentSelect');
+  populateParentSectionsDropdown(parentSelect, null, '');
   document.getElementById('nodeModalTitle').innerHTML = '<i class="bi bi-folder-plus me-2"></i>إضافة قسم رئيسي جديد';
   document.getElementById('nodeType').value = 'section';
   document.getElementById('nodeShowOnHome').checked = true;
@@ -441,9 +494,9 @@ function openAddChildNodeModal(parentId, parentTitle) {
   document.getElementById('nodeForm').reset();
   document.getElementById('nodeId').value = '';
   document.getElementById('nodeParentId').value = parentId;
-  document.getElementById('nodeParentRow').style.display = 'block';
-  document.getElementById('nodeParentName').textContent = parentTitle;
-  document.getElementById('nodeModalTitle').innerHTML = `<i class="bi bi-node-plus me-2"></i>إضافة قسم فرعي داخل [${parentTitle}]`;
+  const parentSelect = document.getElementById('nodeParentSelect');
+  populateParentSectionsDropdown(parentSelect, null, parentId);
+  document.getElementById('nodeModalTitle').innerHTML = `<i class="bi bi-node-plus me-2"></i>إضافة قسم فرعي أو صفحة داخل [${parentTitle}]`;
   document.getElementById('nodeType').value = 'landing_page';
   document.getElementById('nodeShowOnHome').checked = false;
   document.getElementById('nodeIsActive').checked = true;
@@ -476,6 +529,8 @@ function openEditNodeModal(nodeId) {
 
   document.getElementById('nodeId').value = node.id;
   document.getElementById('nodeParentId').value = node.parent_id || '';
+  const parentSelect = document.getElementById('nodeParentSelect');
+  populateParentSectionsDropdown(parentSelect, node.id, node.parent_id || '');
   document.getElementById('nodeTitle').value = node.title || '';
   document.getElementById('nodeSlug').value = node.slug || '';
   document.getElementById('nodeSubtitle').value = node.subtitle || '';
@@ -512,16 +567,86 @@ function openEditNodeModal(nodeId) {
   }
   renderNodeGallery();
 
-  if (node.parent_id) {
-    const parent = allNodesList.find(n => n.id === node.parent_id);
-    document.getElementById('nodeParentRow').style.display = 'block';
-    document.getElementById('nodeParentName').textContent = parent ? parent.title : `القسم #${node.parent_id}`;
-  } else {
-    document.getElementById('nodeParentRow').style.display = 'none';
-  }
-
   document.getElementById('nodeModalTitle').innerHTML = `<i class="bi bi-pencil-square me-2"></i>تعديل [${node.title}]`;
   nodeModalInstance.show();
+}
+
+// Open Modal: Duplicate Node (Clone Landing Page + Blocks + Offers to Any Section)
+function openDuplicateNodeModal(nodeId) {
+  const node = allNodesList.find(n => Number(n.id) === Number(nodeId));
+  if (!node) {
+    showToast('يرجى اختيار صفحة أولاً', true);
+    return;
+  }
+
+  const srcIdEl = document.getElementById('dupSourceNodeId');
+  if (srcIdEl) srcIdEl.value = node.id;
+
+  const titleDisplayEl = document.getElementById('dupSourceNodeTitleDisplay');
+  if (titleDisplayEl) titleDisplayEl.textContent = `${node.title} (${node.slug})`;
+
+  const dupTitleEl = document.getElementById('dupNodeTitle');
+  if (dupTitleEl) dupTitleEl.value = `${node.title} - نسخة`;
+
+  const dupSlugEl = document.getElementById('dupNodeSlug');
+  if (dupSlugEl) dupSlugEl.value = '';
+
+  const dupOpenBuilderEl = document.getElementById('dupOpenInBuilder');
+  if (dupOpenBuilderEl) dupOpenBuilderEl.checked = node.type === 'landing_page';
+
+  const dupParentSelect = document.getElementById('dupNodeParentSelect');
+  populateParentSectionsDropdown(dupParentSelect, null, node.parent_id || '');
+
+  const modalEl = document.getElementById('duplicateNodeModal');
+  if (!duplicateNodeModalInstance && modalEl) {
+    duplicateNodeModalInstance = new bootstrap.Modal(modalEl);
+  }
+  if (duplicateNodeModalInstance) {
+    duplicateNodeModalInstance.show();
+  }
+}
+
+// Submit Duplicate Node Form
+async function handleDuplicateNodeSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('dupSubmitBtn') || document.getElementById('dupNodeSubmitBtn');
+  if (btn) btn.disabled = true;
+
+  const sourceId = document.getElementById('dupSourceNodeId').value;
+  const title = document.getElementById('dupNodeTitle').value.trim();
+  const parentVal = document.getElementById('dupNodeParentSelect').value;
+  const slug = document.getElementById('dupNodeSlug').value.trim();
+  const openInBuilder = document.getElementById('dupOpenInBuilder').checked;
+
+  try {
+    const res = await fetch(`/api/admin/funnels/node/${sourceId}/duplicate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        title,
+        parent_id: parentVal ? parseInt(parentVal, 10) : null,
+        slug: slug || undefined
+      })
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'فشل نسخ الصفحة');
+
+    if (duplicateNodeModalInstance) {
+      duplicateNodeModalInstance.hide();
+    }
+
+    showToast(`تم نسخ الصفحة بنجاح مع (${result.cloned_blocks || 0} كتل و ${result.cloned_offers || 0} عروض) 🎉`);
+    await loadFunnelsTree();
+
+    if (openInBuilder && result.node && result.node.type === 'landing_page') {
+      switchToBuilder(result.node.id);
+    }
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // Submit Node Form (Create or Update)
@@ -540,7 +665,8 @@ async function handleNodeFormSubmit(e) {
   }
 
   const id = document.getElementById('nodeId').value;
-  const parentId = document.getElementById('nodeParentId').value;
+  const parentSelectEl = document.getElementById('nodeParentSelect');
+  const parentId = parentSelectEl ? parentSelectEl.value : document.getElementById('nodeParentId').value;
 
   const existingNode = id ? allNodesList.find(n => n.id == id) : null;
   const existingSettings = (existingNode && typeof existingNode.settings === 'object') ? existingNode.settings : {};

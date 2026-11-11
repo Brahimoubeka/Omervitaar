@@ -261,11 +261,15 @@ function renderPage(data) {
 
   const root = document.getElementById('landing-page-root');
 
+  // Toggle distraction-free mode on Landing Pages (hides global navbar & breadcrumb bar)
+  const isLandingPage = node.type !== 'section';
+  document.body.classList.toggle('is-landing-page-view', isLandingPage);
+
   // 3. Render Section View or Landing Page View
   if (node.type === 'section') {
     renderSectionView(root, node, children);
   } else {
-    renderLandingPageView(root, node, blocks, offers);
+    renderLandingPageView(root, node, blocks, offers, breadcrumbs);
   }
 }
 
@@ -409,8 +413,22 @@ function renderSectionView(root, node, children) {
 // --------------------------------------------------------------------------
 // LANDING PAGE VIEW (Funnel Blocks + Glowing Journey Spine + Direct Checkout)
 // --------------------------------------------------------------------------
-function renderLandingPageView(root, node, blocks, offers) {
-  let html = `<div class="funnel-journey-wrapper">`;
+function renderLandingPageView(root, node, blocks, offers, breadcrumbs = []) {
+  const prevSection = Array.isArray(breadcrumbs) && breadcrumbs.length > 0
+    ? breadcrumbs[breadcrumbs.length - 1]
+    : null;
+  const backHref = prevSection ? `/solutions/${prevSection.slug}` : '/';
+  const backLabel = prevSection ? `العودة إلى ${prevSection.title}` : 'العودة إلى الرئيسية';
+
+  let html = `
+    <div class="funnel-journey-wrapper">
+      <div class="funnel-top-back-wrap">
+        <a href="${backHref}" class="funnel-top-back-btn">
+          <i class="bi bi-arrow-right"></i>
+          <span>${escapeHtml(backLabel)}</span>
+        </a>
+      </div>
+  `;
 
   // Sort blocks
   const sortedBlocks = (blocks || []).slice().sort((a, b) => a.order_index - b.order_index);

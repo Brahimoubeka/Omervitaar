@@ -416,6 +416,9 @@
                   <button class="btn btn-outline-warning btn-sm rounded-pill text-dark" onclick="openManageOffersModal()">
                     <i class="bi bi-gift me-1"></i> إدارة باقات وعروض الخصم
                   </button>
+                  <button class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" onclick="if(currentEditingNodeId){openDuplicateNodeModal(currentEditingNodeId);}">
+                    <i class="bi bi-files me-1"></i> نسخ هذه الصفحة إلى قسم آخر
+                  </button>
                 </div>
               </div>
             </div>
@@ -476,11 +479,15 @@
                 </select>
               </div>
 
-              <!-- Parent Info (if sub-node) -->
-              <div class="col-12" id="nodeParentRow" style="display:none;">
-                <div class="alert alert-info py-2 small mb-0">
-                  <i class="bi bi-info-circle me-1"></i> سيتم إنشاء هذا القسم كفرع داخل القسم الأب: <strong id="nodeParentName">--</strong>
-                </div>
+              <!-- Parent Section Selector (Move / Assign to any Section) -->
+              <div class="col-12" id="nodeParentRow">
+                <label for="nodeParentSelect" class="form-label fw-bold small">
+                  <i class="bi bi-folder-symlink me-1 text-success"></i>القسم الأب (مكان تواجد الصفحة / نقل إلى قسم آخر)
+                </label>
+                <select class="form-select" id="nodeParentSelect" onchange="document.getElementById('nodeParentId').value = this.value;">
+                  <option value="">-- قسم رئيسي (بدون قسم أب) --</option>
+                </select>
+                <div class="form-text small" id="nodeParentName">يمكنك اختيار القسم الذي تنتمي إليه هذه الصفحة أو نقلها إلى أي قسم آخر بضغطة واحدة.</div>
               </div>
 
               <!-- Slug -->
@@ -1101,6 +1108,59 @@
     </div>
   </div>
 
+  <!-- ======================================================== -->
+  <!-- MODAL: DUPLICATE LANDING PAGE / SECTION TO ANY SECTION -->
+  <!-- ======================================================== -->
+  <div class="modal fade" id="duplicateNodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-files me-2"></i>نسخ الصفحة إلى قسم آخر
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="duplicateNodeForm" onsubmit="handleDuplicateNodeSubmit(event)">
+          <div class="modal-body p-4">
+            <input type="hidden" id="dupSourceNodeId">
+            <div class="alert alert-success py-2 small mb-3">
+              <i class="bi bi-magic me-1"></i> سيتم نسخ <strong>جميع الكتل، إعدادات البنر، الألوان، الشريط المتحرك، وباقات العروض</strong> تلقائياً في ثانية واحدة.
+            </div>
+            <div class="small text-muted mb-3 bg-light p-2 rounded border">
+              الصفحة الأصلية المراد نسخها: <strong id="dupSourceNodeTitleDisplay" class="text-dark">--</strong>
+            </div>
+            <div class="mb-3">
+              <label for="dupNodeTitle" class="form-label fw-bold small">عنوان الصفحة الجديدة <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="dupNodeTitle" required placeholder="مثال: باقة النعومة اليومية - للبشرة الجافة">
+            </div>
+            <div class="mb-3">
+              <label for="dupNodeParentSelect" class="form-label fw-bold small">اختر القسم الوجهة (المكان الذي ستوضع فيه النسخة):</label>
+              <select class="form-select" id="dupNodeParentSelect">
+                <option value="">-- قسم رئيسي (بدون قسم أب) --</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="dupNodeSlug" class="form-label fw-bold small">الرابط المخصص (Slug - اختياري):</label>
+              <input type="text" class="form-control form-control-sm" id="dupNodeSlug" placeholder="اتركه فارغاً للتوليد التلقائي من العنوان">
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="dupOpenInBuilder" checked>
+              <label class="form-check-label small fw-bold text-dark" for="dupOpenInBuilder">
+                فتح الصفحة الجديدة في المحرر مباشرة بعد النسخ لتعديلها
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+            <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold" id="dupSubmitBtn">
+              <i class="bi bi-files me-1"></i> نسخ الصفحة الآن
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast-container">
     <div id="adminToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -1120,7 +1180,7 @@
   <script src="/js/header.js?v=1736152800"></script>
   <script src="/js/branding.js?v=1736152800"></script>
   <!-- Admin Funnels Controller Script -->
-  <script src="/js/admin-funnels.js"></script>
+  <script src="/js/admin-funnels.js?v=1736153500"></script>
 </body>
 
 </html>

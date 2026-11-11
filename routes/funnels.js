@@ -555,6 +555,134 @@ router.delete('/admin/funnels/node/:id', verifyAdmin, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/funnels/node/:id/duplicate
+ * Clones a landing page (or section) along with all its blocks, settings, and offers
+ * into the same section or any target parent section.
+ */
+router.post('/admin/funnels/node/:id/duplicate', verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, parent_id, slug: rawSlug } = req.body || {};
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: srcRows } = await client.query(
+      'SELECT * FROM public.funnel_nodes WHERE id = $1',
+      [id]
+    );
+    if (srcRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'الصفحة الأصلية غير موجودة' });
+    }
+
+    const src = srcRows[0];
+    const newTitle = (title && title.trim()) ? title.trim() : `${src.title} - نسخة`;
+    const targetParentId = parent_id !== undefined
+      ? (parent_id ? parseInt(parent_id, 10) : null)
+      : src.parent_id;
+
+    let slug = rawSlug ? generateSlug(rawSlug) : generateSlug(newTitle);
+    const { rows: existingSlug } = await client.query(
+      'SELECT id FROM public.funnel_nodes WHERE slug = $1',
+      [slug]
+    );
+    if (existingSlug.length > 0) {
+      slug = `${slug}-${Date.now().toString().slice(-4)}`;
+    }
+
+    const { rows: newNodeRows } = await client.query(`
+      INSERT INTO public.funnel_nodes (
+        parent_id, slug, title, subtitle, image_url, button_text, type,
+        order_index, is_active, show_on_home, meta_title, meta_description, settings
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *
+    `, [
+      targetParentId,
+      slug,
+      newTitle,
+      src.subtitle,
+      src.image_url,
+      src.button_text,
+      src.type,
+      src.order_index || 0,
+      src.is_active !== false,
+      false,
+      src.meta_title,
+      src.meta_description,
+      typeof src.settings === 'object' && src.settings !== null ? src.settings : {}
+    ]);
+
+    const newNode = newNodeRows[0];
+
+    // Copy all blocks if landing_page
+    const { rows: srcBlocks } = await client.query(
+      'SELECT * FROM public.landing_page_blocks WHERE node_id = $1 ORDER BY order_index ASC, id ASC',
+      [id]
+    );
+    for (let i = 0; i < srcBlocks.length; i++) {
+      const b = srcBlocks[i];
+      await client.query(`
+        INSERT INTO public.landing_page_blocks (
+          node_id, block_type, title, content, styles, order_index, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        newNode.id,
+        b.block_type || 'text',
+        b.title || '',
+        typeof b.content === 'object' ? JSON.stringify(b.content) : (b.content || '{}'),
+        typeof b.styles === 'object' ? JSON.stringify(b.styles) : (b.styles || '{}'),
+        i,
+        b.is_active !== false
+      ]);
+    }
+
+    // Copy all offers if landing_page
+    const { rows: srcOffers } = await client.query(
+      'SELECT * FROM public.landing_page_offers WHERE node_id = $1 ORDER BY order_index ASC, id ASC',
+      [id]
+    );
+    for (let i = 0; i < srcOffers.length; i++) {
+      const o = srcOffers[i];
+      const rawImages = Array.isArray(o.images) ? o.images : (o.image_url ? [o.image_url] : []);
+      await client.query(`
+        INSERT INTO public.landing_page_offers (
+          node_id, product_id, title, badge, quantity, price, original_price,
+          free_delivery, is_popular, image_url, images, settings, order_index
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [
+        newNode.id,
+        o.product_id || null,
+        o.title || 'عرض خاص',
+        o.badge || null,
+        o.quantity || 1,
+        o.price || 0,
+        o.original_price || null,
+        Boolean(o.free_delivery),
+        Boolean(o.is_popular),
+        o.image_url || (rawImages[0] || null),
+        JSON.stringify(rawImages),
+        JSON.stringify(typeof o.settings === 'object' && o.settings !== null ? o.settings : {}),
+        i
+      ]);
+    }
+
+    await client.query('COMMIT');
+    invalidateFunnelsCache();
+    res.status(201).json({
+      message: 'تم نسخ الصفحة بكل محتوياتها وعروضها بنجاح',
+      node: newNode
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error duplicating funnel node:', err);
+    res.status(500).json({ error: 'حدث خطأ أثناء نسخ الصفحة' });
+  } finally {
+    client.release();
+  }
+});
+
+/**
  * PUT /api/admin/funnels/blocks/:nodeId
  * Atomically replaces all landing page blocks for a node
  */
