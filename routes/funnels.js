@@ -156,6 +156,49 @@ router.get('/funnels/home-featured', async (req, res) => {
 });
 
 /**
+ * GET /api/funnels/public-tree
+ * Returns all active sections and landing pages (cached in RAM for navbar, search bar & /solutions page)
+ */
+router.get('/funnels/public-tree', async (req, res) => {
+  try {
+    await sendCachedJson(req, res, 'funnels', 'public-tree', async () => {
+      const { rows } = await pool.query(`
+        SELECT id, parent_id, slug, title, subtitle, image_url, button_text, type, settings, order_index, show_on_home
+        FROM public.funnel_nodes
+        WHERE is_active = true
+        ORDER BY order_index ASC, id ASC
+      `);
+
+      const normalized = rows.map(node => ({
+        ...node,
+        image_url: toLocalMedia(node.image_url)
+      }));
+
+      const map = new Map();
+      normalized.forEach(n => map.set(n.id, { ...n, children: [] }));
+
+      const tree = [];
+      normalized.forEach(n => {
+        const item = map.get(n.id);
+        if (n.parent_id && map.has(n.parent_id)) {
+          map.get(n.parent_id).children.push(item);
+        } else if (!n.parent_id) {
+          tree.push(item);
+        }
+      });
+
+      return {
+        tree,
+        all: normalized
+      };
+    });
+  } catch (err) {
+    console.error('Error fetching public funnels tree:', err);
+    res.status(500).json({ error: 'حدث خطأ أثناء تحميل شجرة الأقسام' });
+  }
+});
+
+/**
  * GET /api/funnels/node/:slug
  * Retrieves a funnel node by slug with its breadcrumbs and:
  * - If type === 'section': child nodes

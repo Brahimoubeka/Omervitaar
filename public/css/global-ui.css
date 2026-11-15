@@ -56,14 +56,21 @@ header.fixed-top,
 }
 
 /* Add top padding to body for fixed 2-line navbar */
-body {
-  padding-top: 135px;
+body:not(.is-landing-page-view) {
+  padding-top: 155px;
+}
+
+body.has-global-top-bar:not(.is-landing-page-view) {
+  padding-top: 192px !important;
 }
 
 /* On mobile/tablet, account for navbar height with permanent search bar */
 @media (max-width: 991px) {
-  body {
-    padding-top: 120px;
+  body:not(.is-landing-page-view) {
+    padding-top: 128px;
+  }
+  body.has-global-top-bar:not(.is-landing-page-view) {
+    padding-top: 162px !important;
   }
 }
 
@@ -213,12 +220,18 @@ a:has(img[data-dynamic-logo]) {
    ========================================================================== */
 
 @media (min-width: 992px) and (max-width: 1440px), (max-height: 820px) and (min-width: 992px) {
-  body {
-    padding-top: 115px !important;
+  body:not(.is-landing-page-view) {
+    padding-top: 145px !important;
   }
 
-  body.funnel-page-body {
-    padding-top: 120px !important;
+  body.funnel-page-body:not(.is-landing-page-view) {
+    padding-top: 150px !important;
+  }
+
+  body.has-global-top-bar:not(.is-landing-page-view),
+  body.funnel-page-body.has-global-top-bar:not(.is-landing-page-view),
+  body.has-funnel-ticker.funnel-page-body:not(.is-landing-page-view) {
+    padding-top: 182px !important;
   }
 
   .container, .container-lg, .container-xl {
@@ -343,6 +356,156 @@ a:has(img[data-dynamic-logo]) {
 /* Global Anti-Overflow and Media Safety */
 img, video, iframe {
   max-width: 100%;
+}
+
+/* ==========================================================================
+   GLOBAL INFINITE ROLLING TOP BAR (Matches Landing Page Ticker)
+   ========================================================================== */
+.global-top-note-bar {
+  width: 100%;
+  min-height: 32px;
+  z-index: 1045;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.global-top-note-bar.is-scrolling {
+  justify-content: flex-start !important;
+  direction: ltr !important;
+}
+
+.global-ticker-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: max-content;
+  direction: ltr !important;
+  will-change: transform;
+  animation: globalTickerLTR 32s linear infinite;
+}
+
+.global-ticker-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-around;
+  flex-shrink: 0;
+  min-width: 100vw;
+}
+
+.global-ticker-item {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 0 2.2rem;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+@keyframes globalTickerLTR {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0%, 0, 0);
+  }
+}
+
+/* ==========================================================================
+   STICKY BACK TO TOP BUTTON (Bottom-Left) & WHATSAPP BUTTON (Bottom-Right)
+   ========================================================================== */
+.funnel-back-to-top-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #715100;
+  border: 1.5px solid rgba(113, 81, 0, 0.28);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(113, 81, 0, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 1035;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px) scale(0.85);
+  transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.funnel-back-to-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.funnel-back-to-top-btn:hover {
+  background: #715100;
+  color: #ffffff;
+  border-color: #715100;
+  box-shadow: 0 8px 24px rgba(113, 81, 0, 0.35);
+  transform: translateY(-3px) scale(1.08);
+}
+
+.global-sticky-whatsapp-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #ffffff !important;
+  border: 2px solid #ffffff;
+  box-shadow: 0 5px 18px rgba(37, 211, 102, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  text-decoration: none !important;
+  cursor: pointer;
+  z-index: 1039;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease;
+}
+
+.global-sticky-whatsapp-btn:hover {
+  transform: translateY(-3px) scale(1.08);
+  box-shadow: 0 8px 25px rgba(37, 211, 102, 0.6);
+  color: #ffffff !important;
+}
+
+.global-sticky-whatsapp-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+@media (max-width: 576px) {
+  .funnel-back-to-top-btn {
+    bottom: 20px;
+    left: 18px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+  }
+  .global-sticky-whatsapp-btn {
+    bottom: 20px;
+    right: 18px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.35rem;
+  }
 }
 
 

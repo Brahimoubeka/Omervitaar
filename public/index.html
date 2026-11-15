@@ -505,12 +505,6 @@
       </div>
     </section>
 
-    <!-- Scroll to Top Arrow -->
-    <button id="scrollToTopBtn" aria-label="الرجوع إلى أعلى الصفحة"
-      style="position: fixed; bottom: 32px; right: 24px; z-index: 9999; display: none; background: var(--orange-accent); color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.3rem; cursor: pointer; transition: background 0.2s;">
-      <i class="bi bi-arrow-up-short"></i>
-    </button>
-
   </main>
 
   <!-- Global Footer -->
@@ -534,22 +528,6 @@
           pause: 'hover',
           wrap: true,
           touch: false
-        });
-      }
-
-      // Scroll to Top Button with passive scroll listener
-      const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-      if (scrollToTopBtn) {
-        window.addEventListener('scroll', function () {
-          if (window.scrollY > 250) {
-            scrollToTopBtn.style.display = 'block';
-          } else {
-            scrollToTopBtn.style.display = 'none';
-          }
-        }, { passive: true });
-
-        scrollToTopBtn.addEventListener('click', function () {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
 

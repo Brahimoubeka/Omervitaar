@@ -43,8 +43,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Lightweight health check route for keep-alive monitoring (prevents Render free-tier cold sleep)
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
+app.get(['/health', '/ping', '/api/health'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+  res.status(200).json({ status: 'ok', uptime: Math.round(process.uptime()), ts: Date.now() });
 });
 
 const PORT = process.env.PORT || 3000;
@@ -122,9 +127,36 @@ app.get('/products/:id', async (req, res) => {
       return res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
     }
   } else {
-    // For regular users, serve the SPA version with the correct product ID in the URL
-    req.url = `/product-detail.html?id=${extractedProductId}`;
-    return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+    // For regular users, serve the SPA version with tracking scripts injected
+    try {
+      req.url = `/product-detail.html?id=${extractedProductId}`;
+      const htmlPath = path.join(__dirname, 'public', 'product-detail.html');
+      const content = await fs.promises.readFile(htmlPath, 'utf-8');
+      const injected = await injectTrackingIntoHtml(content);
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+      return res.send(injected);
+    } catch (err) {
+      return res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
+    }
+  }
+});
+
+// Clean URLs for All Solutions / Sections Directory Page
+app.get(['/solutions', '/solutions.html', '/sections', '/sections.html'], async (req, res) => {
+  try {
+    const htmlPath = path.join(__dirname, 'public', 'solutions.html');
+    const content = await fs.promises.readFile(htmlPath, 'utf-8');
+    const injected = await injectTrackingIntoHtml(content);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.setHeader('CDN-Cache-Control', 'no-store');
+    res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+    return res.send(injected);
+  } catch (err) {
+    return res.sendFile(path.join(__dirname, 'public', 'solutions.html'));
   }
 });
 
@@ -135,7 +167,9 @@ app.get(['/solutions/:slug', '/landing/:slug', '/landing.html'], async (req, res
     const content = await fs.promises.readFile(htmlPath, 'utf-8');
     const injected = await injectTrackingIntoHtml(content);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.setHeader('CDN-Cache-Control', 'no-store');
+    res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
     return res.send(injected);
   } catch (err) {
     return res.sendFile(path.join(__dirname, 'public', 'landing.html'));
@@ -801,9 +835,10 @@ async function getSiteSettings(forceFresh = false) {
     row.logo = mapMediaUrl(row.logo);
   }
 
-  // Normalize slides: support both [{url, link, ...}] objects and plain URL strings
-  if (Array.isArray(row.slides)) {
-    row.slides = row.slides.map(s => {
+  // Normalize slides & products_slides: support both [{url, link, ...}] objects and plain URL strings
+  const normalizeSlidesList = (list) => {
+    if (!Array.isArray(list)) return [];
+    return list.map(s => {
       if (typeof s === 'string') {
         return { url: mapMediaUrl(s), link: '', link_type: 'none', target_id: '', title: '' };
       }
@@ -818,13 +853,14 @@ async function getSiteSettings(forceFresh = false) {
       }
       return null;
     }).filter(Boolean);
-  } else {
-    row.slides = [];
-  }
+  };
+  row.slides = normalizeSlidesList(row.slides);
+  row.products_slides = normalizeSlidesList(row.products_slides);
   // Normalize phones/emails to arrays of strings
   if (!Array.isArray(row.phones)) row.phones = row.phones ? [row.phones] : [];
   if (!Array.isArray(row.emails)) row.emails = row.emails ? [row.emails] : [];
   if (!row.social_links || typeof row.social_links !== 'object') row.social_links = {};
+  if (!row.top_announcement || typeof row.top_announcement !== 'object') row.top_announcement = {};
 
   cachedSiteSettings = row;
   cachedSiteSettingsTime = now;
@@ -944,11 +980,12 @@ app.post('/api/admin/site-settings', async (req, res) => {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
-    const { phones, emails, social_links } = req.body;
+    const { phones, emails, social_links, top_announcement } = req.body;
     const updateFields = {};
     if (Array.isArray(phones)) updateFields.phones = phones;
     if (Array.isArray(emails)) updateFields.emails = emails;
     if (social_links && typeof social_links === 'object') updateFields.social_links = social_links;
+    if (top_announcement && typeof top_announcement === 'object') updateFields.top_announcement = top_announcement;
     const result = await updateSiteSettings(updateFields);
     res.json({ message: 'تم الحفظ بنجاح', settings: result });
   } catch (e) {
@@ -1027,10 +1064,13 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
         if (Array.isArray(target_id)) target_id = target_id[0];
         let title = fields.title;
         if (Array.isArray(title)) title = title[0];
+        let carouselTargetRaw = fields.carousel_target || req.query.target;
+        if (Array.isArray(carouselTargetRaw)) carouselTargetRaw = carouselTargetRaw[0];
+        const targetColumn = carouselTargetRaw === 'products' ? 'products_slides' : 'slides';
 
         if (err || !file || !file.filepath) return res.status(400).json({ error: 'لم يتم تحميل صورة السلايد.' });
         const settings = await getSiteSettings();
-        const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
+        const slides = Array.isArray(settings[targetColumn]) ? [...settings[targetColumn]] : [];
         if (isNaN(index) && slides.length >= 7) {
           return res.status(400).json({ error: 'الحد الأقصى للسلايدات هو 7.' });
         }
@@ -1042,7 +1082,8 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
         const fileBuffer = await fsPromises.readFile(file.filepath);
         const ext = (file.originalFilename || 'slide.png').split('.').pop();
         const slideIdx = !isNaN(index) ? index : slides.length;
-        const fileName = `slide_${slideIdx}_${Date.now()}.${ext}`;
+        const prefix = targetColumn === 'products_slides' ? 'prod_slide' : 'slide';
+        const fileName = `${prefix}_${slideIdx}_${Date.now()}.${ext}`;
         const publicUrl = await uploadToSupabaseBranding(fileBuffer, fileName, file.mimetype || 'image/png');
 
         const safeLink = sanitizeSlideLink(link);
@@ -1060,8 +1101,8 @@ app.post('/api/admin/site-settings/slide', async (req, res) => {
         } else {
           slides.push(newSlide);
         }
-        await updateSiteSettings({ slides });
-        res.json({ message: 'تم تحديث السلايد بنجاح!', slides, url: publicUrl });
+        await updateSiteSettings({ [targetColumn]: slides });
+        res.json({ message: 'تم تحديث السلايد بنجاح!', slides, target: carouselTargetRaw === 'products' ? 'products' : 'home', url: publicUrl });
       } catch (e) {
         console.error('[slide upload callback]', e.message);
         if (!res.headersSent) res.status(500).json({ error: 'خطأ أثناء تحديث السلايد', details: e.message });
@@ -1082,8 +1123,9 @@ app.put('/api/admin/site-settings/slide/:index/link', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
     const index = parseInt(req.params.index, 10);
+    const targetColumn = (req.body.carousel_target === 'products' || req.query.target === 'products') ? 'products_slides' : 'slides';
     const settings = await getSiteSettings();
-    const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
+    const slides = Array.isArray(settings[targetColumn]) ? [...settings[targetColumn]] : [];
     if (isNaN(index) || index < 0 || index >= slides.length) {
       return res.status(400).json({ error: 'رقم السلايد غير صالح.' });
     }
@@ -1096,8 +1138,8 @@ app.put('/api/admin/site-settings/slide/:index/link', async (req, res) => {
       target_id: req.body.target_id ? String(req.body.target_id) : '',
       title: req.body.title || ''
     };
-    await updateSiteSettings({ slides });
-    res.json({ message: 'تم تحديث رابط السلايد بنجاح!', slides });
+    await updateSiteSettings({ [targetColumn]: slides });
+    res.json({ message: 'تم تحديث رابط السلايد بنجاح!', slides, target: targetColumn === 'products_slides' ? 'products' : 'home' });
   } catch (e) {
     res.status(500).json({ error: 'خطأ أثناء تحديث رابط السلايد', details: e.message });
   }
@@ -1113,17 +1155,18 @@ app.delete('/api/admin/site-settings/slide/:index', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.role !== 'admin') return res.status(403).json({ error: 'ممنوع' });
     const index = parseInt(req.params.index, 10);
+    const targetColumn = req.query.target === 'products' ? 'products_slides' : 'slides';
     const settings = await getSiteSettings();
-    const slides = Array.isArray(settings.slides) ? [...settings.slides] : [];
-    if (slides.length <= 1) return res.status(400).json({ error: 'يجب أن يكون هناك سلايد واحد على الأقل.' });
+    const slides = Array.isArray(settings[targetColumn]) ? [...settings[targetColumn]] : [];
+    if (targetColumn === 'slides' && slides.length <= 1) return res.status(400).json({ error: 'يجب أن يكون هناك سلايد واحد على الأقل.' });
     if (isNaN(index) || index < 0 || index >= slides.length) return res.status(400).json({ error: 'رقم السلايد غير صالح.' });
     // Remove from storage
     const targetSlide = slides[index];
     const targetUrl = typeof targetSlide === 'object' ? targetSlide.url : targetSlide;
     if (targetUrl) await removeFromSupabaseBranding(targetUrl);
     slides.splice(index, 1);
-    await updateSiteSettings({ slides });
-    res.json({ message: 'تم حذف السلايد بنجاح!', slides });
+    await updateSiteSettings({ [targetColumn]: slides });
+    res.json({ message: 'تم حذف السلايد بنجاح!', slides, target: targetColumn === 'products_slides' ? 'products' : 'home' });
   } catch (e) {
     res.status(500).json({ error: 'خطأ أثناء حذف السلايد', details: e.message });
   }
@@ -1164,8 +1207,54 @@ app.use((req, res, next) => {
 // Disable Express server signature for security and SEO
 app.disable('x-powered-by');
 
+// --- Automatic Render Free-Tier Keep-Alive Self-Pinger (every 10 minutes) ---
+function startRenderKeepAlive() {
+  const https = require('https');
+  const http = require('http');
+  const KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes (Render sleeps after 15 mins of inactivity)
+
+  const targetUrls = Array.from(new Set([
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.KEEP_ALIVE_URL,
+    process.env.PUBLIC_URL,
+    'https://omervita.com'
+  ].filter(Boolean).map(u => String(u).replace(/\/+$/, ''))));
+
+  const pingUrl = (baseUrl) => {
+    try {
+      const fullUrl = `${baseUrl}/health?t=${Date.now()}`;
+      const client = fullUrl.startsWith('https') ? https : http;
+      const req = client.get(fullUrl, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Omervita-KeepAlive/1.0',
+          'Cache-Control': 'no-cache, no-store'
+        }
+      }, (res) => {
+        res.resume(); // Drain response stream immediately
+      });
+      req.on('timeout', () => req.destroy());
+      req.on('error', () => { /* Ignore transient network errors */ });
+    } catch (_) {}
+  };
+
+  const runKeepAliveCycle = () => {
+    targetUrls.forEach(pingUrl);
+    // Also keep the PostgreSQL connection pool warm so the first visitor query is instant
+    if (db && typeof db.query === 'function') {
+      db.query('SELECT 1').catch(() => {});
+    }
+  };
+
+  // Initial warm-up ping 45 seconds after startup, then every 10 minutes
+  setTimeout(runKeepAliveCycle, 45 * 1000).unref();
+  setInterval(runKeepAliveCycle, KEEP_ALIVE_INTERVAL_MS).unref();
+  console.log(`[Keep-Alive] Active for targets: ${targetUrls.join(', ')} (every 10m)`);
+}
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+  startRenderKeepAlive();
 });
 
 

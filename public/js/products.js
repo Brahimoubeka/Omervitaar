@@ -1,7 +1,87 @@
 let allProducts = [];
 let allCategories = [];
+let allFunnelsForProductsSearch = null;
 let autoRefreshInterval = null;
 let isPageVisible = true;
+
+async function getFunnelsForProductsSearch() {
+  if (allFunnelsForProductsSearch) return allFunnelsForProductsSearch;
+  try {
+    if (typeof fetchFunnelsForHeader === 'function') {
+      const data = await fetchFunnelsForHeader();
+      allFunnelsForProductsSearch = (data && Array.isArray(data.all)) ? data.all : [];
+      return allFunnelsForProductsSearch;
+    }
+    const resp = await fetch('/api/funnels/public-tree');
+    if (resp.ok) {
+      const data = await resp.json();
+      allFunnelsForProductsSearch = (data && Array.isArray(data.all)) ? data.all : [];
+      return allFunnelsForProductsSearch;
+    }
+  } catch (e) {}
+  return [];
+}
+
+async function renderFunnelMatchesOnProductsPage(query) {
+  const container = document.getElementById('products-container');
+  if (!container || !container.parentElement) return;
+
+  let banner = document.getElementById('funnel-search-matches-banner');
+  if (!query || query.trim().length < 2) {
+    if (banner) banner.style.display = 'none';
+    return;
+  }
+
+  const q = query.trim().toLowerCase();
+  const funnels = await getFunnelsForProductsSearch();
+  const matches = funnels.filter(f =>
+    (f.title && f.title.toLowerCase().includes(q)) ||
+    (f.subtitle && f.subtitle.toLowerCase().includes(q)) ||
+    (f.slug && f.slug.toLowerCase().includes(q))
+  ).slice(0, 6);
+
+  if (matches.length === 0) {
+    if (banner) banner.style.display = 'none';
+    return;
+  }
+
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'funnel-search-matches-banner';
+    banner.className = 'mb-4 p-3 rounded-4 border shadow-sm';
+    banner.style.background = '#f9fbf6';
+    banner.style.borderColor = '#dce5d1';
+    container.parentElement.insertBefore(banner, container);
+  }
+
+  banner.style.display = 'block';
+  banner.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0" style="color: #5a6344;"><i class="bi bi-grid-1x2-fill me-1"></i> باقات و حلول جاهزة مطابقة لبحثك</h6>
+      <a href="/solutions" class="small fw-bold text-decoration-none" style="color: #5a6344;">عرض كل الباقات والحلول <i class="bi bi-arrow-left"></i></a>
+    </div>
+    <div class="row g-2">
+      ${matches.map(f => {
+        const isSec = f.node_type === 'section';
+        return `
+          <div class="col-md-4 col-sm-6">
+            <a href="/solutions/${f.slug}" class="d-flex align-items-center p-2 bg-white rounded-3 border text-decoration-none h-100 shadow-xs" style="color: #2c2a29;">
+              ${f.image_url
+                ? `<img src="${f.image_url}" alt="${f.title}" style="width:46px;height:46px;object-fit:cover;border-radius:8px;margin-left:10px;">`
+                : `<div class="d-flex align-items-center justify-content-center" style="width:46px;height:46px;border-radius:8px;margin-left:10px;background:#eef2e6;color:#5a6344;"><i class="bi ${isSec ? 'bi-folder2-open' : 'bi-stars'}"></i></div>`
+              }
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-bold text-truncate" style="font-size:0.9rem;">${f.title}</div>
+                <span class="badge rounded-pill" style="background:${isSec ? '#eef2e6' : '#fff8e6'};color:${isSec ? '#5a6344' : '#b78103'};font-size:0.68rem;">${isSec ? 'قسم' : 'صفحة طلب الباقة'}</span>
+              </div>
+              <i class="bi bi-chevron-left text-muted small"></i>
+            </a>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
 
 // Infinite scroll state
 let currentFilteredProducts = [];
@@ -45,6 +125,11 @@ function renderProducts(products, append = false) {
   if (!append) container.innerHTML = '';
 
   products.forEach(product => {
+    try {
+      if (product && product.id) {
+        localStorage.setItem(`cache_product_${product.id}`, JSON.stringify({ value: product, timestamp: Date.now() }));
+      }
+    } catch (_) {}
     const productCol = document.createElement('div');
     productCol.classList.add('col', 'mb-4', 'd-flex', 'justify-content-center');
 
@@ -237,6 +322,9 @@ function filterAndRender() {
 
   // Update filter control styles
   updateFilterControlStyles(query, cat, minPrice, maxPrice, minRating, sortPrice);
+
+  // Also show matching Sections & Landing Pages if user typed a search query
+  renderFunnelMatchesOnProductsPage(query);
 
   // --- SEO: Generate JSON-LD for all visible products ---
   const productsJsonLd = filtered.map(product => {

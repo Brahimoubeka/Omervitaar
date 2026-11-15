@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       container.innerHTML = ''; // clear loading state
       
       products.forEach(product => {
+        try {
+          if (product && product.id) {
+            localStorage.setItem(`cache_product_${product.id}`, JSON.stringify({ value: product, timestamp: Date.now() }));
+          }
+        } catch (_) {}
         // Price formatting
         const hasDiscount = product.discount_price && product.discount_price < product.price;
         const currentPrice = hasDiscount ? product.discount_price : product.price;

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>باقات و حلول جاهزة | Omervita</title>
+  <meta name="description" content="تصفح باقات وحلول العناية الطبيعية بالبشرة والشعر والمنتجات المختارة من Omervita.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="/css/global-ui.css">
+  <link rel="stylesheet" href="/css/home-funnels.css">
+  <link rel="stylesheet" href="/css/landing.css">
+
+  <style>
+    body.solutions-directory-body {
+      background-color: #f8f9fa;
+      font-family: 'Cairo', sans-serif;
+      padding-top: 150px;
+    }
+    @media (max-width: 991px) {
+      body.solutions-directory-body {
+        padding-top: 120px;
+      }
+    }
+    .solutions-hero-banner {
+      background: linear-gradient(135deg, #5a6344 0%, #3d442d 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 1.75rem 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 8px 24px rgba(90, 99, 68, 0.16);
+    }
+    .solutions-filter-pill {
+      border-radius: 50px;
+      padding: 6px 16px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border: 1.5px solid #dee2e6;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .solutions-filter-pill.active,
+    .solutions-filter-pill:hover {
+      background: #5a6344;
+      color: #fff;
+      border-color: #5a6344;
+    }
+    .solutions-group-box {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid rgba(90, 99, 68, 0.12);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+    .solutions-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-bottom: 0.85rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #f0f2ec;
+    }
+  </style>
+</head>
+
+<body class="solutions-directory-body">
+  <div id="global-navbar"></div>
+
+  <main class="container py-3 mb-5">
+    <!-- Hero Header & Instant Filter -->
+    <div class="solutions-hero-banner text-center">
+      <h1 class="h3 fw-bolder mb-2">
+        <i class="bi bi-grid-1x2-fill me-2 text-warning"></i>باقات و حلول جاهزة
+      </h1>
+      <p class="small text-white-50 mb-3 mx-auto" style="max-width: 600px;">
+        اختر القسم المناسب لك واستكشف الباقات والحلول الطبيعية المصممة بعناية للحصول على أفضل النتائج
+      </p>
+      <div class="mx-auto" style="max-width: 480px;">
+        <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white p-1">
+          <span class="input-group-text bg-transparent border-0 text-secondary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" id="solutionsSearchInput" class="form-control border-0 shadow-none" placeholder="ابحث عن قسم، مشكلة، أو باقة (مثال: البشرة، الشعر الجاف)...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Pills -->
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4" id="solutionsFilterBar">
+      <button type="button" class="solutions-filter-pill active" data-filter="all">عرض الكل</button>
+      <button type="button" class="solutions-filter-pill" data-filter="roots">الأقسام الرئيسية</button>
+      <button type="button" class="solutions-filter-pill" data-filter="landing">صفحة طلب الباقة</button>
+    </div>
+
+    <!-- Dynamic Content Container -->
+    <div id="solutionsDirectoryRoot">
+      <div class="text-center py-5 text-muted">
+        <div class="spinner-border text-success mb-2" role="status"></div>
+        <div>جاري تحميل الأقسام والحلول...</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="global-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/header.js"></script>
+  <script src="/js/branding.js"></script>
+  <script>
+    let solutionsTree = [];
+    let solutionsAll = [];
+    let currentFilterMode = 'all';
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function renderCardHtml(item, subItems = []) {
+      const hasSubs = Array.isArray(subItems) && subItems.length > 0;
+      const linkUrl = `/solutions/${item.slug}`;
+      const btnText = item.button_text || (item.type === 'landing_page' ? 'اطلب الباقة الآن ➔' : 'اكتشف القسم ➔');
+      const imgUrl = item.image_url || '/images/hero.jpg';
+      const settings = typeof item.settings === 'object' && item.settings !== null ? item.settings : {};
+
+      const titleStyle = settings.title_color ? `style="color: ${settings.title_color} !important;"` : '';
+      const textStyle = settings.text_color ? `style="color: ${settings.text_color} !important;"` : '';
+      let btnStyle = '';
+      if (settings.button_color) btnStyle += `background: ${settings.button_color} !important; `;
+      if (settings.button_text_color) btnStyle += `color: ${settings.button_text_color} !important; `;
+
+      return `
+        <div class="home-funnel-card" data-href="${linkUrl}" style="cursor: pointer;">
+          <div class="home-funnel-img-wrap" style="width: 100%; aspect-ratio: 1/1; overflow: hidden; position: relative;">
+            <img src="${imgUrl}" alt="${escapeHtml(item.title)}" onerror="this.onerror=null; this.src='/images/hero.jpg';" class="home-funnel-img" width="185" height="185" style="width: 100%; height: 100%; max-width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block;" loading="lazy" decoding="async">
+          </div>
+          <div class="home-funnel-content">
+            <h3 class="home-funnel-title" ${titleStyle}>${escapeHtml(item.title)}</h3>
+            <p class="home-funnel-subtitle" ${textStyle}>${escapeHtml(item.subtitle || '') || '&nbsp;'}</p>
+            <div class="home-funnel-subs ${hasSubs ? '' : 'home-funnel-subs-empty'}">
+              ${hasSubs ? `
+                ${subItems.slice(0, 2).map(sub => `
+                  <a href="/solutions/${sub.slug}" class="home-funnel-sub-pill" title="${escapeHtml(sub.title)}">
+                    <span>${escapeHtml(sub.title)}</span>
+                  </a>
+                `).join('')}
+                ${subItems.length > 2 ? `
+                  <a href="${linkUrl}" class="home-funnel-more-pill" title="يوجد ${subItems.length - 2} أقسام إضافية">
+                    +${subItems.length - 2}
+                  </a>
+                ` : ''}
+              ` : `
+                <span class="home-funnel-sub-pill" style="visibility: hidden;">&nbsp;</span>
+              `}
+            </div>
+            <a href="${linkUrl}" class="home-funnel-cta-btn" style="${btnStyle}">
+              <span>${escapeHtml(btnText)}</span>
+              <i class="bi bi-arrow-left"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDirectory() {
+      const rootEl = document.getElementById('solutionsDirectoryRoot');
+      const query = (document.getElementById('solutionsSearchInput')?.value || '').trim().toLowerCase();
+      if (!rootEl) return;
+
+      if (solutionsAll.length === 0) {
+        rootEl.innerHTML = `<div class="alert alert-light border text-center py-5">لا توجد أقسام مضافة حالياً.</div>`;
+        return;
+      }
+
+      // If user typed a search query or selected a specific filter
+      if (query || currentFilterMode !== 'all') {
+        let filtered = solutionsAll.filter(item => {
+          if (currentFilterMode === 'roots' && item.parent_id !== null) return false;
+          if (currentFilterMode === 'landing' && item.type !== 'landing_page') return false;
+          if (!query) return true;
+          const tMatch = (item.title || '').toLowerCase().includes(query);
+          const sMatch = (item.subtitle || '').toLowerCase().includes(query);
+          const slugMatch = (item.slug || '').toLowerCase().includes(query);
+          return tMatch || sMatch || slugMatch;
+        });
+
+        if (filtered.length === 0) {
+          rootEl.innerHTML = `<div class="alert alert-light border text-center py-4 text-muted">لا توجد أقسام أو باقات مطابقة لـ "${escapeHtml(query)}"</div>`;
+          return;
+        }
+
+        rootEl.innerHTML = `
+          <div class="solutions-group-box">
+            <div class="home-funnels-grid">
+              ${filtered.map(item => {
+                const children = solutionsAll.filter(c => c.parent_id === item.id);
+                return renderCardHtml(item, children);
+              }).join('')}
+            </div>
+          </div>
+        `;
+        attachCardClicks(rootEl);
+        return;
+      }
+
+      // Default view: Root Sections at the top, followed by each Root Section's Sub-sections & Landing Pages
+      let html = `
+        <div class="solutions-group-box">
+          <div class="solutions-group-header">
+            <h2 class="h5 fw-bolder text-dark m-0">
+              <i class="bi bi-Grid-fill text-success me-2"></i>الأقسام الرئيسية
+            </h2>
+            <span class="badge bg-light text-secondary border">${solutionsTree.length} أقسام رئيسية</span>
+          </div>
+          <div class="home-funnels-grid">
+            ${solutionsTree.map(rootNode => renderCardHtml(rootNode, rootNode.children || [])).join('')}
+          </div>
+        </div>
+      `;
+
+      // Also show each root section that has children so visitors can jump directly to any sub-section or landing page
+      solutionsTree.forEach(rootNode => {
+        const descendants = [];
+        function collectChildren(node) {
+          if (!Array.isArray(node.children)) return;
+          node.children.forEach(c => {
+            descendants.push(c);
+            collectChildren(c);
+          });
+        }
+        collectChildren(rootNode);
+
+        if (descendants.length > 0) {
+          html += `
+            <div class="solutions-group-box">
+              <div class="solutions-group-header">
+                <div>
+                  <h2 class="h5 fw-bolder text-dark m-0">
+                    <i class="bi bi-folder2-open text-success me-2"></i>${escapeHtml(rootNode.title)}
+                  </h2>
+                  ${rootNode.subtitle ? `<p class="text-muted small mb-0 mt-1">${escapeHtml(rootNode.subtitle)}</p>` : ''}
+                </div>
+                <a href="/solutions/${rootNode.slug}" class="btn btn-sm btn-outline-success rounded-pill fw-bold">
+                  عرض القسم بالكامل <i class="bi bi-arrow-left ms-1"></i>
+                </a>
+              </div>
+              <div class="home-funnels-grid">
+                ${descendants.map(child => renderCardHtml(child, child.children || [])).join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      rootEl.innerHTML = html;
+      attachCardClicks(rootEl);
+    }
+
+    function attachCardClicks(container) {
+      container.querySelectorAll('.home-funnel-card[data-href]').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('a')) return;
+          const href = card.getAttribute('data-href');
+          if (href) window.location.href = href;
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Support ?q= query param if redirected from search
+      const params = new URLSearchParams(window.location.search);
+      const qParam = params.get('q') || params.get('search');
+      const searchInp = document.getElementById('solutionsSearchInput');
+      if (qParam && searchInp) {
+        searchInp.value = qParam;
+      }
+
+      if (searchInp) {
+        searchInp.addEventListener('input', () => renderDirectory());
+      }
+
+      document.querySelectorAll('#solutionsFilterBar .solutions-filter-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#solutionsFilterBar .solutions-filter-pill').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilterMode = btn.getAttribute('data-filter') || 'all';
+          renderDirectory();
+        });
+      });
+
+      try {
+        const res = await fetch('/api/funnels/public-tree');
+        if (!res.ok) throw new Error('Failed to load sections');
+        const data = await res.json();
+        solutionsTree = Array.isArray(data.tree) ? data.tree : [];
+        solutionsAll = Array.isArray(data.all) ? data.all : [];
+        renderDirectory();
+      } catch (err) {
+        console.error('Error loading solutions directory:', err);
+        document.getElementById('solutionsDirectoryRoot').innerHTML = `
+          <div class="alert alert-danger text-center">تعذر تحميل الأقسام حالياً، يرجى إعادة المحاولة.</div>
+        `;
+      }
+    });
+  </script>
+</body>
+
+</html>
+

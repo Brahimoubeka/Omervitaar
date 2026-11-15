@@ -209,61 +209,63 @@ router.post('/orders', [
             promoCode: (promoCode || promo_code || '').trim()
         });
 
-        // Send order confirmation email
-        try {
-            const { generateOrderEmailHtml } = require('../utils/order-receipt');
-            const effectiveDelivery = result.calculatedDeliveryCost !== undefined ? result.calculatedDeliveryCost : deliveryCost;
-            const effectiveDiscount = result.discountAmount !== undefined ? result.discountAmount : 0;
-            const effectiveFinal = result.calculatedFinalTotal !== undefined ? result.calculatedFinalTotal : finalTotal;
-            const effectivePromo = result.appliedPromo ? result.appliedPromo.code : ((promoCode || promo_code || '').trim() || null);
-
-            const orderDetails = generateOrderEmailHtml({
-                orderRef,
-                date: new Date(),
-                firstName,
-                lastName,
-                shippingName,
-                city,
-                deliveryCompanyName,
-                deliveryType,
-                shippingAddress: finalShippingAddress,
-                items,
-                cartTotal,
-                deliveryCost: effectiveDelivery,
-                discountAmount: effectiveDiscount,
-                promoCode: effectivePromo,
-                finalTotal: effectiveFinal,
-                isGuest: false
-            });
-
-            // Send to customer
-            if (userData.email) {
-                await sendOrderEmail(
-                    userData.email,
-                    `تم استلام طلبك بنجاح #${orderRef} - Omervita`,
-                    orderDetails
-                );
-            }
-
-            // Send to admin
-            const adminEmail = process.env.ADMIN_EMAIL;
-            if (adminEmail) {
-                await sendOrderEmail(
-                    adminEmail,
-                    `طلبية جديدة #${orderRef} - Omervita`,
-                    orderDetails
-                );
-            }
-        } catch (emailErr) {
-            console.error('Email Error:', emailErr);
-            // Don't return error - email is not critical
-        }
-
+        // Respond immediately to the user so SMTP never blocks order confirmation
         res.json({
             success: true,
             message: 'تم استلام طلبك بنجاح',
             orderId: result.order_id,
             orderRef: result.order_ref
+        });
+
+        // Send order confirmation emails asynchronously in the background
+        setImmediate(async () => {
+            try {
+                const { generateOrderEmailHtml } = require('../utils/order-receipt');
+                const effectiveDelivery = result.calculatedDeliveryCost !== undefined ? result.calculatedDeliveryCost : deliveryCost;
+                const effectiveDiscount = result.discountAmount !== undefined ? result.discountAmount : 0;
+                const effectiveFinal = result.calculatedFinalTotal !== undefined ? result.calculatedFinalTotal : finalTotal;
+                const effectivePromo = result.appliedPromo ? result.appliedPromo.code : ((promoCode || promo_code || '').trim() || null);
+
+                const orderDetails = generateOrderEmailHtml({
+                    orderRef,
+                    date: new Date(),
+                    firstName,
+                    lastName,
+                    shippingName,
+                    city,
+                    deliveryCompanyName,
+                    deliveryType,
+                    shippingAddress: finalShippingAddress,
+                    items,
+                    cartTotal,
+                    deliveryCost: effectiveDelivery,
+                    discountAmount: effectiveDiscount,
+                    promoCode: effectivePromo,
+                    finalTotal: effectiveFinal,
+                    isGuest: false
+                });
+
+                // Send to customer
+                if (userData.email) {
+                    await sendOrderEmail(
+                        userData.email,
+                        `تم استلام طلبك بنجاح #${orderRef} - Omervita`,
+                        orderDetails
+                    );
+                }
+
+                // Send to admin
+                const adminEmail = process.env.ADMIN_EMAIL;
+                if (adminEmail) {
+                    await sendOrderEmail(
+                        adminEmail,
+                        `طلبية جديدة #${orderRef} - Omervita`,
+                        orderDetails
+                    );
+                }
+            } catch (emailErr) {
+                console.warn('Email notification skipped:', emailErr.message);
+            }
         });
 
     } catch (err) {

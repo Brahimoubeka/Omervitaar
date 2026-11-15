@@ -97,22 +97,33 @@ function hideGlobalLoadingSpinner() {
 
 // --- Skeleton Loading for Product Detail ---
 function renderProductDetailSkeleton() {
-  // Only update the contents of the child columns, not the parent container
+  // Only update the contents of the child columns if not already showing the shimmer skeleton
   const imgCol = document.getElementById('product-image-carousel-col');
   const infoCol = document.getElementById('product-info-col');
-  if (imgCol) {
-    imgCol.innerHTML = '<div class="product-carousel-box skeleton-detail-img"></div>';
+  if (imgCol && !imgCol.querySelector('.pd-skeleton-gallery-card')) {
+    imgCol.innerHTML = `
+      <div class="pd-skeleton-gallery-card">
+        <div class="product-carousel-box skeleton-detail-img"></div>
+        <div class="pd-skeleton-thumbs">
+          <div class="pd-skeleton-thumb pd-shimmer"></div>
+          <div class="pd-skeleton-thumb pd-shimmer"></div>
+          <div class="pd-skeleton-thumb pd-shimmer"></div>
+        </div>
+      </div>
+    `;
   }
-  if (infoCol) {
+  if (infoCol && !infoCol.querySelector('.pd-skeleton-info-card')) {
     infoCol.innerHTML = `
-      <div class="skeleton-detail-title mb-3"></div>
-      <div class="skeleton-detail-price mb-2"></div>
-      <div class="skeleton-detail-rating mb-2"></div>
-      <div class="skeleton-detail-badges mb-2"></div>
-      <div class="skeleton-detail-desc mb-4"></div>
-      <div class="d-flex gap-2">
-        <div class="skeleton-detail-btn flex-grow-1"></div>
-        <div class="skeleton-detail-btn flex-grow-1"></div>
+      <div class="pd-skeleton-info-card">
+        <div class="skeleton-detail-badges"></div>
+        <div class="skeleton-detail-title"></div>
+        <div class="skeleton-detail-rating"></div>
+        <div class="skeleton-detail-price"></div>
+        <div class="skeleton-detail-desc"></div>
+        <div class="pd-skeleton-actions">
+          <div class="skeleton-detail-btn"></div>
+          <div class="skeleton-detail-btn"></div>
+        </div>
       </div>
     `;
   }
@@ -128,8 +139,10 @@ function renderProductDetailSkeleton() {
 
 // MAIN FUNCTION: loadProductDetail
 async function loadProductDetail() {
+  if (window.__omvLoadingProductDetail) return;
+  window.__omvLoadingProductDetail = true;
+
   renderProductDetailSkeleton();
-  showGlobalLoadingSpinner('جاري تحميل تفاصيل المنتج...');
 
   const params = getQueryParams();
   productId = params.id;
@@ -163,9 +176,11 @@ async function loadProductDetail() {
     const breadcrumbContainer = document.getElementById('product-breadcrumb');
     if (breadcrumbContainer) {
       breadcrumbContainer.innerHTML = `
-        <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
-        <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
-        <li class="breadcrumb-item active" aria-current="page">منتج غير محدد</li>
+        <a href="/"><i class="bi bi-house-door me-1"></i>الرئيسية</a>
+        <i class="bi bi-chevron-left mx-2 text-muted small"></i>
+        <a href="/products">المنتجات</a>
+        <i class="bi bi-chevron-left mx-2 text-muted small"></i>
+        <span class="text-dark fw-bold">منتج غير محدد</span>
       `;
     }
     return;
@@ -233,9 +248,11 @@ async function loadProductDetail() {
         const breadcrumbContainer = document.getElementById('product-breadcrumb');
         if (breadcrumbContainer) {
           breadcrumbContainer.innerHTML = `
-            <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
-            <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
-            <li class="breadcrumb-item active" aria-current="page">منتج غير متاح</li>
+            <a href="/"><i class="bi bi-house-door me-1"></i>الرئيسية</a>
+            <i class="bi bi-chevron-left mx-2 text-muted small"></i>
+            <a href="/products">المنتجات</a>
+            <i class="bi bi-chevron-left mx-2 text-muted small"></i>
+            <span class="text-dark fw-bold">منتج غير متاح</span>
           `;
         }
         return;
@@ -916,12 +933,15 @@ async function loadProductDetail() {
     const breadcrumbContainer = document.getElementById('product-breadcrumb');
     if (breadcrumbContainer) {
       breadcrumbContainer.innerHTML = `
-        <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
-        <li class="breadcrumb-item"><a href="/products"><i class="bi bi-shop me-1"></i>المنتجات</a></li>
-        <li class="breadcrumb-item active" aria-current="page">خطأ في التحميل</li>
+        <a href="/"><i class="bi bi-house-door me-1"></i>الرئيسية</a>
+        <i class="bi bi-chevron-left mx-2 text-muted small"></i>
+        <a href="/products">المنتجات</a>
+        <i class="bi bi-chevron-left mx-2 text-muted small"></i>
+        <span class="text-dark fw-bold">خطأ في التحميل</span>
       `;
     }
   } finally {
+    window.__omvLoadingProductDetail = false;
     hideGlobalLoadingSpinner();
   }
 }
@@ -1831,28 +1851,25 @@ function updateProductStructuredData(product, url) {
 // Update breadcrumb navigation
 function updateBreadcrumb(product) {
   const breadcrumbContainer = document.getElementById('product-breadcrumb');
+  const breadcrumbNav = document.getElementById('product-breadcrumb-nav');
   if (!breadcrumbContainer) return;
-  const breadcrumbs = [
-    { name: 'الرئيسية', url: '/', icon: 'bi-house' },
-    { name: 'المنتجات', url: '/products', icon: 'bi-shop' }
-  ];
+
+  let html = `<a href="/"><i class="bi bi-house-door me-1"></i>الرئيسية</a>`;
+  html += ` <i class="bi bi-chevron-left mx-2 text-muted small"></i> <a href="/products">المنتجات</a>`;
+
   if (product.categories && product.categories.length > 0) {
     const category = product.categories[0];
-    breadcrumbs.push({
-      name: category.name,
-      url: `/categories/${category.slug || SlugUtil.generateCategorySlug(category)}`,
-      icon: 'bi-tag'
-    });
+    const catSlug = category.slug || SlugUtil.generateCategorySlug(category);
+    html += ` <i class="bi bi-chevron-left mx-2 text-muted small"></i> <a href="/categories/${catSlug}">${category.name}</a>`;
   }
-  breadcrumbs.push({ name: product.name, current: true });
-  const breadcrumbHtml = breadcrumbs.map((crumb, index) => {
-    if (crumb.current) {
-      return `<li class="breadcrumb-item active" aria-current="page">${crumb.name}</li>`;
-    } else {
-      return `<li class="breadcrumb-item"><a href="${crumb.url}"><i class="${crumb.icon} me-1"></i>${crumb.name}</a></li>`;
-    }
-  }).join('');
-  breadcrumbContainer.innerHTML = breadcrumbHtml;
+
+  html += ` <i class="bi bi-chevron-left mx-2 text-muted small"></i> <span class="text-dark fw-bold">${product.name}</span>`;
+  breadcrumbContainer.innerHTML = html;
+
+  if (breadcrumbNav) {
+    breadcrumbNav.style.display = 'block';
+    breadcrumbNav.style.opacity = '1';
+  }
 
   // Update breadcrumb structured data
   updateBreadcrumbStructuredData(product);
@@ -2311,11 +2328,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.scrollTo({
   top: 0,
   behavior: 'smooth'
-});
-
-// =====================================================
-// === PAGE INITIALIZATION ===
-// =====================================================
-document.addEventListener('DOMContentLoaded', () => {
-  loadProductDetail();
 });

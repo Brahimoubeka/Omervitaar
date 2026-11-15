@@ -278,12 +278,13 @@ function renderTopTickerBar(node) {
   let tickerBar = document.getElementById('funnelTopTickerBar');
   const nodeSettings = typeof node.settings === 'object' && node.settings !== null ? node.settings : {};
 
-  // Show on landing pages (use custom text if set, or default promotional text unless explicitly cleared with '-')
-  const rawTickerText = nodeSettings.ticker_text !== undefined
-    ? String(nodeSettings.ticker_text).trim()
+  // Show custom ticker text on any section or landing page if set; on landing pages also fallback to default unless '-'
+  const customTicker = nodeSettings.ticker_text !== undefined ? String(nodeSettings.ticker_text).trim() : '';
+  const rawTickerText = customTicker
+    ? customTicker
     : (node.type === 'landing_page' ? '✨ منتجات طبيعية 100% • توصيل سريع لـ 58 ولاية • الدفع عند الاستلام ✨' : '');
 
-  if (!rawTickerText || rawTickerText === '-' || node.type === 'section') {
+  if (!rawTickerText || rawTickerText === '-') {
     if (tickerBar) tickerBar.remove();
     document.body.classList.remove('has-funnel-ticker');
     return;
@@ -291,6 +292,9 @@ function renderTopTickerBar(node) {
 
   const bgColor = nodeSettings.ticker_bg_color || nodeSettings.button_color || '#5a6344';
   const textColor = nodeSettings.ticker_text_color || nodeSettings.button_text_color || '#ffffff';
+
+  const gBar = document.getElementById('globalTopNoteBar');
+  if (gBar) gBar.remove();
 
   if (!tickerBar) {
     tickerBar = document.createElement('div');
@@ -631,7 +635,7 @@ function renderBlock(block, offers, node) {
       } else {
         const embedUrl = getYouTubeEmbedUrl(content.youtube_url || '', autoplay, loop, controls);
         playerHtml = `
-          <iframe src="${embedUrl}" class="funnel-video-iframe" title="${block.title || 'فيديو صفحة الهبوط'}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width: 100%; height: 100%; border: 0; border-radius: 16px;"></iframe>
+          <iframe src="${embedUrl}" class="funnel-video-iframe" title="${block.title || 'فيديو صفحة طلب الباقة'}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width: 100%; height: 100%; border: 0; border-radius: 16px;"></iframe>
         `;
       }
 
@@ -1080,11 +1084,13 @@ function renderOffersBlock(block, offers, node) {
                 </ul>
               ` : ''}
 
-              <!-- Delivery Tag -->
-              <div class="funnel-offer-delivery-tag ${offer.free_delivery ? 'free' : 'standard'} my-2">
-                <i class="bi bi-truck ms-1"></i>
-                <span>${offer.free_delivery ? 'توصيل مجاني لجميع الولايات' : 'توصيل عادي'}</span>
-              </div>
+              <!-- Delivery Tag (Only shown when delivery is free) -->
+              ${offer.free_delivery ? `
+                <div class="funnel-offer-delivery-tag free my-2">
+                  <i class="bi bi-truck ms-1"></i>
+                  <span>توصيل مجاني</span>
+                </div>
+              ` : ''}
 
               <!-- Customizable / Selectable Options Section with Droplist -->
               ${settings.has_custom_options ? `
@@ -1697,8 +1703,32 @@ function initLandingOrderForm() {
   // Load delivery companies dynamically
   initFunnelDeliveryCompanies();
 
+  // Check storewide & minimum order threshold free delivery settings
+  fetch('/api/delivery/free-delivery-status')
+    .then(r => (r.ok ? r.json() : null))
+    .then(data => {
+      if (data) {
+        window.funnelStorewideFreeDelivery = Boolean(data.storewide_free_delivery);
+        window.funnelFreeDeliveryMinAmount = parseFloat(data.free_delivery_min_amount) || 0;
+        updateDeliveryBadges();
+        updateOrderSummary();
+      }
+    })
+    .catch(() => {});
+
   updateDeliveryBadges();
   updateOrderSummary();
+}
+
+function isFunnelOrderFreeDelivery(subtotal) {
+  const minThreshold = parseFloat(window.funnelFreeDeliveryMinAmount) || 0;
+  return Boolean(
+    selectedOffer?.free_delivery ||
+    window.funnelStorewideFreeDelivery ||
+    (minThreshold > 0 && subtotal >= minThreshold) ||
+    appliedPromo?.free_delivery ||
+    appliedPromo?.discount_type === 'free_delivery'
+  );
 }
 
 // Update Badges on Home/Desk delivery buttons based on selected company & wilaya
@@ -1717,7 +1747,8 @@ function updateDeliveryBadges() {
     return;
   }
 
-  const isFree = selectedOffer?.free_delivery;
+  const subtotal = selectedOffer ? getComputedOfferPrice(selectedOffer) : 0;
+  const isFree = isFunnelOrderFreeDelivery(subtotal);
   if (isFree) {
     homeBadge.textContent = 'مجاني';
     deskBadge.textContent = 'مجاني';
@@ -1761,6 +1792,22 @@ function updateOrderSummary() {
   const addOnsTotal = selectedOpts.reduce((sum, opt) => sum + (parseFloat(opt.price) || 0), 0);
   const subtotal = baseOfferPrice + addOnsTotal;
 
+  // Re-validate applied coupon against minimum order amount when offer/options change
+  if (appliedPromo && parseFloat(appliedPromo.min_order_amount) > 0 && subtotal < parseFloat(appliedPromo.min_order_amount)) {
+    const minReq = parseFloat(appliedPromo.min_order_amount);
+    appliedPromo = null;
+    const input = document.getElementById('funnelPromoCode');
+    const btn = document.getElementById('applyPromoBtn');
+    const feedback = document.getElementById('promoFeedback');
+    if (input) input.disabled = false;
+    if (btn) btn.style.display = '';
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.className = 'small mt-1 text-danger';
+      feedback.textContent = `تم إلغاء الكوبون لأن قيمة العرض الحالية (${subtotal} دج) أقل من الحد الأدنى المطلوب (${minReq} دج).`;
+    }
+  }
+
   if (dealBadge && selectedOffer) dealBadge.textContent = selectedOffer.title;
   if (basePriceDisplay && selectedOffer) basePriceDisplay.textContent = `${selectedOffer.price} دج`;
   if (basePriceEl) basePriceEl.textContent = `${baseOfferPrice} دج`;
@@ -1779,6 +1826,7 @@ function updateOrderSummary() {
   const wilayaObj = ALGERIAN_WILAYAS.find(w => w.en === selectedWilaya);
 
   const deliveryType = document.querySelector('input[name="funnelDeliveryType"]:checked')?.value || 'home';
+  const isFreeShip = isFunnelOrderFreeDelivery(subtotal);
 
   let deliveryCost = 0;
   if (wilayaObj) {
@@ -1794,16 +1842,16 @@ function updateOrderSummary() {
       }
     }
 
-    deliveryCost = deliveryType === 'desk' ? deskPrice : homePrice;
-    if (selectedOffer?.free_delivery || appliedPromo?.discount_type === 'free_delivery') {
-      deliveryCost = 0;
-    }
+    deliveryCost = isFreeShip ? 0 : (deliveryType === 'desk' ? deskPrice : homePrice);
   }
 
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.discount_type === 'percentage') {
       discountAmount = Math.round((subtotal * appliedPromo.discount_value) / 100);
+      if (appliedPromo.max_discount && discountAmount > parseFloat(appliedPromo.max_discount)) {
+        discountAmount = parseFloat(appliedPromo.max_discount);
+      }
     } else if (appliedPromo.discount_type === 'fixed') {
       discountAmount = Math.min(subtotal, parseFloat(appliedPromo.discount_value));
     }
@@ -1811,7 +1859,9 @@ function updateOrderSummary() {
 
   const finalTotal = Math.max(0, subtotal + (wilayaObj ? deliveryCost : 0) - discountAmount);
 
-  if (!wilayaObj) {
+  if (isFreeShip) {
+    deliveryEl.textContent = 'توصيل مجاني 🎉';
+  } else if (!wilayaObj) {
     deliveryEl.textContent = 'يرجى اختيار الولاية';
   } else {
     deliveryEl.textContent = deliveryCost === 0 ? 'توصيل مجاني 🎉' : `${deliveryCost} دج`;
@@ -1847,17 +1897,18 @@ async function applyFunnelPromo() {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
   try {
-    const basePrice = selectedOffer ? parseFloat(selectedOffer.price) : 0;
+    const basePrice = selectedOffer ? getComputedOfferPrice(selectedOffer) : 0;
     const res = await fetch('/api/promo-codes/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code,
         items: [{
-          id: selectedOffer?.product_id || 1,
+          id: selectedOffer?.product_id || null,
           name: selectedOffer?.title || 'باقة العرض',
           price: basePrice,
-          quantity: selectedOffer?.quantity || 1
+          quantity: 1,
+          is_bundle: true
         }],
         cartTotal: basePrice,
         deliveryCost: 600
@@ -1983,12 +2034,11 @@ async function submitFunnelOrder(e) {
       }
     }
     deliveryCost = deliveryType === 'desk' ? deskPrice : homePrice;
-    if (selectedOffer?.free_delivery || appliedPromo?.discount_type === 'free_delivery') {
-      deliveryCost = 0;
-    }
   }
-
   const basePrice = selectedOffer ? getComputedOfferPrice(selectedOffer) : 0;
+  if (wilayaObj && isFunnelOrderFreeDelivery(basePrice)) {
+    deliveryCost = 0;
+  }
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.discount_type === 'percentage') {
@@ -2046,40 +2096,45 @@ async function submitFunnelOrder(e) {
   statusMsg.innerHTML = '';
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
     const response = await fetch('/api/guest-orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
-    const result = await response.json();
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (_) {
+      result = {};
+    }
+
     if (!response.ok) {
       throw new Error(result.error || 'حدث خطأ أثناء معالجة الطلب');
     }
 
     localStorage.setItem('last_checkout_submit', now.toString());
 
-    // Replace order form with congratulation & order tracking screen
+    const orderId = result.orderId || result.orderGroup || 'OMV-' + Date.now().toString().slice(-6);
+    try {
+      if (typeof window.fbq === 'function') window.fbq('track', 'Purchase', { value: finalTotal, currency: 'DZD' });
+      if (window.ttq && typeof window.ttq.track === 'function') window.ttq.track('CompletePayment', { value: finalTotal, currency: 'DZD' });
+      if (typeof window.gtag === 'function') window.gtag('event', 'purchase', { transaction_id: String(orderId), value: finalTotal, currency: 'DZD' });
+    } catch (_) {}
+    const waText = encodeURIComponent(`السلام عليكم! قمت بتأكيد طلبي رقم #${orderId} من خلال صفحة (${currentFunnelData?.node?.title || 'الموقع'}). أود الاستفسار والتأكيد.`);
+
+    // Replace order form immediately with congratulation & order tracking screen
     const orderBox = document.getElementById('orderFormBlock');
     if (orderBox) {
-      let waPhone = '0770000000';
-      let formattedWa = '213770000000';
-      try {
-        const bRes = await fetch('/api/branding');
-        if (bRes.ok) {
-          const bData = await bRes.json();
-          const targetWa = bData.social_links?.whatsapp || bData.whatsapp || bData.phone;
-          if (targetWa) {
-            waPhone = targetWa;
-            formattedWa = formatWhatsAppTargetNumber(targetWa);
-          }
-        }
-      } catch (e) { }
-
-      const orderId = result.orderId || result.orderGroup || 'OMV-' + Date.now().toString().slice(-6);
-      const waText = encodeURIComponent(`السلام عليكم! قمت بتأكيد طلبي رقم #${orderId} من خلال صفحة (${currentFunnelData?.node?.title || 'الموقع'}). أود الاستفسار والتأكيد.`);
+      const waPhone = '0770000000';
+      const formattedWa = '213770000000';
       const waUrl = `https://wa.me/${formattedWa}?text=${waText}`;
 
       orderBox.innerHTML = `
@@ -2117,9 +2172,9 @@ async function submitFunnelOrder(e) {
             </div>
             <p class="text-muted small mb-3">
               فريق خدمة العملاء متواجد لمساعدتك والإجابة على استفساراتك مباشرة على واتساب:
-              <strong class="text-dark d-block fs-5 mt-1" dir="ltr">${waPhone}</strong>
+              <strong class="text-dark d-block fs-5 mt-1" dir="ltr" id="funnelWaPhoneText">${waPhone}</strong>
             </p>
-            <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-lg rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow">
+            <a href="${waUrl}" id="funnelWaLinkBtn" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-lg rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow">
               <i class="bi bi-whatsapp fs-4"></i>
               <span>تواصل معنا عبر واتساب الآن</span>
             </a>
@@ -2134,6 +2189,24 @@ async function submitFunnelOrder(e) {
       `;
 
       orderBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Update WhatsApp phone asynchronously in background without delaying success card
+      fetch('/api/branding')
+        .then(r => (r.ok ? r.json() : null))
+        .then(bData => {
+          const targetWa = bData?.social_links?.whatsapp || bData?.whatsapp || bData?.phone;
+          if (targetWa) {
+            const phoneEl = document.getElementById('funnelWaPhoneText');
+            const linkEl = document.getElementById('funnelWaLinkBtn');
+            if (phoneEl) phoneEl.textContent = targetWa;
+            if (linkEl) linkEl.href = `https://wa.me/${formatWhatsAppTargetNumber(targetWa)}?text=${waText}`;
+          }
+        })
+        .catch(() => {});
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> تم استلام طلبك بنجاح!';
+      statusMsg.innerHTML = `<div class="alert alert-success fw-bold">تهانينا! تم استلام طلبك بنجاح (رقم الطلب: #${orderId}).</div>`;
     }
 
   } catch (err) {

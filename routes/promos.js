@@ -21,20 +21,39 @@ function verifyAdmin(req, res, next) {
 
 /**
  * Core Helper: Check free delivery status for cart items
- * Checks storewide setting and individual product is_free_delivery flags
+ * Checks storewide setting, minimum order amount threshold, and individual product is_free_delivery flags
  */
-async function checkFreeDeliveryEligibility(items = []) {
+async function checkFreeDeliveryEligibility(items = [], cartTotal = null) {
   try {
-    // 1. Check storewide setting
+    // 1. Check storewide setting & minimum order amount threshold
     const { rows: ssRows } = await pool.query(
-      'SELECT storewide_free_delivery FROM public.site_settings LIMIT 1'
+      'SELECT storewide_free_delivery, COALESCE(free_delivery_min_amount, 0) AS free_delivery_min_amount FROM public.site_settings LIMIT 1'
     );
     const storewide = ssRows.length > 0 && Boolean(ssRows[0].storewide_free_delivery);
+    const minFreeAmount = ssRows.length > 0 ? (parseFloat(ssRows[0].free_delivery_min_amount) || 0) : 0;
+
     if (storewide) {
-      return { isFreeDelivery: true, reason: 'storewide' };
+      return { isFreeDelivery: true, reason: 'storewide', free_delivery_min_amount: minFreeAmount };
     }
 
-    // 2. Check individual products
+    // 2. Check minimum order amount threshold for automatic free delivery
+    if (minFreeAmount > 0) {
+      let computedSubtotal = 0;
+      if (cartTotal !== null && cartTotal !== undefined && !isNaN(parseFloat(cartTotal))) {
+        computedSubtotal = parseFloat(cartTotal);
+      } else if (Array.isArray(items) && items.length > 0) {
+        computedSubtotal = items.reduce((sum, item) => {
+          const price = parseFloat(item.price) || 0;
+          const qty = item.is_bundle ? 1 : (parseInt(item.quantity, 10) || 1);
+          return sum + (price * qty);
+        }, 0);
+      }
+      if (computedSubtotal >= minFreeAmount) {
+        return { isFreeDelivery: true, reason: 'threshold', free_delivery_min_amount: minFreeAmount };
+      }
+    }
+
+    // 3. Check individual products
     if (items && items.length > 0) {
       const itemIds = items.map(i => parseInt(i.id, 10)).filter(id => !isNaN(id));
       if (itemIds.length > 0) {
@@ -43,15 +62,15 @@ async function checkFreeDeliveryEligibility(items = []) {
           [itemIds]
         );
         if (prodRows.length > 0) {
-          return { isFreeDelivery: true, reason: 'product', freeProductIds: prodRows.map(p => p.id) };
+          return { isFreeDelivery: true, reason: 'product', freeProductIds: prodRows.map(p => p.id), free_delivery_min_amount: minFreeAmount };
         }
       }
     }
 
-    return { isFreeDelivery: false, reason: 'none' };
+    return { isFreeDelivery: false, reason: 'none', free_delivery_min_amount: minFreeAmount };
   } catch (err) {
     console.error('Error checking free delivery eligibility:', err);
-    return { isFreeDelivery: false, reason: 'error' };
+    return { isFreeDelivery: false, reason: 'error', free_delivery_min_amount: 0 };
   }
 }
 
@@ -89,7 +108,7 @@ async function calculatePromoDiscount({ code, items = [], cartTotal = 0 }) {
   }
 
   // Calculate eligible items and amount
-  let eligibleItems = items;
+  let eligibleItems = Array.isArray(items) ? items : [];
   let eligibleAmount = 0;
 
   if (promo.applies_to === 'specific') {
@@ -99,22 +118,34 @@ async function calculatePromoDiscount({ code, items = [], cartTotal = 0 }) {
     );
     const specificIds = new Set(specificRows.map(r => r.product_id));
 
-    eligibleItems = items.filter(i => specificIds.has(parseInt(i.id, 10)));
+    eligibleItems = eligibleItems.filter(i => specificIds.has(parseInt(i.id, 10)));
     if (eligibleItems.length === 0) {
       return { valid: false, error: 'كود الخصم لا ينطبق على المنتجات المحددة في طلبك' };
     }
+    eligibleAmount = eligibleItems.reduce((sum, item) => {
+      const price = parseFloat(item.price) || 0;
+      const qty = item.is_bundle ? 1 : (parseInt(item.quantity, 10) || 1);
+      return sum + (price * qty);
+    }, 0);
+  } else {
+    const parsedCartTotal = parseFloat(cartTotal);
+    if (!isNaN(parsedCartTotal) && parsedCartTotal > 0) {
+      eligibleAmount = parsedCartTotal;
+    } else {
+      eligibleAmount = eligibleItems.reduce((sum, item) => {
+        const price = parseFloat(item.price) || 0;
+        const qty = item.is_bundle ? 1 : (parseInt(item.quantity, 10) || 1);
+        return sum + (price * qty);
+      }, 0);
+    }
   }
 
-  eligibleAmount = eligibleItems.reduce((sum, item) => {
-    const price = parseFloat(item.price) || 0;
-    const qty = parseInt(item.quantity, 10) || 1;
-    return sum + (price * qty);
-  }, 0);
-
-  if (promo.min_order_amount && eligibleAmount < parseFloat(promo.min_order_amount)) {
+  const minOrderAmount = parseFloat(promo.min_order_amount) || 0;
+  if (minOrderAmount > 0 && eligibleAmount < minOrderAmount) {
     return {
       valid: false,
-      error: `الحد الأدنى للطلب لتفعيل هذا الكود هو ${promo.min_order_amount} دج للمنتجات المشمولة`
+      min_order_amount: minOrderAmount,
+      error: `الحد الأدنى للطلب لتفعيل هذا الكود هو ${minOrderAmount} دج (قيمة طلبك الحالية: ${eligibleAmount} دج)`
     };
   }
 
@@ -142,6 +173,8 @@ async function calculatePromoDiscount({ code, items = [], cartTotal = 0 }) {
     discount_type: promo.discount_type,
     discount_value: parseFloat(promo.discount_value),
     discount_amount: discountAmount,
+    min_order_amount: minOrderAmount,
+    max_discount: promo.max_discount_amount ? parseFloat(promo.max_discount_amount) : null,
     free_delivery: freeDelivery,
     applies_to: promo.applies_to,
     eligible_amount: eligibleAmount,
@@ -168,13 +201,13 @@ router.post('/promo-codes/validate', async (req, res) => {
       return res.status(400).json(promoResult);
     }
 
-    // Check free delivery status (either from promo or product/storewide)
-    const freeDeliveryEligibility = await checkFreeDeliveryEligibility(items);
+    // Check free delivery status (either from promo or product/storewide/threshold)
+    const freeDeliveryEligibility = await checkFreeDeliveryEligibility(items, cartTotal);
     const isFreeDelivery = promoResult.free_delivery || freeDeliveryEligibility.isFreeDelivery;
 
     const baseDelivery = parseFloat(deliveryCost) || 0;
     const finalDeliveryCost = isFreeDelivery ? 0 : baseDelivery;
-    const totalItems = parseFloat(cartTotal) || items.reduce((s, i) => s + (parseFloat(i.price) || 0) * (parseInt(i.quantity, 10) || 1), 0);
+    const totalItems = parseFloat(cartTotal) || (Array.isArray(items) ? items.reduce((s, i) => s + (parseFloat(i.price) || 0) * (i.is_bundle ? 1 : (parseInt(i.quantity, 10) || 1)), 0) : 0);
     const finalTotal = Math.max(0, totalItems - promoResult.discount_amount) + finalDeliveryCost;
 
     res.json({
@@ -191,13 +224,14 @@ router.post('/promo-codes/validate', async (req, res) => {
 });
 
 // 2. GET /api/delivery/free-delivery-status
-// Returns storewide flag and list of products with free delivery
+// Returns storewide flag, minimum order amount for free delivery, and list of products with free delivery
 router.get('/delivery/free-delivery-status', async (req, res) => {
   try {
     const { rows: ssRows } = await pool.query(
-      'SELECT storewide_free_delivery FROM public.site_settings LIMIT 1'
+      'SELECT storewide_free_delivery, COALESCE(free_delivery_min_amount, 0) AS free_delivery_min_amount FROM public.site_settings LIMIT 1'
     );
     const storewide = ssRows.length > 0 && Boolean(ssRows[0].storewide_free_delivery);
+    const freeDeliveryMinAmount = ssRows.length > 0 ? (parseFloat(ssRows[0].free_delivery_min_amount) || 0) : 0;
 
     const { rows: prodRows } = await pool.query(
       'SELECT id, name FROM public."Products" WHERE is_free_delivery = true AND is_active = true'
@@ -205,6 +239,7 @@ router.get('/delivery/free-delivery-status', async (req, res) => {
 
     res.json({
       storewide_free_delivery: storewide,
+      free_delivery_min_amount: freeDeliveryMinAmount,
       free_delivery_products: prodRows
     });
   } catch (err) {
@@ -424,9 +459,10 @@ router.delete('/admin/promo-codes/:id', verifyAdmin, async (req, res) => {
 router.get('/admin/free-delivery', verifyAdmin, async (req, res) => {
   try {
     const { rows: ssRows } = await pool.query(
-      'SELECT storewide_free_delivery FROM public.site_settings LIMIT 1'
+      'SELECT storewide_free_delivery, COALESCE(free_delivery_min_amount, 0) AS free_delivery_min_amount FROM public.site_settings LIMIT 1'
     );
     const storewide = ssRows.length > 0 && Boolean(ssRows[0].storewide_free_delivery);
+    const freeDeliveryMinAmount = ssRows.length > 0 ? (parseFloat(ssRows[0].free_delivery_min_amount) || 0) : 0;
 
     const { rows: products } = await pool.query(`
       SELECT id, name, price, stock, is_free_delivery, is_active
@@ -436,11 +472,32 @@ router.get('/admin/free-delivery', verifyAdmin, async (req, res) => {
 
     res.json({
       storewide_free_delivery: storewide,
+      free_delivery_min_amount: freeDeliveryMinAmount,
       products
     });
   } catch (err) {
     console.error('Error fetching admin free delivery status:', err);
     res.status(500).json({ error: 'خطأ في جلب بيانات التوصيل المجاني' });
+  }
+});
+
+// PUT /api/admin/free-delivery/threshold
+router.put('/admin/free-delivery/threshold', verifyAdmin, async (req, res) => {
+  try {
+    const minAmount = Math.max(0, parseFloat(req.body.min_amount) || 0);
+    await pool.query(
+      'UPDATE public.site_settings SET free_delivery_min_amount = $1',
+      [minAmount]
+    );
+    res.json({
+      message: minAmount > 0
+        ? `تم تفعيل التوصيل المجاني التلقائي للطلبات بقيمة ${minAmount} دج فما فوق!`
+        : 'تم إيقاف شرط الحد الأدنى للتوصيل المجاني التلقائي',
+      free_delivery_min_amount: minAmount
+    });
+  } catch (err) {
+    console.error('Error updating free delivery threshold:', err);
+    res.status(500).json({ error: 'خطأ في تحديث الحد الأدنى للتوصيل المجاني' });
   }
 });
 

@@ -77,6 +77,7 @@ let selectedDeliveryType = 'home'; // 'home' or 'desk'
 let appliedCartPromo = null;
 let isCartFreeDelivery = false;
 let storewideFreeDelivery = false;
+let cartFreeDeliveryMinAmount = 0;
 let freeDeliveryProductsList = [];
 
 async function checkCartFreeDeliveryStatus() {
@@ -85,6 +86,7 @@ async function checkCartFreeDeliveryStatus() {
     if (res.ok) {
       const data = await res.json();
       storewideFreeDelivery = !!data.storewide_free_delivery;
+      cartFreeDeliveryMinAmount = parseFloat(data.free_delivery_min_amount) || 0;
       freeDeliveryProductsList = Array.isArray(data.free_delivery_products) ? data.free_delivery_products : [];
     }
   } catch (e) {
@@ -92,9 +94,10 @@ async function checkCartFreeDeliveryStatus() {
   }
 }
 
-function evaluateCartFreeDelivery(cart) {
+function evaluateCartFreeDelivery(cart, cartTotal = 0) {
   if (!cart || cart.length === 0) return false;
   if (storewideFreeDelivery) return true;
+  if (cartFreeDeliveryMinAmount > 0 && cartTotal >= cartFreeDeliveryMinAmount) return true;
   return cart.some(item => {
     const pId = parseInt(item.id || item.productId || item.product_id, 10);
     return freeDeliveryProductsList.some(p => {
@@ -198,7 +201,28 @@ function updateDeliveryCost(cartTotalOverride = null) {
   
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
   const hasItems = cart.length > 0;
-  isCartFreeDelivery = evaluateCartFreeDelivery(cart);
+
+  // Re-validate applied coupon if cartTotal drops below min_order_amount
+  if (appliedCartPromo && parseFloat(appliedCartPromo.min_order_amount) > 0 && cartTotal < parseFloat(appliedCartPromo.min_order_amount)) {
+    const minReq = parseFloat(appliedCartPromo.min_order_amount);
+    appliedCartPromo = null;
+    const input = document.getElementById('cartPromoCodeInput');
+    const btn = document.getElementById('cartApplyPromoBtn');
+    const feedback = document.getElementById('cartPromoFeedback');
+    if (input) input.disabled = false;
+    if (btn) {
+      btn.textContent = 'تطبيق';
+      btn.className = 'btn btn-outline-primary fw-bold';
+      btn.onclick = applyCartPromoCode;
+    }
+    if (feedback) {
+      feedback.className = 'small mt-1 text-danger';
+      feedback.textContent = `تم إلغاء الكوبون لأن مجموع السلة (${cartTotal} دج) أقل من الحد الأدنى (${minReq} دج).`;
+      feedback.style.display = 'block';
+    }
+  }
+
+  isCartFreeDelivery = evaluateCartFreeDelivery(cart, cartTotal);
 
   const isFree = hasItems && (isCartFreeDelivery || Boolean(appliedCartPromo && appliedCartPromo.free_delivery));
   const deliveryCost = isFree ? 0 : rawDeliveryCost;
@@ -301,6 +325,7 @@ async function applyCartPromoCode() {
       discount_type: data.discount_type,
       discount_value: data.discount_value,
       discount_amount: data.discount_amount,
+      min_order_amount: parseFloat(data.min_order_amount) || 0,
       free_delivery: !!data.free_delivery,
       max_discount: data.max_discount
     };

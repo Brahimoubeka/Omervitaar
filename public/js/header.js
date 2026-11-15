@@ -137,52 +137,129 @@ function updateCartCounter() {
     });
 }
 
-// Dynamically load categories into navbar dropdown
+// Cache for funnels public tree (used by navbar dropdowns and live search)
+let allSearchFunnelsCache = null;
+
+async function fetchFunnelsForHeader() {
+    if (allSearchFunnelsCache) return allSearchFunnelsCache;
+    try {
+        const res = await fetch('/api/funnels/public-tree');
+        if (res.ok) {
+            const data = await res.json();
+            allSearchFunnelsCache = data;
+            return data;
+        }
+    } catch (e) {
+        console.warn('Could not load funnels tree for header:', e);
+    }
+    return { tree: [], all: [] };
+}
+
+// Dynamically load categories & funnel sections into navbar dropdowns
 async function loadCategoriesDropdown() {
     try {
-        // Add timeout to prevent hanging forever
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const res = await fetch('/api/categories?_t=' + Date.now(), { signal: controller.signal });
+        const [catRes, funnelsData] = await Promise.all([
+            fetch('/api/categories', { signal: controller.signal }).catch(() => null),
+            fetchFunnelsForHeader()
+        ]);
         clearTimeout(timeoutId);
 
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
-        }
-
-        const categories = await res.json();
+        const categories = (catRes && catRes.ok) ? await catRes.json() : [];
+        const funnelTree = Array.isArray(funnelsData?.tree) ? funnelsData.tree : [];
+        const funnelAll = Array.isArray(funnelsData?.all) ? funnelsData.all : [];
 
         const mobileMenu = document.getElementById('categoriesDropdownMenuMobile');
         const desktopMenu = document.getElementById('categoriesDropdownMenuDesktop');
+        const solutionsDesktopMenu = document.getElementById('solutionsDropdownMenuDesktop');
+        const solutionsMobileMenu = document.getElementById('solutionsDropdownMenuMobile');
 
+        // Render dedicated Solutions / Sections & Landing Pages Dropdown
+        const renderSolutionsMenu = (menuEl) => {
+            if (!menuEl) return;
+            menuEl.innerHTML = '';
+
+            const allSolLi = document.createElement('li');
+            allSolLi.innerHTML = `<a class="dropdown-item fw-bold text-success border-bottom pb-2 mb-1" href="/solutions" style="text-align: right;"><i class="bi bi-grid-1x2-fill ms-2"></i>باقات و حلول جاهزة</a>`;
+            menuEl.appendChild(allSolLi);
+
+            if (funnelTree.length > 0) {
+                funnelTree.forEach(rootNode => {
+                    const li = document.createElement('li');
+                    const icon = rootNode.type === 'landing_page' ? 'bi-stars text-warning' : 'bi-folder2-open text-success';
+                    li.innerHTML = `<a class="dropdown-item py-1.5 fw-bold" href="/solutions/${rootNode.slug}" style="text-align: right;"><i class="bi ${icon} ms-2"></i>${rootNode.title}</a>`;
+                    menuEl.appendChild(li);
+
+                    if (Array.isArray(rootNode.children) && rootNode.children.length > 0) {
+                        rootNode.children.forEach(child => {
+                            const cLi = document.createElement('li');
+                            const cIcon = child.type === 'landing_page' ? 'bi-file-earmark-richtext text-primary' : 'bi-diagram-2 text-secondary';
+                            cLi.innerHTML = `<a class="dropdown-item py-1 small ps-4 text-secondary" href="/solutions/${child.slug}" style="text-align: right;"><i class="bi ${cIcon} ms-1"></i>↳ ${child.title}</a>`;
+                            menuEl.appendChild(cLi);
+
+                            if (Array.isArray(child.children) && child.children.length > 0) {
+                                child.children.forEach(subChild => {
+                                    const scLi = document.createElement('li');
+                                    scLi.innerHTML = `<a class="dropdown-item py-1 small ps-5 text-muted" href="/solutions/${subChild.slug}" style="text-align: right;"><i class="bi bi-dot ms-1"></i>${subChild.title}</a>`;
+                                    menuEl.appendChild(scLi);
+                                });
+                            }
+                        });
+                    }
+                });
+            } else if (funnelAll.length > 0) {
+                funnelAll.forEach(node => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a class="dropdown-item py-1.5" href="/solutions/${node.slug}" style="text-align: right;">${node.title}</a>`;
+                    menuEl.appendChild(li);
+                });
+            }
+        };
+
+        renderSolutionsMenu(solutionsDesktopMenu);
+        renderSolutionsMenu(solutionsMobileMenu);
+
+        // Render main "تصفح الأقسام" dropdown (includes both Solutions/Sections AND Product Categories)
         const renderMenu = (menuElement) => {
             if (!menuElement) return;
             menuElement.innerHTML = '';
-            if (Array.isArray(categories) && categories.length > 0) {
-                // Add a "All Products" link at the top
-                const allLi = document.createElement('li');
-                allLi.innerHTML = `<a class="dropdown-item fw-bold text-primary border-bottom pb-2 mb-1" href="/products" style="text-align: right;"><i class="bi bi-collection ms-2"></i>عرض كل المنتجات</a>`;
-                menuElement.appendChild(allLi);
 
+            // 1. All Solutions Link + Funnel Sections
+            const allSolLi = document.createElement('li');
+            allSolLi.innerHTML = `<a class="dropdown-item fw-bold text-success border-bottom pb-2 mb-1" href="/solutions" style="text-align: right;"><i class="bi bi-grid-1x2-fill ms-2"></i>باقات و حلول جاهزة</a>`;
+            menuElement.appendChild(allSolLi);
+
+            if (funnelTree.length > 0) {
+                funnelTree.forEach(sec => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a class="dropdown-item py-1.5 fw-semibold" href="/solutions/${sec.slug}" style="text-align: right;"><i class="bi bi-folder2-open text-success ms-2"></i>${sec.title}</a>`;
+                    menuElement.appendChild(li);
+                });
+                const divider = document.createElement('li');
+                divider.innerHTML = '<hr class="dropdown-divider my-1">';
+                menuElement.appendChild(divider);
+            }
+
+            // 2. All Products Link + Product Categories
+            const allLi = document.createElement('li');
+            allLi.innerHTML = `<a class="dropdown-item fw-bold text-primary border-bottom pb-2 mb-1" href="/products" style="text-align: right;"><i class="bi bi-collection ms-2"></i>عرض كل المنتجات</a>`;
+            menuElement.appendChild(allLi);
+
+            if (Array.isArray(categories) && categories.length > 0) {
                 categories.forEach(cat => {
                     const li = document.createElement('li');
                     const a = document.createElement('a');
-                    a.className = 'dropdown-item py-2';
+                    a.className = 'dropdown-item py-1.5';
                     a.style.textAlign = 'right';
                     const catName = cat.name || 'بدون اسم';
                     const slug = cat.slug || catName.toLowerCase().replace(/\s+/g, '-');
                     a.href = `/categories/${slug}`;
-                    a.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        window.location.href = a.href;
-                    });
                     a.textContent = catName;
                     li.appendChild(a);
                     menuElement.appendChild(li);
                 });
-            } else {
-                menuElement.innerHTML = '<li><span class="dropdown-item text-muted">لا توجد فئات</span></li>';
             }
         };
 
@@ -191,11 +268,6 @@ async function loadCategoriesDropdown() {
 
     } catch (e) {
         console.error('Error loading categories for dropdown:', e);
-        const mobileMenu = document.getElementById('categoriesDropdownMenuMobile');
-        const desktopMenu = document.getElementById('categoriesDropdownMenuDesktop');
-
-        if (mobileMenu) mobileMenu.innerHTML = `<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>`;
-        if (desktopMenu) desktopMenu.innerHTML = `<li><span class="dropdown-item text-danger">خطأ في التحميل</span></li>`;
     }
 }
 
@@ -319,6 +391,15 @@ function renderNavbar(userData) {
           </li>
           
           <li class="nav-item me-2"><a class="nav-link py-2" href="/"><i class="bi bi-house me-1"></i>الرئيسية</a></li>
+          <li class="nav-item dropdown me-2">
+            <div class="d-flex align-items-center">
+              <a class="nav-link py-2 pe-1 fw-bold" href="/solutions" style="color: var(--military-green);"><i class="bi bi-grid-1x2-fill me-1"></i>باقات و حلول جاهزة</a>
+              <a class="nav-link dropdown-toggle py-2 ps-1" href="#" id="solutionsDropdownDesktop" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="قائمة الباقات والحلول الجاهزة" style="color: var(--military-green);"></a>
+              <ul class="dropdown-menu shadow border-0 mt-0" aria-labelledby="solutionsDropdownDesktop" id="solutionsDropdownMenuDesktop" style="border-radius: 0 0 10px 10px; border-top: 3px solid var(--military-green) !important; min-width: 260px; max-height: 420px; overflow-y: auto;">
+                <li><span class="dropdown-item text-muted small">جاري التحميل...</span></li>
+              </ul>
+            </div>
+          </li>
           <li class="nav-item me-2"><a class="nav-link py-2" href="/products"><i class="bi bi-bag me-1"></i>المنتجات</a></li>
           <li class="nav-item me-2"><a class="nav-link py-2" href="/contact"><i class="bi bi-headset me-1"></i>تواصل معنا</a></li>
           
@@ -343,6 +424,19 @@ function renderNavbar(userData) {
                 <a class="nav-link d-flex align-items-center py-2" href="/">
                   <i class="bi bi-house me-3" style="font-size: 1.2rem; color: var(--military-green);"></i>الرئيسية
                 </a>
+              </li>
+              <li class="nav-item border-bottom">
+                <a class="nav-link d-flex align-items-center py-2 fw-bold" href="/solutions">
+                  <i class="bi bi-grid-1x2-fill me-3" style="font-size: 1.2rem; color: var(--military-green);"></i>باقات و حلول جاهزة
+                </a>
+              </li>
+              <li class="nav-item dropdown border-bottom">
+                <a class="nav-link dropdown-toggle d-flex align-items-center py-2" href="#" id="solutionsDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-diagram-3 me-3" style="font-size: 1.2rem; color: var(--military-green);"></i>الأقسام وصفحات طلب الباقة
+                </a>
+                <ul class="dropdown-menu border-0 shadow-sm rounded-3 mt-1 bg-light" aria-labelledby="solutionsDropdownMobile" id="solutionsDropdownMenuMobile" style="max-height: 320px; overflow-y: auto;">
+                  <li><span class="dropdown-item text-muted small">جاري التحميل...</span></li>
+                </ul>
               </li>
               <li class="nav-item dropdown border-bottom">
                 <a class="nav-link dropdown-toggle d-flex align-items-center py-2" href="#" id="categoriesDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -453,6 +547,7 @@ function renderFooter(settings) {
           <h5 style="color: var(--military-green);"><i class="bi bi-link-45deg me-2"></i>روابط سريعة</h5>
           <ul class="list-unstyled">
             <li class="mb-2"><a href="/" class="text-decoration-none text-muted"><i class="bi bi-house me-2"></i>الصفحة الرئيسية</a></li>
+            <li class="mb-2"><a href="/solutions" class="text-decoration-none text-muted"><i class="bi bi-grid-1x2 me-2"></i>باقات و حلول جاهزة</a></li>
             <li class="mb-2"><a href="/products" class="text-decoration-none text-muted"><i class="bi bi-bag me-2"></i>المنتجات</a></li>
             <li class="mb-2"><a href="/contact" class="text-decoration-none text-muted"><i class="bi bi-envelope me-2"></i>تواصل معنا</a></li>
           </ul>
@@ -536,10 +631,222 @@ function updateHeader() {
     updateCartCounter();
     loadCategoriesDropdown();
 
-    // Load site settings and update footer dynamically
+    let lastRenderedAnnouncementJson = null;
+
+    function renderGlobalTopAnnouncementBar(ta) {
+        const serialized = JSON.stringify(ta || {});
+        if (serialized === lastRenderedAnnouncementJson && document.getElementById('globalTopNoteBar')) {
+            document.body.classList.add('has-global-top-bar');
+            return; // Already rendered with identical settings; do not interrupt animation
+        }
+        lastRenderedAnnouncementJson = serialized;
+
+        const existing = document.getElementById('globalTopNoteBar');
+        if (existing) existing.remove();
+
+        if (!ta || !ta.enabled || !ta.text || !String(ta.text).trim()) {
+            document.body.classList.remove('has-global-top-bar');
+            return;
+        }
+
+        // Do not duplicate on landing/section pages if funnelTopTickerBar is active
+        if (document.getElementById('funnelTopTickerBar')) {
+            document.body.classList.remove('has-global-top-bar');
+            return;
+        }
+
+        const path = (window.location.pathname || '/').toLowerCase();
+        const pages = Array.isArray(ta.pages) ? ta.pages : ['all'];
+        const customPaths = String(ta.custom_paths || '')
+            .split(',')
+            .map(p => p.trim().toLowerCase())
+            .filter(Boolean);
+
+        let shouldShow = false;
+        if (pages.includes('all')) {
+            shouldShow = true;
+        } else {
+            if (pages.includes('home') && (path === '/' || path === '/index.html')) shouldShow = true;
+            if (pages.includes('products') && (path.startsWith('/products') || path.startsWith('/categories'))) shouldShow = true;
+            if (pages.includes('solutions') && (path.startsWith('/solutions') || path.startsWith('/sections'))) shouldShow = true;
+            if (pages.includes('cart') && path.startsWith('/cart')) shouldShow = true;
+            if (pages.includes('contact') && path.startsWith('/contact')) shouldShow = true;
+        }
+
+        if (!shouldShow && customPaths.length > 0) {
+            shouldShow = customPaths.some(cp => path === cp || (cp !== '/' && path.startsWith(cp)));
+        }
+
+        if (!shouldShow) {
+            document.body.classList.remove('has-global-top-bar');
+            return;
+        }
+
+        document.body.classList.add('has-global-top-bar');
+
+        const bgColor = ta.bg_color || '#5a6344';
+        const textColor = ta.text_color || '#ffffff';
+        const textSafe = String(ta.text).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const isScrolling = ta.mode === 'scrolling';
+
+        const bar = document.createElement('div');
+        bar.id = 'globalTopNoteBar';
+        bar.className = isScrolling ? 'global-top-note-bar is-scrolling' : 'global-top-note-bar';
+        bar.style.backgroundColor = bgColor;
+        bar.style.color = textColor;
+        bar.style.padding = isScrolling ? '5px 0' : '7px 14px';
+
+        // Ensure fallback inline keyframes exist even if CSS is cached
+        if (isScrolling && !document.getElementById('globalTopNoteTickerStyle')) {
+            const st = document.createElement('style');
+            st.id = 'globalTopNoteTickerStyle';
+            st.textContent = `
+                .global-top-note-bar.is-scrolling { overflow: hidden; display: flex; align-items: center; justify-content: flex-start !important; direction: ltr !important; }
+                .global-ticker-track { display: flex; flex-direction: row; flex-wrap: nowrap; width: max-content; direction: ltr !important; will-change: transform; animation: globalTickerLTR 32s linear infinite; }
+                .global-ticker-group { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: space-around; flex-shrink: 0; min-width: 100vw; }
+                .global-ticker-item { display: inline-block; white-space: nowrap; padding: 0 2.2rem; direction: rtl; unicode-bidi: embed; font-weight: 700; font-size: 0.85rem; }
+                @keyframes globalTickerLTR { 0% { transform: translate3d(-50%, 0, 0); } 100% { transform: translate3d(0%, 0, 0); } }
+            `;
+            document.head.appendChild(st);
+        }
+
+        if (isScrolling) {
+            const unitHtml = `<span class="global-ticker-item"><i class="bi bi-megaphone-fill ms-2"></i>${textSafe}</span>`;
+            const repeatedUnits = Array(10).fill(unitHtml).join('');
+            bar.innerHTML = `
+                <div class="global-ticker-track" dir="ltr">
+                    <div class="global-ticker-group">${repeatedUnits}</div>
+                    <div class="global-ticker-group" aria-hidden="true">${repeatedUnits}</div>
+                </div>
+            `;
+        } else {
+            bar.innerHTML = `<div class="container d-flex align-items-center justify-content-center gap-2"><span><i class="bi bi-megaphone-fill ms-1"></i> ${textSafe}</span></div>`;
+        }
+
+        const globalNavbar = document.getElementById('global-navbar');
+        if (globalNavbar && globalNavbar.firstElementChild) {
+            globalNavbar.firstElementChild.insertBefore(bar, globalNavbar.firstElementChild.firstChild);
+        } else {
+            document.body.insertBefore(bar, document.body.firstChild);
+        }
+    }
+
+    function formatGlobalWhatsAppUrl(settings) {
+        const sl = (settings && settings.social_links) ? settings.social_links : {};
+        const phones = (settings && Array.isArray(settings.phones)) ? settings.phones : [];
+        let raw = sl.whatsapp || phones[0] || '213770000000';
+        raw = String(raw).trim();
+        const defaultMsg = encodeURIComponent('السلام عليكم، أود الاستفسار حول منتجات وعروض Omervita');
+        if (raw.startsWith('http://') || raw.startsWith('https://')) {
+            return raw;
+        }
+        let digits = raw.replace(/\D/g, '');
+        if (digits.startsWith('00')) digits = digits.slice(2);
+        if (digits.startsWith('0') && digits.length === 10) {
+            digits = '213' + digits.slice(1);
+        }
+        if (!digits) digits = '213770000000';
+        return `https://wa.me/${digits}?text=${defaultMsg}`;
+    }
+
+    function initGlobalFloatingButtons(settings) {
+        // Skip on admin pages
+        if ((window.location.pathname || '').startsWith('/admin')) return;
+
+        // Remove any legacy right-side scroll-to-top buttons so there are never 2 buttons
+        ['scrollToTopBtn', 'back-to-top-btn'].forEach(oldId => {
+            const oldEl = document.getElementById(oldId);
+            if (oldEl) oldEl.remove();
+        });
+
+        // 1. Go to Top Button (Bottom-Left, identical to Landing Pages)
+        let scrollBtn = document.getElementById('funnelScrollToTopBtn');
+        if (!scrollBtn) {
+            scrollBtn = document.createElement('button');
+            scrollBtn.id = 'funnelScrollToTopBtn';
+            scrollBtn.type = 'button';
+            scrollBtn.className = 'funnel-back-to-top-btn';
+            scrollBtn.setAttribute('aria-label', 'الرجوع لأعلى الصفحة');
+            scrollBtn.setAttribute('title', 'الرجوع للأعلى');
+            scrollBtn.innerHTML = '<i class="bi bi-chevron-up"></i>';
+            scrollBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            document.body.appendChild(scrollBtn);
+
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    scrollBtn.classList.add('visible');
+                } else {
+                    scrollBtn.classList.remove('visible');
+                }
+            }, { passive: true });
+        }
+
+        // 2. Sticky WhatsApp Button (Bottom-Right)
+        let waBtn = document.getElementById('globalStickyWhatsappBtn');
+        const waHref = formatGlobalWhatsAppUrl(settings);
+        if (!waBtn) {
+            waBtn = document.createElement('a');
+            waBtn.id = 'globalStickyWhatsappBtn';
+            waBtn.className = 'global-sticky-whatsapp-btn';
+            waBtn.href = waHref;
+            waBtn.target = '_blank';
+            waBtn.rel = 'noopener noreferrer';
+            waBtn.setAttribute('aria-label', 'تواصل معنا عبر واتساب');
+            waBtn.setAttribute('title', 'تواصل معنا مباشرة عبر واتساب');
+            waBtn.innerHTML = '<i class="bi bi-whatsapp"></i>';
+            document.body.appendChild(waBtn);
+        } else {
+            waBtn.href = waHref;
+        }
+    }
+
+    // Ensure custom tracking pixels are loaded even if page HTML was cached
+    if (!window.__omervita_tracking_loaded__ && !(window.location.pathname || '').startsWith('/admin')) {
+        const hasServerInjectedTracking = document.documentElement.innerHTML.includes('[Custom Tracking Scripts');
+        if (hasServerInjectedTracking) {
+            window.__omervita_tracking_loaded__ = true;
+        } else {
+            const trScript = document.createElement('script');
+            trScript.src = '/api/tracking-scripts/loader.js';
+            trScript.async = true;
+            document.head.appendChild(trScript);
+        }
+    }
+
+    // 1) Instant render from localStorage cache (0ms delay for top bar, footer, logo, and WhatsApp button)
+    try {
+        const cachedRaw = localStorage.getItem('omv_site_settings_cache');
+        if (cachedRaw) {
+            const cachedSettings = JSON.parse(cachedRaw);
+            if (cachedSettings.top_announcement) {
+                renderGlobalTopAnnouncementBar(cachedSettings.top_announcement);
+            }
+            if (cachedSettings.logo) {
+                document.querySelectorAll('img[data-dynamic-logo]').forEach(img => {
+                    img.src = cachedSettings.logo;
+                });
+            }
+            const globalFooter = document.getElementById('global-footer');
+            if (globalFooter) {
+                globalFooter.innerHTML = renderFooter(cachedSettings);
+            }
+            initGlobalFloatingButtons(cachedSettings);
+        } else {
+            initGlobalFloatingButtons({});
+        }
+    } catch (_) {
+        initGlobalFloatingButtons({});
+    }
+
+    // 2) Refresh site settings in background and update cache + DOM seamlessly
     fetch('/api/site-settings')
         .then(r => r.json())
         .then(settings => {
+            try {
+                localStorage.setItem('omv_site_settings_cache', JSON.stringify(settings));
+            } catch (_) {}
             const globalFooter = document.getElementById('global-footer');
             if (globalFooter) {
                 globalFooter.innerHTML = renderFooter(settings);
@@ -550,6 +857,9 @@ function updateHeader() {
                     img.src = settings.logo;
                 });
             }
+            // Render global top announcement bar if configured for this page
+            renderGlobalTopAnnouncementBar(settings.top_announcement || null);
+            initGlobalFloatingButtons(settings);
         })
         .catch(() => { /* fail silently, static footer already shown */ });
 
@@ -640,33 +950,83 @@ document.addEventListener('input', (e) => {
 
         clearTimeout(searchDebounceTimeout);
         searchDebounceTimeout = setTimeout(async () => {
-            const products = await fetchProductsForSearch();
+            const [products, funnelsData] = await Promise.all([
+                fetchProductsForSearch(),
+                fetchFunnelsForHeader()
+            ]);
+
+            const allFunnels = Array.isArray(funnelsData.all) ? funnelsData.all : [];
+
+            // Filter sections & landing pages based on search query
+            const funnelResults = allFunnels.filter(f => {
+                const titleMatch = f.title && f.title.toLowerCase().includes(query);
+                const subMatch = f.subtitle && f.subtitle.toLowerCase().includes(query);
+                const slugMatch = f.slug && f.slug.toLowerCase().includes(query);
+                return titleMatch || subMatch || slugMatch;
+            }).slice(0, 5);
 
             // Filter products based on search query
-            const results = products.filter(p => {
+            const productResults = products.filter(p => {
                 const nameMatch = p.name && p.name.toLowerCase().includes(query);
                 const descMatch = p.description && p.description.toLowerCase().includes(query);
                 const catMatch = p.categories && p.categories.some(c => c.name.toLowerCase().includes(query));
                 return nameMatch || descMatch || catMatch;
-            }).slice(0, 6); // Max 6 results
+            }).slice(0, 6);
 
-            if (results.length === 0) {
+            if (funnelResults.length === 0 && productResults.length === 0) {
                 dropdown.innerHTML = `<div class="p-3 text-center text-muted fw-bold"><i class="bi bi-search me-2"></i>لا توجد نتائج مطابقة لـ "${query}"</div>`;
             } else {
-                dropdown.innerHTML = results.map(p => {
-                    const img = (p.images && p.images[0]) ? p.images[0] : (p.imagePath || 'images/default-product.jpg');
-                    const slug = p.slug || p.id;
-                    return `
-                        <a href="/products/${slug}" class="d-flex align-items-center p-3 border-bottom text-decoration-none search-result-item" style="color: var(--dark-charcoal); transition: all 0.2s;">
-                            <img src="${img}" alt="${p.name}" style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px; margin-left: 12px; border: 1px solid #eee;">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold" style="font-size: 0.95rem; line-height: 1.3;">${p.name}</h6>
-                                <span style="color: var(--orange-accent); font-weight: 800; font-size: 0.9rem;">دج${p.price}</span>
-                            </div>
-                            <i class="bi bi-arrow-left-short text-muted" style="font-size: 1.5rem;"></i>
-                        </a>
-                    `;
-                }).join('');
+                let html = '';
+
+                if (funnelResults.length > 0) {
+                    html += `<div class="px-3 py-1 bg-light border-bottom text-muted fw-bold" style="font-size: 0.78rem;"><i class="bi bi-grid-1x2-fill me-1" style="color: #5a6344;"></i> باقات و حلول جاهزة</div>`;
+                    html += funnelResults.map(f => {
+                        const isSection = f.node_type === 'section';
+                        const badgeText = isSection ? 'قسم' : 'صفحة طلب الباقة';
+                        const badgeStyle = isSection
+                            ? 'background: #eef2e6; color: #5a6344;'
+                            : 'background: #fff8e6; color: #b78103;';
+                        const imgHtml = f.image_url
+                            ? `<img src="${f.image_url}" alt="${f.title}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-left: 12px; border: 1px solid #eee;">`
+                            : `<div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 8px; margin-left: 12px; background: #eef2e6; color: #5a6344; font-size: 1.3rem;"><i class="bi ${isSection ? 'bi-folder2-open' : 'bi-stars'}"></i></div>`;
+
+                        return `
+                            <a href="/solutions/${f.slug}" class="d-flex align-items-center p-3 border-bottom text-decoration-none search-result-item" style="color: var(--dark-charcoal); transition: all 0.2s;">
+                                ${imgHtml}
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <h6 class="mb-0 fw-bold" style="font-size: 0.95rem; line-height: 1.3;">${f.title}</h6>
+                                        <span class="badge rounded-pill" style="${badgeStyle} font-size: 0.7rem;">${badgeText}</span>
+                                    </div>
+                                    ${f.subtitle ? `<div class="text-muted small text-truncate" style="max-width: 240px;">${f.subtitle}</div>` : ''}
+                                </div>
+                                <i class="bi bi-arrow-left-short text-muted" style="font-size: 1.5rem;"></i>
+                            </a>
+                        `;
+                    }).join('');
+                }
+
+                if (productResults.length > 0) {
+                    if (funnelResults.length > 0) {
+                        html += `<div class="px-3 py-1 bg-light border-bottom text-muted fw-bold" style="font-size: 0.78rem;"><i class="bi bi-box-seam me-1"></i> المنتجات</div>`;
+                    }
+                    html += productResults.map(p => {
+                        const img = (p.images && p.images[0]) ? p.images[0] : (p.imagePath || 'images/default-product.jpg');
+                        const slug = p.slug || p.id;
+                        return `
+                            <a href="/products/${slug}" class="d-flex align-items-center p-3 border-bottom text-decoration-none search-result-item" style="color: var(--dark-charcoal); transition: all 0.2s;">
+                                <img src="${img}" alt="${p.name}" style="width: 55px; height: 55px; object-fit: cover; border-radius: 8px; margin-left: 12px; border: 1px solid #eee;">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 fw-bold" style="font-size: 0.95rem; line-height: 1.3;">${p.name}</h6>
+                                    <span style="color: var(--orange-accent); font-weight: 800; font-size: 0.9rem;">دج${p.price}</span>
+                                </div>
+                                <i class="bi bi-arrow-left-short text-muted" style="font-size: 1.5rem;"></i>
+                            </a>
+                        `;
+                    }).join('');
+                }
+
+                dropdown.innerHTML = html;
 
                 // Inject hover style if not already added
                 if (!document.getElementById('search-dropdown-style')) {

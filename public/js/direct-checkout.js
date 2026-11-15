@@ -149,17 +149,40 @@ function populateDirectCityDropdown() {
 
 let appliedDirectPromo = null;
 let isProductFreeDelivery = false;
+let directFreeDeliveryMinAmount = 0;
 
 // Update summary prices and totals
 function updateDirectSummary() {
   const citySelect = document.getElementById('city');
   const selectedCity = citySelect ? citySelect.value : '';
   const baseDeliveryPrice = getDeliveryPrice(selectedCity, selectedDeliveryType);
-  const isFreeShip = isProductFreeDelivery || (appliedDirectPromo && appliedDirectPromo.free_delivery);
+  const subtotal = currentProduct ? (currentProduct.price * currentQuantity) : 0;
+
+  // Re-validate applied coupon if subtotal drops below min_order_amount
+  if (appliedDirectPromo && parseFloat(appliedDirectPromo.min_order_amount) > 0 && subtotal < parseFloat(appliedDirectPromo.min_order_amount)) {
+    const minReq = parseFloat(appliedDirectPromo.min_order_amount);
+    appliedDirectPromo = null;
+    const input = document.getElementById('directPromoCodeInput');
+    const btn = document.getElementById('directApplyPromoBtn');
+    const feedback = document.getElementById('directPromoFeedback');
+    if (input) input.disabled = false;
+    if (btn) btn.style.display = '';
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.className = 'small mt-1 text-danger';
+      feedback.textContent = `تم إلغاء الكوبون لأن قيمة الطلب (${subtotal} دج) أقل من الحد الأدنى (${minReq} دج).`;
+    }
+  }
+
+  const isFreeShip = isProductFreeDelivery ||
+    (directFreeDeliveryMinAmount > 0 && subtotal >= directFreeDeliveryMinAmount) ||
+    (appliedDirectPromo && appliedDirectPromo.free_delivery);
   const effectiveDeliveryPrice = isFreeShip ? 0 : baseDeliveryPrice;
 
+  const banner = document.getElementById('directFreeDeliveryBanner');
+  if (banner) banner.style.display = isFreeShip ? 'block' : 'none';
+
   if (currentProduct) {
-    const subtotal = currentProduct.price * currentQuantity;
     const prodNameEl = document.getElementById('directCheckoutProductName');
     const prodPriceEl = document.getElementById('directCheckoutProductPrice');
     if (prodNameEl) prodNameEl.textContent = `${currentProduct.name} (${currentQuantity}x)`;
@@ -442,15 +465,14 @@ function initDirectCheckout(product) {
   appliedDirectPromo = null;
   isProductFreeDelivery = Boolean(product.is_free_delivery);
 
-  // Check storewide free delivery status
+  // Check storewide & minimum threshold free delivery status
   fetch('/api/delivery/free-delivery-status')
     .then(r => r.json())
     .then(data => {
       if (data.storewide_free_delivery || (data.free_delivery_products && data.free_delivery_products.some(p => p.id === product.id))) {
         isProductFreeDelivery = true;
       }
-      const banner = document.getElementById('directFreeDeliveryBanner');
-      if (banner) banner.style.display = isProductFreeDelivery ? 'block' : 'none';
+      directFreeDeliveryMinAmount = parseFloat(data.free_delivery_min_amount) || 0;
       updateDirectSummary();
     })
     .catch(() => {});
@@ -591,7 +613,6 @@ function initDirectCheckout(product) {
           showDirectCartMessage('الرجاء الانتظار قليلاً قبل إرسال طلب آخر', 'error');
           return;
         }
-        localStorage.setItem('last_checkout_submit', now.toString());
 
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري المعالجة...';
@@ -605,10 +626,17 @@ function initDirectCheckout(product) {
           body: JSON.stringify(requestData)
         });
 
-        const result = await response.json();
+        let result = {};
+        try {
+          result = await response.json();
+        } catch (_) {
+          result = {};
+        }
         if (!response.ok) {
           throw new Error(result.error || 'حدث خطأ أثناء معالجة الطلب');
         }
+
+        localStorage.setItem('last_checkout_submit', now.toString());
 
         showDirectCartMessage('تم تقديم طلبك بنجاح! سنتواصل معك هاتفياً لتأكيد الطلبية.', 'success');
         form.reset();

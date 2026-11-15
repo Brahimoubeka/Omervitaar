@@ -75,93 +75,20 @@
   <main class="container my-5" dir="rtl">
     <h1 class="mb-4 text-center"><i class="bi bi-basket me-2"></i>منتجاتنا</h1>
     
-    <!-- Buying Methods Section - Minimized -->
-    <div class="buying-methods-section p-3 mb-3 bg-white rounded-3 shadow-sm" style="border: 1px solid #e3f2fd;">
-      <div class="row align-items-center">
-        <div class="col-8">
-          <h6 class="mb-1 text-primary"><i class="bi bi-info-circle me-1"></i>طرق الشراء من الموقع</h6>
-          <small class="text-muted">اكتشف الطريقة المناسبة لك للطلب</small>
-        </div>
-        <div class="col-4" style="text-align: left;">
-          <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#buyingMethodsDetails" aria-expanded="false">
-            <i class="bi bi-question-circle me-1"></i>شرح مفصل
+    <!-- Products Page Auto-Size Carousel (3s interval, clickable with "شاهد الآن" button) -->
+    <div id="productsPageCarouselSection" class="mb-4" style="display: none;">
+      <div class="products-hero-carousel-wrap mx-auto position-relative shadow-sm" style="max-width: 980px; border-radius: 18px; overflow: hidden; background: #fff; border: 1px solid rgba(90, 99, 68, 0.14);">
+        <div id="productsPageCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="3000">
+          <div class="carousel-indicators" id="productsCarouselIndicators" style="z-index: 15; margin-bottom: 0.6rem;"></div>
+          <div class="carousel-inner" id="productsCarouselInner"></div>
+          <button class="carousel-control-prev" type="button" data-bs-target="#productsPageCarousel" data-bs-slide="prev" aria-label="السابق" style="width: 44px;">
+            <span class="carousel-control-prev-icon bg-dark bg-opacity-50 rounded-circle p-2" aria-hidden="true"></span>
+            <span class="visually-hidden">السابق</span>
           </button>
-        </div>
-      </div>
-      
-      <!-- Detailed buying methods - collapsible -->
-      <div class="collapse mt-3" id="buyingMethodsDetails">
-        <div class="card card-body border-0 bg-light">
-          <!-- Method 1 -->
-          <div class="method-section mb-4">
-            <h6 class="text-success mb-3">
-              <i class="bi bi-1-circle-fill ms-3"></i>الطريقة الأولى (المفضلة): مع إنشاء حساب
-            </h6>
-            <div class="steps-container">
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">1</span>
-                <span class="step-text">
-                  <a href="/login" class="text-decoration-none fw-medium">سجل الدخول</a> أو 
-                  <a href="/register" class="text-decoration-none fw-medium">أنشئ حساب جديد</a>
-                </span>
-              </div>
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">2</span>
-                <span class="step-text">أضف منتج أو أكثر إلى السلة</span>
-              </div>
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">3</span>
-                <span class="step-text">
-                  توجه إلى <a href="/cart" class="text-decoration-none fw-medium">السلة</a> واضغط على "إتمام الطلب"
-                </span>
-              </div>
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">4</span>
-                <span class="step-text">املأ معلوماتك الإجبارية</span>
-              </div>
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-success text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">5</span>
-                <span class="step-text">أرسل الطلبية - ستحصل على إيميل فاتورة الشراء</span>
-              </div>
-              <div class="step-item d-flex align-items-start">
-                <span class="step-number bg-info text-white rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;"><i class="bi bi-star" style="font-size: 0.7rem;"></i></span>
-                <span class="step-text">
-                  يمكنك تتبع طلباتك من قسم <a href="/orders" class="text-decoration-none fw-medium">"طلباتي"</a> في القائمة
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <hr class="my-4">
-
-          <!-- Method 2 -->
-          <div class="method-section mb-3">
-            <h6 class="text-warning mb-3">
-              <i class="bi bi-2-circle-fill ms-3"></i>الطريقة الثانية: بدون إنشاء حساب
-            </h6>
-            <div class="steps-container">
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">1</span>
-                <span class="step-text">نفس الخطوات السابقة لكن بدون إنشاء حساب</span>
-              </div>
-              <div class="step-item d-flex align-items-start mb-2">
-                <span class="step-number bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center ms-3" style="width: 24px; height: 24px; font-size: 0.8rem; font-weight: 600;">2</span>
-                <span class="step-text">"ستفقد ميزة تتبع طلباتك على المتجر "</span>
-              </div>
-              
-            </div>
-          </div>
-
-          <!-- Important Note -->
-          <div class="alert alert-info border-0 mb-0" style="background: linear-gradient(135deg, #e3f2fd, #f0f8ff);">
-            <div class="d-flex align-items-center">
-              <i class="bi bi-exclamation-triangle-fill text-info me-2" style="font-size: 1.2rem;"></i>
-              <div>
-                <strong>ملاحظة مهمة:</strong>
-                <span>بعد إرسال الطلبية سيتواصل معكم فريقنا لتأكيد الطلبية</span>
-              </div>
-            </div>
-          </div>
+          <button class="carousel-control-next" type="button" data-bs-target="#productsPageCarousel" data-bs-slide="next" aria-label="التالي" style="width: 44px;">
+            <span class="carousel-control-next-icon bg-dark bg-opacity-50 rounded-circle p-2" aria-hidden="true"></span>
+            <span class="visually-hidden">التالي</span>
+          </button>
         </div>
       </div>
     </div>
@@ -354,10 +281,7 @@
     </div>
   </div>
 
-  <!-- Scroll to top button -->
-  <button id="scrollToTopBtn" style="position: fixed; bottom: 32px; right: 24px; z-index: 9999; display: none; background: var(--orange-accent); color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 1.3rem; cursor: pointer; transition: background 0.2s;">
-    <i class="bi bi-arrow-up-short"></i>
-  </button>
+  
 
   <!-- Updated Footer with better mobile centering -->
 <div id="global-footer"></div>
@@ -368,20 +292,7 @@
   <script src="/js/products.js?v=1736152800"></script>
 <script src="/js/branding.js?v=1736152800"></script>
 
-<script>
-    // Scroll to Top Button
-    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
-    window.addEventListener('scroll', function() {
-      if (window.scrollY > 200) {
-        scrollToTopBtn.style.display = 'block';
-      } else {
-        scrollToTopBtn.style.display = 'none';
-      }
-    });
-    scrollToTopBtn.addEventListener('click', function() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  </script>
+
 
 
   <!-- Cart Popup Modal -->

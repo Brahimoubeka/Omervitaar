@@ -42,27 +42,23 @@ router.post('/guest-orders', async (req, res) => {
     const { calculatePromoDiscount, checkFreeDeliveryEligibility } = require('./promos');
     const pool = require('../db');
 
-    try {
-        await OrderService.validateDeliveryCost(city, deliveryCost, deliveryCompanyId);
-    } catch (e) {
-        // Log but don't strictly reject if valid positive number
-        console.warn('Guest order delivery validation:', e.message);
-    }
-
-    // Process Promo Code & Free Delivery
+    // Process Promo Code & Free Delivery in parallel with delivery validation
     const promoInput = (req.body.promoCode || req.body.promo_code || '').trim();
     let discountAmount = 0;
     let appliedPromo = null;
     let isFreeDelivery = false;
 
-    try {
-        // 1. Check free delivery status (storewide or per-product)
-        const freeDeliveryCheck = await checkFreeDeliveryEligibility(items);
-        if (freeDeliveryCheck.isFreeDelivery) {
-            isFreeDelivery = true;
-        }
+    const [, freeDeliverySettled] = await Promise.allSettled([
+        OrderService.validateDeliveryCost(city, deliveryCost, deliveryCompanyId),
+        checkFreeDeliveryEligibility(items, cartTotal)
+    ]);
 
-        // 2. Validate promo code
+    if (freeDeliverySettled.status === 'fulfilled' && freeDeliverySettled.value?.isFreeDelivery) {
+        isFreeDelivery = true;
+    }
+
+    try {
+        // Validate promo code if provided
         if (promoInput) {
             const promoCalc = await calculatePromoDiscount({ code: promoInput, items, cartTotal });
             if (promoCalc.valid) {
@@ -153,42 +149,49 @@ router.post('/guest-orders', async (req, res) => {
             if (orderError) throw orderError;
         }
 
-        // Send order confirmation email to admin
-        try {
-            const { generateOrderEmailHtml } = require('../utils/order-receipt');
-            const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
-            if (adminEmail) {
-                const orderDetails = generateOrderEmailHtml({
-                    orderRef: orderGroup,
-                    date: orderDate,
-                    firstName,
-                    lastName,
-                    shippingName,
-                    city,
-                    deliveryCompanyName,
-                    deliveryType,
-                    shippingAddress: formattedAddress || city,
-                    items,
-                    cartTotal,
-                    deliveryCost: calculatedDeliveryCost,
-                    discountAmount,
-                    promoCode: appliedPromo ? appliedPromo.code : null,
-                    finalTotal: calculatedFinalTotal,
-                    isGuest: true
-                });
+        // Respond immediately to the customer without waiting for SMTP email
+        res.json({
+            success: true,
+            message: 'تم استلام طلبك بنجاح!',
+            orderId: orderGroup,
+            orderGroup: orderGroup
+        });
 
-                await sendOrderEmail(
-                    adminEmail,
-                    `طلب جديد من المتجر / صفحة الهبوط #${orderGroup} - Omervita`,
-                    orderDetails
-                );
+        // Send order confirmation email to admin asynchronously in background
+        setImmediate(async () => {
+            try {
+                const { generateOrderEmailHtml } = require('../utils/order-receipt');
+                const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+                if (adminEmail) {
+                    const orderDetails = generateOrderEmailHtml({
+                        orderRef: orderGroup,
+                        date: orderDate,
+                        firstName,
+                        lastName,
+                        shippingName,
+                        city,
+                        deliveryCompanyName,
+                        deliveryType,
+                        shippingAddress: formattedAddress || city,
+                        items,
+                        cartTotal,
+                        deliveryCost: calculatedDeliveryCost,
+                        discountAmount,
+                        promoCode: appliedPromo ? appliedPromo.code : null,
+                        finalTotal: calculatedFinalTotal,
+                        isGuest: true
+                    });
+
+                    await sendOrderEmail(
+                        adminEmail,
+                        `طلب جديد من المتجر / صفحة الهبوط #${orderGroup} - Omervita`,
+                        orderDetails
+                    );
+                }
+            } catch (emailErr) {
+                console.warn('تنبيه: تعذر إرسال إشعار البريد الإلكتروني للطلب:', emailErr.message);
             }
-        } catch (emailErr) {
-            console.error('فشل إرسال البريد الإلكتروني:', emailErr);
-            // Don't throw error, continue with order creation
-        }
-
-        res.json({ message: 'تم استلام طلبك بنجاح!', orderId: orderGroup });
+        });
     } catch (err) {
         console.error('خطأ في معالجة الطلب:', err);
         res.status(500).json({ error: 'خطأ في معالجة الطلب.' });

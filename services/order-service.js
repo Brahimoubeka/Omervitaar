@@ -25,7 +25,7 @@ class OrderService {
 
             try {
                 // 1. Check free delivery status
-                const freeDeliveryCheck = await checkFreeDeliveryEligibility(items);
+                const freeDeliveryCheck = await checkFreeDeliveryEligibility(items, cartTotal);
                 if (freeDeliveryCheck.isFreeDelivery) {
                     isFreeDelivery = true;
                 }

@@ -216,9 +216,22 @@
 
     <!-- ===== SLIDES ===== -->
     <div class="settings-card">
-      <div class="settings-card-header">
-        <i class="bi bi-images fs-4"></i>
-        <h5>صور السلايد (الحد الأدنى 1، الحد الأقصى 7)</h5>
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-images fs-4"></i>
+          <div>
+            <h5 class="mb-0" id="slides-card-title">صور السلايد - الصفحة الرئيسية (الحد الأقصى 7)</h5>
+            <small class="text-white-50" style="font-size:0.78rem;">اختر السلايدر الذي تريد تعديل صوره وروابطه (الرئيسية أو صفحة المنتجات)</small>
+          </div>
+        </div>
+        <div class="btn-group btn-group-sm bg-white p-1 rounded-pill shadow-sm" role="group">
+          <button type="button" class="btn btn-primary rounded-pill px-3 fw-bold" id="switch-slides-home-btn" onclick="switchActiveSlideTarget('home')">
+            <i class="bi bi-house-door me-1"></i>سلايدر الرئيسية
+          </button>
+          <button type="button" class="btn btn-light rounded-pill px-3 fw-bold" id="switch-slides-products-btn" onclick="switchActiveSlideTarget('products')">
+            <i class="bi bi-basket me-1"></i>سلايدر صفحة المنتجات
+          </button>
+        </div>
       </div>
       <div class="settings-card-body">
         <!-- Current slides preview -->
@@ -244,6 +257,7 @@
                   <option value="none">بدون رابط (صورة فقط)</option>
                   <option value="product">منتج معين</option>
                   <option value="category">مجموعة / تصنيف</option>
+                  <option value="section">قسم أو باقة جاهزة</option>
                   <option value="custom">رابط مخصص</option>
                 </select>
               </div>
@@ -251,6 +265,7 @@
                 <label class="form-label small fw-semibold" id="new-slide-target-label">الهدف:</label>
                 <select id="new-slide-product-select" class="form-select" style="display:none;"></select>
                 <select id="new-slide-category-select" class="form-select" style="display:none;"></select>
+                <select id="new-slide-section-select" class="form-select" style="display:none;"></select>
                 <input type="text" id="new-slide-custom-input" class="form-control" placeholder="/products?search=... أو https://" style="display:none;">
               </div>
               <div class="col-md-2">
@@ -286,7 +301,7 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:16px; overflow:hidden;">
           <div class="modal-header" style="background:var(--military-green); color:#fff;">
-            <h5 class="modal-title" id="slideLinkModalLabel"><i class="bi bi-link-45deg me-1"></i> ربط السلايد بمنتج أو تصنيف</h5>
+            <h5 class="modal-title" id="slideLinkModalLabel"><i class="bi bi-link-45deg me-1"></i> ربط السلايد بمنتج أو تصنيف أو قسم</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
           </div>
           <div class="modal-body p-4">
@@ -301,6 +316,7 @@
                 <option value="none">بدون رابط (صورة فقط)</option>
                 <option value="product">منتج معين</option>
                 <option value="category">مجموعة منتجات / تصنيف</option>
+                <option value="section">قسم أو باقة جاهزة</option>
                 <option value="custom">رابط مخصص</option>
               </select>
             </div>
@@ -313,6 +329,11 @@
             <div class="mb-3" id="edit-link-category-wrap" style="display:none;">
               <label class="form-label fw-semibold">اختر التصنيف:</label>
               <select id="edit-link-category-select" class="form-select"></select>
+            </div>
+
+            <div class="mb-3" id="edit-link-section-wrap" style="display:none;">
+              <label class="form-label fw-semibold">اختر القسم أو الباقة:</label>
+              <select id="edit-link-section-select" class="form-select"></select>
             </div>
 
             <div class="mb-3" id="edit-link-custom-wrap" style="display:none;">
@@ -408,6 +429,91 @@
         <div class="mt-3">
           <button type="button" class="btn btn-primary" onclick="saveSocialLinks()">
             <i class="bi bi-save me-1"></i> حفظ الروابط الاجتماعية
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TOP ANNOUNCEMENT / NOTE BAR ===== -->
+    <div class="settings-card" id="top-announcement-section">
+      <div class="settings-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-megaphone-fill fs-4"></i>
+          <div>
+            <h5 class="mb-0">شريط الملاحظات والإعلانات العلوي للزوار (Top Note Bar)</h5>
+            <small class="text-white-50" style="font-size:0.8rem;">أضف شريط ملاحظات أو تنبيهات في أعلى أي صفحة تريدها مع التحكم في النص والألوان</small>
+          </div>
+        </div>
+        <div class="form-check form-switch fs-5 m-0">
+          <input class="form-check-input" type="checkbox" role="switch" id="top-note-enabled">
+          <label class="form-check-label text-white small fw-bold" for="top-note-enabled">تفعيل الشريط</label>
+        </div>
+      </div>
+
+      <div class="settings-card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="top-note-text" class="form-label fw-bold small">نص الملاحظة أو الإعلان الذي سيظهر للزوار:</label>
+            <input type="text" id="top-note-text" class="form-control fw-bold" placeholder="مثال: 🎉 عرض خاص هذا الأسبوع: توصيل مجاني للطلبات فوق 4000 دج! اطلب الآن">
+          </div>
+
+          <div class="col-md-4">
+            <label for="top-note-bg-color" class="form-label fw-bold small">لون خلفية الشريط:</label>
+            <input type="color" id="top-note-bg-color" class="form-control form-control-color w-100" value="#5a6344">
+          </div>
+
+          <div class="col-md-4">
+            <label for="top-note-text-color" class="form-label fw-bold small">لون النص:</label>
+            <input type="color" id="top-note-text-color" class="form-control form-control-color w-100" value="#ffffff">
+          </div>
+
+          <div class="col-md-4">
+            <label for="top-note-mode" class="form-label fw-bold small">طريقة العرض:</label>
+            <select id="top-note-mode" class="form-select">
+              <option value="static">ثابت في وسط الشريط</option>
+              <option value="scrolling">متحرك (شريط إخباري مستمر)</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-bold small d-block mb-2">اختر الصفحات التي يظهر فيها هذا الشريط:</label>
+            <div class="d-flex flex-wrap gap-3 p-3 rounded-3 bg-light border">
+              <div class="form-check">
+                <input class="form-check-input top-note-page-cb" type="checkbox" value="all" id="top-note-page-all" checked onchange="if(this.checked){document.querySelectorAll('.top-note-page-cb:not(#top-note-page-all)').forEach(c=>c.checked=false);}">
+                <label class="form-check-label fw-bold text-success" for="top-note-page-all">جميع صفحات الموقع</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input top-note-page-cb" type="checkbox" value="home" id="top-note-page-home" onchange="if(this.checked) document.getElementById('top-note-page-all').checked=false;">
+                <label class="form-check-label" for="top-note-page-home">الصفحة الرئيسية</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input top-note-page-cb" type="checkbox" value="products" id="top-note-page-products" onchange="if(this.checked) document.getElementById('top-note-page-all').checked=false;">
+                <label class="form-check-label" for="top-note-page-products">صفحات المنتجات والتصنيفات</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input top-note-page-cb" type="checkbox" value="solutions" id="top-note-page-solutions" onchange="if(this.checked) document.getElementById('top-note-page-all').checked=false;">
+                <label class="form-check-label" for="top-note-page-solutions">صفحة الأقسام والحلول</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input top-note-page-cb" type="checkbox" value="cart" id="top-note-page-cart" onchange="if(this.checked) document.getElementById('top-note-page-all').checked=false;">
+                <label class="form-check-label" for="top-note-page-cart">صفحة السلة</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input top-note-page-cb" type="checkbox" value="contact" id="top-note-page-contact" onchange="if(this.checked) document.getElementById('top-note-page-all').checked=false;">
+                <label class="form-check-label" for="top-note-page-contact">صفحة تواصل معنا</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label for="top-note-custom-paths" class="form-label fw-bold small">أو حدد روابط صفحات معينة فقط (اختياري - افصل بينها بفاصلة):</label>
+            <input type="text" id="top-note-custom-paths" class="form-control form-control-sm" dir="ltr" placeholder="مثال: /solutions/normal-skin, /products/12">
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveTopAnnouncement()">
+            <i class="bi bi-save me-1"></i> حفظ إعدادات الشريط العلوي
           </button>
         </div>
       </div>
@@ -561,7 +667,7 @@
 
       <div class="settings-card-body">
         <!-- Storewide Free Delivery Banner -->
-        <div class="p-3 mb-4 rounded-3 border" id="storewide-banner-wrap" style="background: linear-gradient(to right, #f8f9fa, #fff);">
+        <div class="p-3 mb-3 rounded-3 border" id="storewide-banner-wrap" style="background: linear-gradient(to right, #f8f9fa, #fff);">
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
               <div class="d-flex align-items-center gap-2 mb-1">
@@ -576,6 +682,33 @@
             </div>
             <div class="form-check form-switch fs-4 m-0">
               <input class="form-check-input" type="checkbox" role="switch" id="storewide-switch" onchange="toggleStorewideFreeDelivery(this.checked)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Automatic Free Delivery by Minimum Order Amount -->
+        <div class="p-3 mb-4 rounded-3 border" id="threshold-banner-wrap" style="background: linear-gradient(to right, #f8f9fa, #fff);">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-7">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <h6 class="mb-0 fw-bold fs-5 text-dark">
+                  <i class="bi bi-cash-coin text-success me-1"></i> توصيل مجاني تلقائي عند تجاوز مبلغ معين للطلب
+                </h6>
+                <span id="threshold-status-badge" class="badge bg-secondary">معطل</span>
+              </div>
+              <p class="text-muted small mb-0">
+                حدد المبلغ الأدنى للطلب (بالدينار الجزائري) ليصبح التوصيل مجانياً تلقائياً في السلة وصفحة المنتج وصفحات الهبوط. (ضع 0 لإيقافه).
+              </p>
+            </div>
+            <div class="col-md-5">
+              <div class="input-group">
+                <span class="input-group-text bg-white fw-bold text-success"><i class="bi bi-gift me-1"></i> ابتداءً من:</span>
+                <input type="number" id="free-delivery-threshold-input" class="form-control fw-bold text-center" min="0" step="100" value="0" placeholder="مثال: 4000">
+                <span class="input-group-text">دج</span>
+                <button type="button" class="btn btn-success fw-bold px-3" onclick="saveFreeDeliveryThreshold()">
+                  <i class="bi bi-check-lg me-1"></i> حفظ
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1076,46 +1209,112 @@
         const inp = document.getElementById(`social-${p}`);
         if (inp) inp.value = sl[p] || '';
       });
+
+      // Top announcement bar
+      const ta = settings.top_announcement || {};
+      const taEnabled = document.getElementById('top-note-enabled');
+      const taText = document.getElementById('top-note-text');
+      const taBg = document.getElementById('top-note-bg-color');
+      const taColor = document.getElementById('top-note-text-color');
+      const taMode = document.getElementById('top-note-mode');
+      const taPaths = document.getElementById('top-note-custom-paths');
+
+      if (taEnabled) taEnabled.checked = Boolean(ta.enabled);
+      if (taText) taText.value = ta.text || '';
+      if (taBg) taBg.value = ta.bg_color || '#5a6344';
+      if (taColor) taColor.value = ta.text_color || '#ffffff';
+      if (taMode) taMode.value = ta.mode || 'static';
+      if (taPaths) taPaths.value = ta.custom_paths || '';
+
+      const pages = Array.isArray(ta.pages) && ta.pages.length > 0 ? ta.pages : ['all'];
+      document.querySelectorAll('.top-note-page-cb').forEach(cb => {
+        cb.checked = pages.includes(cb.value);
+      });
     }
 
-    // ====== PRODUCTS & CATEGORIES FOR SLIDE LINKING ======
+    // ====== PRODUCTS, CATEGORIES & SECTIONS FOR SLIDE LINKING ======
     let allProducts = [];
     let allCategories = [];
+    let allFunnelsForSlides = [];
+    let activeSlideTarget = 'home'; // 'home' or 'products'
+
+    function getActiveSlidesArray() {
+      if (activeSlideTarget === 'products') {
+        if (!Array.isArray(currentSettings.products_slides)) currentSettings.products_slides = [];
+        return currentSettings.products_slides;
+      }
+      if (!Array.isArray(currentSettings.slides)) currentSettings.slides = [];
+      return currentSettings.slides;
+    }
+
+    function setActiveSlidesArray(newSlides) {
+      if (activeSlideTarget === 'products') {
+        currentSettings.products_slides = newSlides;
+      } else {
+        currentSettings.slides = newSlides;
+      }
+    }
+
+    function switchActiveSlideTarget(target) {
+      activeSlideTarget = target === 'products' ? 'products' : 'home';
+      const homeBtn = document.getElementById('switch-slides-home-btn');
+      const prodBtn = document.getElementById('switch-slides-products-btn');
+      const titleEl = document.getElementById('slides-card-title');
+
+      if (activeSlideTarget === 'products') {
+        if (homeBtn) homeBtn.className = 'btn btn-light rounded-pill px-3 fw-bold';
+        if (prodBtn) prodBtn.className = 'btn btn-primary rounded-pill px-3 fw-bold';
+        if (titleEl) titleEl.textContent = 'صور السلايد - صفحة المنتجات (أبعاد تلقائية، زر شاهد الآن، 3 ثوانٍ)';
+      } else {
+        if (homeBtn) homeBtn.className = 'btn btn-primary rounded-pill px-3 fw-bold';
+        if (prodBtn) prodBtn.className = 'btn btn-light rounded-pill px-3 fw-bold';
+        if (titleEl) titleEl.textContent = 'صور السلايد - الصفحة الرئيسية (الحد الأقصى 7)';
+      }
+
+      document.getElementById('replace-slide-area').style.display = 'none';
+      renderSlidesGrid(getActiveSlidesArray());
+    }
 
     async function loadProductsAndCategories() {
       try {
-        const [pRes, cRes] = await Promise.all([
+        const [pRes, cRes, fRes] = await Promise.all([
           fetch('/api/products').then(r => r.ok ? r.json() : []).catch(() => []),
-          fetch('/api/categories').then(r => r.ok ? r.json() : []).catch(() => [])
+          fetch('/api/categories').then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch('/api/funnels/public-tree').then(r => r.ok ? r.json() : { all: [] }).catch(() => ({ all: [] }))
         ]);
         allProducts = Array.isArray(pRes) ? pRes : [];
         allCategories = Array.isArray(cRes) ? cRes : [];
+        allFunnelsForSlides = (fRes && Array.isArray(fRes.all)) ? fRes.all : [];
         populateSelectOptions();
       } catch (e) {
-        console.error('Error loading products/categories', e);
+        console.error('Error loading products/categories/funnels', e);
       }
     }
 
     function populateSelectOptions() {
-      // Products select (Add form)
+      // Products select (Add form & Edit modal)
+      const prodOpts = '<option value="">-- اختر المنتج --</option>' +
+        allProducts.map(p => `<option value="${p.id}" data-slug="${p.slug || ''}">${p.name}</option>`).join('');
       const newProdSel = document.getElementById('new-slide-product-select');
-      newProdSel.innerHTML = '<option value="">-- اختر المنتج --</option>' +
-        allProducts.map(p => `<option value="${p.id}" data-slug="${p.slug || ''}">${p.name}</option>`).join('');
-
-      // Products select (Edit modal)
       const editProdSel = document.getElementById('edit-link-product-select');
-      editProdSel.innerHTML = '<option value="">-- اختر المنتج --</option>' +
-        allProducts.map(p => `<option value="${p.id}" data-slug="${p.slug || ''}">${p.name}</option>`).join('');
+      if (newProdSel) newProdSel.innerHTML = prodOpts;
+      if (editProdSel) editProdSel.innerHTML = prodOpts;
 
-      // Categories select (Add form)
+      // Categories select (Add form & Edit modal)
+      const catOpts = '<option value="">-- اختر التصنيف --</option>' +
+        allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
       const newCatSel = document.getElementById('new-slide-category-select');
-      newCatSel.innerHTML = '<option value="">-- اختر التصنيف --</option>' +
-        allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-
-      // Categories select (Edit modal)
       const editCatSel = document.getElementById('edit-link-category-select');
-      editCatSel.innerHTML = '<option value="">-- اختر التصنيف --</option>' +
-        allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      if (newCatSel) newCatSel.innerHTML = catOpts;
+      if (editCatSel) editCatSel.innerHTML = catOpts;
+
+      // Sections / Packages select (Add form & Edit modal)
+      const secOpts = '<option value="">-- اختر القسم أو الباقة --</option>' +
+        allFunnelsForSlides.map(f => `<option value="${f.slug}">${f.title} (${f.node_type === 'section' ? 'قسم' : 'صفحة طلب الباقة'})</option>`).join('');
+      const newSecSel = document.getElementById('new-slide-section-select');
+      const editSecSel = document.getElementById('edit-link-section-select');
+      if (newSecSel) newSecSel.innerHTML = secOpts;
+      if (editSecSel) editSecSel.innerHTML = secOpts;
     }
 
     function handleNewSlideTypeChange() {
@@ -1123,11 +1322,13 @@
       const targetCol = document.getElementById('new-slide-target-col');
       const prodSel = document.getElementById('new-slide-product-select');
       const catSel = document.getElementById('new-slide-category-select');
+      const secSel = document.getElementById('new-slide-section-select');
       const customInp = document.getElementById('new-slide-custom-input');
       const label = document.getElementById('new-slide-target-label');
 
       prodSel.style.display = 'none';
       catSel.style.display = 'none';
+      if (secSel) secSel.style.display = 'none';
       customInp.style.display = 'none';
 
       if (type === 'none') {
@@ -1140,6 +1341,10 @@
         targetCol.style.display = 'block';
         label.textContent = 'اختر التصنيف:';
         catSel.style.display = 'block';
+      } else if (type === 'section') {
+        targetCol.style.display = 'block';
+        label.textContent = 'اختر القسم أو الباقة:';
+        if (secSel) secSel.style.display = 'block';
       } else if (type === 'custom') {
         targetCol.style.display = 'block';
         label.textContent = 'الرابط المخصص:';
@@ -1151,6 +1356,8 @@
       const type = document.getElementById('edit-link-type').value;
       document.getElementById('edit-link-product-wrap').style.display = type === 'product' ? 'block' : 'none';
       document.getElementById('edit-link-category-wrap').style.display = type === 'category' ? 'block' : 'none';
+      const secWrap = document.getElementById('edit-link-section-wrap');
+      if (secWrap) secWrap.style.display = type === 'section' ? 'block' : 'none';
       document.getElementById('edit-link-custom-wrap').style.display = type === 'custom' ? 'block' : 'none';
     }
 
@@ -1160,8 +1367,11 @@
       const addSection = document.getElementById('add-slide-section');
       grid.innerHTML = '';
 
-      if (slides.length === 0) {
-        grid.innerHTML = '<div class="col-12 text-muted text-center py-3">لا توجد سلايدات بعد. أضف واحدة أدناه.</div>';
+      if (!Array.isArray(slides) || slides.length === 0) {
+        const emptyHint = activeSlideTarget === 'products'
+          ? 'لا توجد سلايدات خاصة بصفحة المنتجات حالياً (يتم عرض سلايدات الرئيسية تلقائياً حتى تضيف سلايد هنا).'
+          : 'لا توجد سلايدات بعد. أضف واحدة أدناه.';
+        grid.innerHTML = `<div class="col-12 text-muted text-center py-3">${emptyHint}</div>`;
       } else {
         slides.forEach((slide, i) => {
           const url = (typeof slide === 'object' && slide !== null) ? slide.url : slide;
@@ -1174,6 +1384,8 @@
             linkBadgeHtml = `<span class="badge bg-success text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${title}"><i class="bi bi-box-seam me-1"></i> ${title || 'منتج'}</span>`;
           } else if (linkType === 'category') {
             linkBadgeHtml = `<span class="badge bg-primary text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${title}"><i class="bi bi-folder2-open me-1"></i> ${title || 'تصنيف'}</span>`;
+          } else if (linkType === 'section') {
+            linkBadgeHtml = `<span class="badge bg-info text-dark text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${title}"><i class="bi bi-grid-1x2-fill me-1"></i> ${title || 'قسم / باقة'}</span>`;
           } else if (link) {
             linkBadgeHtml = `<span class="badge bg-warning text-dark text-truncate d-inline-block" style="max-width:100%; font-size:0.75rem;" title="${link}"><i class="bi bi-link-45deg me-1"></i> ${link}</span>`;
           }
@@ -1185,7 +1397,7 @@
               <div style="position:relative;">
                 <img src="${url}" alt="Slide ${i+1}" style="width:100%; height:140px; object-fit:cover; display:block;">
                 <div class="slide-actions">
-                  <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showEditLinkModal(${i})" title="ربط بمنتج أو تصنيف"><i class="bi bi-link-45deg"></i></button>
+                  <button class="btn btn-sm btn-info text-white shadow-sm" onclick="showEditLinkModal(${i})" title="ربط بمنتج أو تصنيف أو قسم"><i class="bi bi-link-45deg"></i></button>
                   <button class="btn btn-sm btn-warning shadow-sm" onclick="showReplaceSlide(${i})" title="تغيير الصورة"><i class="bi bi-pencil"></i></button>
                   <button class="btn btn-sm btn-danger shadow-sm" onclick="deleteSlide(${i})" title="حذف"><i class="bi bi-trash"></i></button>
                 </div>
@@ -1201,7 +1413,7 @@
       }
 
       // Show/hide add button based on max
-      if (slides.length >= 7) {
+      if (Array.isArray(slides) && slides.length >= 7) {
         addSection.style.display = 'none';
       } else {
         addSection.style.display = 'block';
@@ -1211,7 +1423,8 @@
     // Show edit link modal
     let slideLinkModalInstance = null;
     function showEditLinkModal(index) {
-      const slide = currentSettings.slides[index];
+      const slides = getActiveSlidesArray();
+      const slide = slides[index];
       if (!slide) return;
       const url = (typeof slide === 'object') ? slide.url : slide;
       const link = (typeof slide === 'object') ? (slide.link || '') : '';
@@ -1227,6 +1440,8 @@
         document.getElementById('edit-link-product-select').value = targetId;
       } else if (linkType === 'category') {
         document.getElementById('edit-link-category-select').value = targetId;
+      } else if (linkType === 'section') {
+        document.getElementById('edit-link-section-select').value = targetId;
       } else if (linkType === 'custom') {
         document.getElementById('edit-link-custom-input').value = link;
       }
@@ -1266,6 +1481,16 @@
         link = `/products?category=${cat.id}`;
         target_id = cat.id;
         title = cat.name;
+      } else if (linkType === 'section') {
+        const secSlug = document.getElementById('edit-link-section-select').value;
+        const sec = allFunnelsForSlides.find(f => String(f.slug) === String(secSlug));
+        if (!sec) {
+          showToast('يرجى اختيار القسم أو الباقة', 'error');
+          return;
+        }
+        link = `/solutions/${sec.slug}`;
+        target_id = sec.slug;
+        title = sec.title;
       } else if (linkType === 'custom') {
         link = (document.getElementById('edit-link-custom-input').value || '').trim();
         if (!link) {
@@ -1276,20 +1501,20 @@
       }
 
       try {
-        const res = await fetch(`/api/admin/site-settings/slide/${index}/link`, {
+        const res = await fetch(`/api/admin/site-settings/slide/${index}/link?target=${activeSlideTarget}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({ link, link_type: linkType, target_id, title })
+          body: JSON.stringify({ link, link_type: linkType, target_id, title, carousel_target: activeSlideTarget })
         });
         const data = await res.json();
         if (!res.ok) {
           showToast(data.error || 'خطأ في تحديث الرابط', 'error');
           return;
         }
-        currentSettings.slides = data.slides;
+        setActiveSlidesArray(data.slides);
         renderSlidesGrid(data.slides);
         if (slideLinkModalInstance) slideLinkModalInstance.hide();
         showToast('تم تحديث رابط السلايد بنجاح!');
@@ -1309,13 +1534,13 @@
     async function deleteSlide(index) {
       if (!confirm(`هل أنت متأكد من حذف السلايد رقم ${index + 1}؟`)) return;
       try {
-        const res = await fetch(`/api/admin/site-settings/slide/${index}`, {
+        const res = await fetch(`/api/admin/site-settings/slide/${index}?target=${activeSlideTarget}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
         if (!res.ok) { showToast(data.error || 'خطأ في الحذف', 'error'); return; }
-        currentSettings.slides = data.slides;
+        setActiveSlidesArray(data.slides);
         renderSlidesGrid(data.slides);
         showToast('تم حذف السلايد بنجاح');
       } catch (e) {
@@ -1350,6 +1575,14 @@
           target_id = cat.id;
           title = cat.name;
         }
+      } else if (linkType === 'section') {
+        const secSlug = document.getElementById('new-slide-section-select').value;
+        const sec = allFunnelsForSlides.find(f => String(f.slug) === String(secSlug));
+        if (sec) {
+          link = `/solutions/${sec.slug}`;
+          target_id = sec.slug;
+          title = sec.title;
+        }
       } else if (linkType === 'custom') {
         link = (document.getElementById('new-slide-custom-input').value || '').trim();
         title = link;
@@ -1361,16 +1594,17 @@
       formData.append('link_type', linkType);
       formData.append('target_id', target_id);
       formData.append('title', title);
+      formData.append('carousel_target', activeSlideTarget);
 
       try {
-        const res = await fetch('/api/admin/site-settings/slide', {
+        const res = await fetch(`/api/admin/site-settings/slide?target=${activeSlideTarget}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData
         });
         const data = await res.json();
         if (!res.ok) { showToast(data.error || 'خطأ في الإضافة', 'error'); return; }
-        currentSettings.slides = data.slides;
+        setActiveSlidesArray(data.slides);
         renderSlidesGrid(data.slides);
         fileInput.value = '';
         document.getElementById('new-slide-link-type').value = 'none';
@@ -1390,15 +1624,16 @@
       const formData = new FormData();
       formData.append('slide', fileInput.files[0]);
       formData.append('index', index);
+      formData.append('carousel_target', activeSlideTarget);
       try {
-        const res = await fetch('/api/admin/site-settings/slide', {
+        const res = await fetch(`/api/admin/site-settings/slide?target=${activeSlideTarget}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData
         });
         const data = await res.json();
         if (!res.ok) { showToast(data.error || 'خطأ في التحديث', 'error'); return; }
-        currentSettings.slides = data.slides;
+        setActiveSlidesArray(data.slides);
         renderSlidesGrid(data.slides);
         document.getElementById('replace-slide-area').style.display = 'none';
         showToast(`تم تحديث صورة السلايد ${index + 1} بنجاح`);
@@ -1524,6 +1759,43 @@
         showToast('تم حفظ الروابط الاجتماعية بنجاح');
       } catch (e) {
         showToast('خطأ في الحفظ', 'error');
+      }
+    }
+
+    // ====== TOP ANNOUNCEMENT / NOTE BAR ======
+    async function saveTopAnnouncement() {
+      const enabled = Boolean(document.getElementById('top-note-enabled')?.checked);
+      const text = (document.getElementById('top-note-text')?.value || '').trim();
+      const bg_color = document.getElementById('top-note-bg-color')?.value || '#5a6344';
+      const text_color = document.getElementById('top-note-text-color')?.value || '#ffffff';
+      const mode = document.getElementById('top-note-mode')?.value || 'static';
+      const custom_paths = (document.getElementById('top-note-custom-paths')?.value || '').trim();
+      const pages = Array.from(document.querySelectorAll('.top-note-page-cb:checked')).map(cb => cb.value);
+
+      const top_announcement = {
+        enabled,
+        text,
+        bg_color,
+        text_color,
+        mode,
+        pages: pages.length > 0 ? pages : ['all'],
+        custom_paths
+      };
+
+      try {
+        const res = await fetch('/api/admin/site-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ top_announcement })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'خطأ في حفظ الشريط العلوي', 'error');
+          return;
+        }
+        showToast(enabled ? 'تم حفظ وتفعيل الشريط العلوي بنجاح! 🎉' : 'تم حفظ إعدادات الشريط العلوي');
+      } catch (e) {
+        showToast('خطأ في حفظ الشريط العلوي', 'error');
       }
     }
 
@@ -2601,6 +2873,21 @@ snaptr('track', 'PAGE_VIEW');
           swWrap.style.background = isStorewideFreeDelivery ? 'rgba(25, 135, 84, 0.05)' : '#fff';
         }
 
+        // Update Free Delivery Minimum Order Threshold UI
+        const minFreeAmount = parseFloat(data.free_delivery_min_amount) || 0;
+        const thInput = document.getElementById('free-delivery-threshold-input');
+        const thBadge = document.getElementById('threshold-status-badge');
+        const thWrap = document.getElementById('threshold-banner-wrap');
+        if (thInput) thInput.value = minFreeAmount;
+        if (thBadge) {
+          thBadge.textContent = minFreeAmount > 0 ? `مفعل للطلبات من ${minFreeAmount} دج فما فوق` : 'معطل';
+          thBadge.className = minFreeAmount > 0 ? 'badge bg-success fs-6' : 'badge bg-secondary';
+        }
+        if (thWrap) {
+          thWrap.style.borderColor = minFreeAmount > 0 ? '#198754' : '#dee2e6';
+          thWrap.style.background = minFreeAmount > 0 ? 'rgba(25, 135, 84, 0.05)' : '#fff';
+        }
+
         renderFreeDeliveryProductsTable();
       } catch (err) {
         console.error('Error loading free delivery settings:', err);
@@ -2674,6 +2961,31 @@ snaptr('track', 'PAGE_VIEW');
       } catch (err) {
         console.error('Error toggling storewide free delivery:', err);
         showToast('حدث خطأ أثناء تعديل التوصيل المجاني الشامل', 'error');
+      }
+    }
+
+    async function saveFreeDeliveryThreshold() {
+      const thInput = document.getElementById('free-delivery-threshold-input');
+      const min_amount = Math.max(0, parseFloat(thInput?.value) || 0);
+      try {
+        const res = await fetch('/api/admin/free-delivery/threshold', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ min_amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'فشل في حفظ الحد الأدنى للتوصيل المجاني', 'error');
+          return;
+        }
+        showToast(data.message, 'success');
+        await loadFreeDeliverySettings();
+      } catch (err) {
+        console.error('Error saving free delivery threshold:', err);
+        showToast('حدث خطأ أثناء حفظ الحد الأدنى للتوصيل المجاني', 'error');
       }
     }
 
