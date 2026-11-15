@@ -468,6 +468,20 @@ function renderLandingPageView(root, node, blocks, offers, breadcrumbs = []) {
   initOrderFormScrollObserver();
   initStickyScrollToTop();
   initStickyOrderNowBtn(node, sortedBlocks);
+
+  // Track ViewContent for Landing Page on both Browser Meta Pixel & Server Conversions API
+  try {
+    if (typeof window.omvTrackMetaEvent === 'function') {
+      const defaultPrice = selectedOffer ? Number(selectedOffer.price || 0) : 0;
+      window.omvTrackMetaEvent('ViewContent', {
+        content_name: node.title || 'باقة',
+        content_ids: [String(node.slug || node.id)],
+        content_type: 'product',
+        value: defaultPrice,
+        currency: 'DZD'
+      });
+    }
+  } catch (_) {}
 }
 
 function hexToRgba(hex, alpha = 0.75) {
@@ -2123,8 +2137,9 @@ async function submitFunnelOrder(e) {
     localStorage.setItem('last_checkout_submit', now.toString());
 
     const orderId = result.orderId || result.orderGroup || 'OMV-' + Date.now().toString().slice(-6);
+    const metaEvId = result.metaEventId || ('purchase_' + orderId);
     try {
-      if (typeof window.fbq === 'function') window.fbq('track', 'Purchase', { value: finalTotal, currency: 'DZD' });
+      if (typeof window.fbq === 'function') window.fbq('track', 'Purchase', { value: finalTotal, currency: 'DZD' }, { eventID: metaEvId });
       if (window.ttq && typeof window.ttq.track === 'function') window.ttq.track('CompletePayment', { value: finalTotal, currency: 'DZD' });
       if (typeof window.gtag === 'function') window.gtag('event', 'purchase', { transaction_id: String(orderId), value: finalTotal, currency: 'DZD' });
     } catch (_) {}

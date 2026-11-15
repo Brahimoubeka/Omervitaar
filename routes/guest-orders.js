@@ -149,16 +149,51 @@ router.post('/guest-orders', async (req, res) => {
             if (orderError) throw orderError;
         }
 
-        // Respond immediately to the customer without waiting for SMTP email
+        const metaEventId = req.body.metaEventId || `purchase_${orderGroup}`;
+
+        // Respond immediately to the customer without waiting for SMTP email or Meta CAPI
         res.json({
             success: true,
             message: 'تم استلام طلبك بنجاح!',
             orderId: orderGroup,
-            orderGroup: orderGroup
+            orderGroup: orderGroup,
+            metaEventId: metaEventId,
+            finalTotal: calculatedFinalTotal
         });
 
-        // Send order confirmation email to admin asynchronously in background
+        // Send Meta Conversions API (CAPI) Purchase event & order confirmation email asynchronously in background
         setImmediate(async () => {
+            try {
+                const { sendMetaCapiEvent } = require('../utils/meta-capi');
+                const contentIds = items.map(i => String(i.id || i.name || 'item'));
+                const totalQty = items.reduce((sum, i) => sum + (parseInt(i.quantity, 10) || 1), 0);
+                await sendMetaCapiEvent({
+                    eventName: 'Purchase',
+                    eventId: metaEventId,
+                    eventSourceUrl: req.body.sourceUrl || req.headers.referer || 'https://omervita.com/',
+                    req,
+                    userData: {
+                        phone: shippingName,
+                        firstName,
+                        lastName,
+                        city: city || province,
+                        fbp: req.body.fbp || req.cookies?._fbp,
+                        fbc: req.body.fbc || req.cookies?._fbc
+                    },
+                    customData: {
+                        value: calculatedFinalTotal,
+                        currency: 'DZD',
+                        content_ids: contentIds,
+                        content_name: items.map(i => i.name).filter(Boolean).join(' + '),
+                        content_type: 'product',
+                        num_items: totalQty,
+                        order_id: String(orderGroup)
+                    }
+                });
+            } catch (capiErr) {
+                console.warn('[Meta CAPI] Guest order Purchase event warning:', capiErr.message);
+            }
+
             try {
                 const { generateOrderEmailHtml } = require('../utils/order-receipt');
                 const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;

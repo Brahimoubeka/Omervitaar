@@ -757,6 +757,14 @@ function setupFormSubmitHandler() {
             throw new Error(result.error || 'تعذر معالجة الطلب.');
         }
 
+        try {
+            const metaEvId = result.metaEventId || ('purchase_' + (result.orderRef || result.orderId || Date.now()));
+            const paidVal = result.finalTotal !== undefined ? Number(result.finalTotal) : Number(orderData.finalTotal || 0);
+            if (typeof window.fbq === 'function') {
+                window.fbq('track', 'Purchase', { value: paidVal, currency: 'DZD' }, { eventID: metaEvId });
+            }
+        } catch (_) {}
+
         localStorage.removeItem('cart');
         showMessage('شكرًا لك! تم استلام طلبك بنجاح.', 'success');
         setTimeout(() => window.location.href = '/orders', 2000);

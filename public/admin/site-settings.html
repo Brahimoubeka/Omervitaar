@@ -810,9 +810,54 @@
           </div>
         </div>
 
-        <div id="tracking-scripts-list" class="d-flex flex-column gap-3">
+        <div id="tracking-scripts-list" class="d-flex flex-column gap-3 mb-4">
           <div class="text-center text-muted py-4">
             <div class="spinner-border spinner-border-sm me-2"></div> جاري تحميل أكواد التتبع...
+          </div>
+        </div>
+
+        <!-- Meta Conversions API (Server-Side CAPI) Card -->
+        <div class="border rounded-3 p-3 bg-light shadow-xs">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-hdd-network-fill text-primary fs-4"></i>
+              <div>
+                <h6 class="mb-0 fw-bold text-dark">ربط خادم فيسبوك المباشر (Meta Conversions API - CAPI)</h6>
+                <small class="text-muted">إرسال أحداث الشراء (Purchase) وتصفح الصفحات مباشرة من السيرفر إلى Meta مع التشفير التلقائي (SHA-256) ومنع التكرار (Deduplication)</small>
+              </div>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="meta-capi-enabled" checked>
+              <label class="form-check-label fw-bold text-success small" for="meta-capi-enabled">تفعيل الإرسال من السيرفر</label>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold mb-1">معرف البيكسل / Dataset ID:</label>
+              <input type="text" id="meta-capi-dataset-id" class="form-control form-control-sm font-monospace" dir="ltr" placeholder="1085677903485810">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold mb-1">العملة الافتراضية (Currency):</label>
+              <input type="text" id="meta-capi-currency" class="form-control form-control-sm font-monospace" dir="ltr" value="DZD" placeholder="DZD">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold mb-1">كود الاختبار (Test Event Code - اختياري):</label>
+              <input type="text" id="meta-capi-test-code" class="form-control form-control-sm font-monospace" dir="ltr" placeholder="مثال: TEST12345 (اتركه فارغاً في الوضع الفعلي)">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold mb-1">رمز الوصول (Conversions API Access Token):</label>
+              <textarea id="meta-capi-access-token" class="form-control form-control-sm font-monospace" rows="2" dir="ltr" placeholder="EAA..."></textarea>
+            </div>
+            <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btn-test-meta-capi" onclick="sendTestMetaCapiEvent()">
+                <i class="bi bi-send-check me-1"></i> إرسال حدث تجريبي إلى فيسبوك (Test CAPI)
+              </button>
+              <button type="button" class="btn btn-sm btn-primary fw-bold px-4" id="btn-save-meta-capi" onclick="saveMetaCapiSettings()">
+                <i class="bi bi-check2-circle me-1"></i> حفظ إعدادات Conversions API
+              </button>
+            </div>
+            <div class="col-12" id="meta-capi-status-box" style="display: none;"></div>
           </div>
         </div>
       </div>
@@ -2344,6 +2389,7 @@ snaptr('track', 'PAGE_VIEW');
 
         trackingScripts = data.scripts || [];
         renderTrackingScripts();
+        loadMetaCapiSettings();
       } catch (err) {
         console.error('Error loading tracking scripts:', err);
         container.innerHTML = '<div class="text-danger text-center py-4">حدث خطأ أثناء تحميل أكواد التتبع</div>';
@@ -2560,6 +2606,101 @@ snaptr('track', 'PAGE_VIEW');
       } catch (err) {
         console.error('Error deleting tracking script:', err);
         showToast('حدث خطأ أثناء حذف كود التتبع', 'error');
+      }
+    }
+
+    async function loadMetaCapiSettings() {
+      try {
+        const res = await fetch('/api/admin/meta-capi', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const cfg = data.config || {};
+        const enabledEl = document.getElementById('meta-capi-enabled');
+        const dsEl = document.getElementById('meta-capi-dataset-id');
+        const tokEl = document.getElementById('meta-capi-access-token');
+        const curEl = document.getElementById('meta-capi-currency');
+        const testEl = document.getElementById('meta-capi-test-code');
+        if (enabledEl) enabledEl.checked = cfg.enabled !== false;
+        if (dsEl) dsEl.value = cfg.dataset_id || '';
+        if (tokEl) tokEl.value = cfg.access_token || '';
+        if (curEl) curEl.value = cfg.currency || 'DZD';
+        if (testEl) testEl.value = cfg.test_event_code || '';
+      } catch (err) {
+        console.warn('Could not load Meta CAPI settings:', err);
+      }
+    }
+
+    async function saveMetaCapiSettings() {
+      const btn = document.getElementById('btn-save-meta-capi');
+      const origHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جاري الحفظ...';
+      }
+      try {
+        const payload = {
+          enabled: document.getElementById('meta-capi-enabled')?.checked ?? true,
+          dataset_id: (document.getElementById('meta-capi-dataset-id')?.value || '').trim(),
+          access_token: (document.getElementById('meta-capi-access-token')?.value || '').trim(),
+          currency: (document.getElementById('meta-capi-currency')?.value || 'DZD').trim(),
+          test_event_code: (document.getElementById('meta-capi-test-code')?.value || '').trim()
+        };
+        const res = await fetch('/api/admin/meta-capi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'فشل الحفظ');
+        showToast(data.message || 'تم حفظ إعدادات Meta Conversions API بنجاح!', 'success');
+      } catch (err) {
+        showToast(err.message || 'حدث خطأ أثناء حفظ إعدادات CAPI', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+        }
+      }
+    }
+
+    async function sendTestMetaCapiEvent() {
+      const btn = document.getElementById('btn-test-meta-capi');
+      const statusBox = document.getElementById('meta-capi-status-box');
+      const origHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جاري الإرسال إلى فيسبوك...';
+      }
+      try {
+        await saveMetaCapiSettings();
+        const testCode = (document.getElementById('meta-capi-test-code')?.value || '').trim();
+        const res = await fetch('/api/admin/meta-capi/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ eventName: 'Purchase', testEventCode: testCode || undefined })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'فشل إرسال الحدث التجريبي');
+        }
+        showToast(data.message, 'success');
+        if (statusBox) {
+          statusBox.style.display = 'block';
+          statusBox.innerHTML = `<div class="alert alert-success py-2 px-3 mb-0 small"><i class="bi bi-check-circle-fill me-1"></i> <strong>نجح الاتصال بـ Meta Graph API!</strong> تم استلام الحدث (${data.metaResponse?.events_received || 1} event) — Trace ID: <code>${data.metaResponse?.fbtrace_id || ''}</code></div>`;
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+        if (statusBox) {
+          statusBox.style.display = 'block';
+          statusBox.innerHTML = `<div class="alert alert-danger py-2 px-3 mb-0 small"><i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>خطأ:</strong> ${err.message}</div>`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+        }
       }
     }
 

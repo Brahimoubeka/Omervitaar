@@ -638,6 +638,14 @@ function initDirectCheckout(product) {
 
         localStorage.setItem('last_checkout_submit', now.toString());
 
+        try {
+          const metaEvId = result.metaEventId || ('purchase_' + (result.orderId || Date.now()));
+          const paidVal = result.finalTotal !== undefined ? Number(result.finalTotal) : Number(requestData.finalTotal || 0);
+          if (typeof window.fbq === 'function') {
+            window.fbq('track', 'Purchase', { value: paidVal, currency: 'DZD' }, { eventID: metaEvId });
+          }
+        } catch (_) {}
+
         showDirectCartMessage('تم تقديم طلبك بنجاح! سنتواصل معك هاتفياً لتأكيد الطلبية.', 'success');
         form.reset();
         form.classList.remove('was-validated');

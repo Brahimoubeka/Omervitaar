@@ -270,6 +270,19 @@ async function loadProductDetail() {
     // Store product data globally for button functionality
     window.currentProduct = product;
 
+    // Track ViewContent on both Browser Meta Pixel & Server Conversions API
+    try {
+      if (typeof window.omvTrackMetaEvent === 'function') {
+        window.omvTrackMetaEvent('ViewContent', {
+          content_name: product.name,
+          content_ids: [String(product.id)],
+          content_type: 'product',
+          value: Number(product.price || 0),
+          currency: 'DZD'
+        });
+      }
+    } catch (_) {}
+
     // Update page SEO and URL
     updatePageSEO(product);
     updateBreadcrumb(product);
@@ -617,6 +630,19 @@ async function loadProductDetail() {
       localStorage.setItem('cart', JSON.stringify(cart));
       if (typeof updateCartCounter === 'function') updateCartCounter();
       if (typeof updateCartCount === 'function') updateCartCount();
+
+      // Track AddToCart on both Browser Meta Pixel & Server Conversions API
+      try {
+        if (typeof window.omvTrackMetaEvent === 'function') {
+          window.omvTrackMetaEvent('AddToCart', {
+            content_name: product.name,
+            content_ids: [String(product.id)],
+            content_type: 'product',
+            value: Number(product.price || 0),
+            currency: 'DZD'
+          });
+        }
+      } catch (_) {}
 
       // Show enhanced cart popup with product info
       showCartMessage('<i class="bi bi-check-circle-fill"></i> تم إضافة المنتج إلى السلة!', 'success', product);

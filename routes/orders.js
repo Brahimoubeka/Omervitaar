@@ -209,21 +209,57 @@ router.post('/orders', [
             promoCode: (promoCode || promo_code || '').trim()
         });
 
-        // Respond immediately to the user so SMTP never blocks order confirmation
+        const metaEventId = req.body.metaEventId || `purchase_${result.order_ref}`;
+        const effectiveFinal = result.calculatedFinalTotal !== undefined ? result.calculatedFinalTotal : finalTotal;
+
+        // Respond immediately to the user so SMTP/CAPI never blocks order confirmation
         res.json({
             success: true,
             message: 'تم استلام طلبك بنجاح',
             orderId: result.order_id,
-            orderRef: result.order_ref
+            orderRef: result.order_ref,
+            metaEventId: metaEventId,
+            finalTotal: effectiveFinal
         });
 
-        // Send order confirmation emails asynchronously in the background
+        // Send Meta CAPI Purchase event & order confirmation emails asynchronously in the background
         setImmediate(async () => {
+            try {
+                const { sendMetaCapiEvent } = require('../utils/meta-capi');
+                const contentIds = items.map(i => String(i.id || i.name || 'item'));
+                const totalQty = items.reduce((sum, i) => sum + (parseInt(i.quantity, 10) || 1), 0);
+                await sendMetaCapiEvent({
+                    eventName: 'Purchase',
+                    eventId: metaEventId,
+                    eventSourceUrl: req.body.sourceUrl || req.headers.referer || 'https://omervita.com/cart',
+                    req,
+                    userData: {
+                        phone: shippingName,
+                        email: userData?.email,
+                        firstName,
+                        lastName,
+                        city: city || province,
+                        fbp: req.body.fbp || req.cookies?._fbp,
+                        fbc: req.body.fbc || req.cookies?._fbc
+                    },
+                    customData: {
+                        value: effectiveFinal,
+                        currency: 'DZD',
+                        content_ids: contentIds,
+                        content_name: items.map(i => i.name).filter(Boolean).join(' + '),
+                        content_type: 'product',
+                        num_items: totalQty,
+                        order_id: String(result.order_ref)
+                    }
+                });
+            } catch (capiErr) {
+                console.warn('[Meta CAPI] Order Purchase event warning:', capiErr.message);
+            }
+
             try {
                 const { generateOrderEmailHtml } = require('../utils/order-receipt');
                 const effectiveDelivery = result.calculatedDeliveryCost !== undefined ? result.calculatedDeliveryCost : deliveryCost;
                 const effectiveDiscount = result.discountAmount !== undefined ? result.discountAmount : 0;
-                const effectiveFinal = result.calculatedFinalTotal !== undefined ? result.calculatedFinalTotal : finalTotal;
                 const effectivePromo = result.appliedPromo ? result.appliedPromo.code : ((promoCode || promo_code || '').trim() || null);
 
                 const orderDetails = generateOrderEmailHtml({

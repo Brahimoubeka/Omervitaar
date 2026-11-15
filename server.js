@@ -912,8 +912,15 @@ async function removeFromSupabaseBranding(publicUrl) {
 app.get('/api/site-settings', async (req, res) => {
   try {
     const settings = await getSiteSettings();
+    const publicSettings = { ...settings };
+    if (publicSettings.meta_capi) {
+      publicSettings.meta_capi = {
+        enabled: Boolean(publicSettings.meta_capi.enabled),
+        dataset_id: publicSettings.meta_capi.dataset_id || ''
+      };
+    }
     res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-    res.json(settings);
+    res.json(publicSettings);
   } catch (e) {
     res.status(500).json({ error: 'خطأ في تحميل إعدادات الموقع', details: e.message });
   }

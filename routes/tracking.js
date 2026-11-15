@@ -2,6 +2,82 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const jwt = require('jsonwebtoken');
+const { getMetaCapiConfig, invalidateMetaCapiCache, sendMetaCapiEvent } = require('../utils/meta-capi');
+
+const OMV_CAPI_CLIENT_HELPER = `<script id="omv-meta-capi-helper">
+(function() {
+  if (window.__omv_capi_helper_loaded__) return;
+  window.__omv_capi_helper_loaded__ = true;
+
+  function getCookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\\[\\]\\\\/+^])/g, '\\\\$1') + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  // Capture fbclid from URL into _fbc cookie for maximum Meta Event Match Quality
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var fbclid = params.get('fbclid');
+    if (fbclid && !getCookie('_fbc')) {
+      var fbcVal = 'fb.1.' + Date.now() + '.' + fbclid;
+      document.cookie = '_fbc=' + fbcVal + '; path=/; max-age=7776000; SameSite=Lax';
+    }
+  } catch (_) {}
+
+  window.omvGetMetaBrowserIds = function() {
+    return {
+      fbp: getCookie('_fbp') || undefined,
+      fbc: getCookie('_fbc') || undefined
+    };
+  };
+
+  window.omvTrackMetaEvent = function(eventName, customData, userData, explicitEventId, skipServerPost) {
+    try {
+      var evId = explicitEventId || (eventName.toLowerCase() + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8));
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', eventName, customData || {}, { eventID: evId });
+      }
+      if (!skipServerPost) {
+        var ids = window.omvGetMetaBrowserIds();
+        var payload = {
+          eventName: eventName,
+          eventId: evId,
+          eventSourceUrl: window.location.href,
+          customData: customData || {},
+          userData: Object.assign({}, userData || {}, ids)
+        };
+        fetch('/api/capi/event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(function() {});
+      }
+      return evId;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  // Send server-side PageView CAPI event once per page load (skip on admin pages)
+  if ((window.location.pathname || '').indexOf('/admin') !== 0) {
+    setTimeout(function() {
+      var ids = window.omvGetMetaBrowserIds();
+      fetch('/api/capi/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'PageView',
+          eventId: 'pv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+          eventSourceUrl: window.location.href,
+          userData: ids
+        }),
+        keepalive: true
+      }).catch(function() {});
+    }, 350);
+  }
+})();
+</script>`;
 
 // Cache for compiled scripts to avoid database queries on every page view
 let scriptsCache = {
@@ -35,6 +111,7 @@ async function getCompiledTrackingScripts(forceRefresh = false) {
         head.push(code);
       }
     });
+    head.push(OMV_CAPI_CLIENT_HELPER);
     scriptsCache = {
       headScripts: head.join('\n\n'),
       bodyScripts: body.join('\n\n'),
@@ -282,6 +359,121 @@ router.delete('/admin/tracking-scripts/:id', verifyAdminToken, async (req, res) 
   } catch (err) {
     console.error('Error deleting tracking script:', err);
     res.status(500).json({ error: 'خطأ في حذف كود التتبع', details: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 8. PUBLIC: POST /api/capi/event
+// Receives browser events (PageView, ViewContent, AddToCart, InitiateCheckout) and forwards to Meta CAPI
+// --------------------------------------------------------------------------
+router.post('/capi/event', async (req, res) => {
+  const { eventName, eventId, eventSourceUrl, customData, userData } = req.body || {};
+  // Respond immediately so browser is never delayed
+  res.status(202).json({ queued: true });
+
+  setImmediate(async () => {
+    try {
+      await sendMetaCapiEvent({
+        eventName: eventName || 'PageView',
+        eventId,
+        eventSourceUrl: eventSourceUrl || req.headers.referer || 'https://omervita.com/',
+        req,
+        userData: userData || {},
+        customData: customData || {}
+      });
+    } catch (_) {}
+  });
+});
+
+// --------------------------------------------------------------------------
+// 9. ADMIN: GET /api/admin/meta-capi
+// Returns Meta Conversions API settings
+// --------------------------------------------------------------------------
+router.get('/admin/meta-capi', verifyAdminToken, async (req, res) => {
+  try {
+    const config = await getMetaCapiConfig(true);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(500).json({ error: 'خطأ في جلب إعدادات Meta Conversions API', details: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 10. ADMIN: POST /api/admin/meta-capi
+// Updates Meta Conversions API settings in site_settings
+// --------------------------------------------------------------------------
+router.post('/admin/meta-capi', verifyAdminToken, async (req, res) => {
+  try {
+    const { enabled, dataset_id, access_token, currency, test_event_code } = req.body || {};
+    const current = await getMetaCapiConfig(true);
+
+    const newConfig = {
+      enabled: enabled !== undefined ? Boolean(enabled) : current.enabled,
+      dataset_id: dataset_id !== undefined ? String(dataset_id).trim() : current.dataset_id,
+      access_token: access_token !== undefined ? String(access_token).trim() : current.access_token,
+      currency: currency !== undefined ? String(currency).trim().toUpperCase() : (current.currency || 'DZD'),
+      test_event_code: test_event_code !== undefined ? String(test_event_code).trim() : (current.test_event_code || '')
+    };
+
+    await pool.query(
+      'UPDATE public.site_settings SET meta_capi = $1::jsonb WHERE id = 1',
+      [JSON.stringify(newConfig)]
+    );
+    invalidateMetaCapiCache();
+    invalidateTrackingCache();
+
+    res.json({
+      success: true,
+      message: 'تم حفظ إعدادات Meta Conversions API بنجاح!',
+      config: newConfig
+    });
+  } catch (err) {
+    console.error('Error saving Meta CAPI config:', err);
+    res.status(500).json({ error: 'خطأ في حفظ إعدادات Meta Conversions API', details: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 11. ADMIN: POST /api/admin/meta-capi/test
+// Sends a live test event to Meta Graph API and returns the result
+// --------------------------------------------------------------------------
+router.post('/admin/meta-capi/test', verifyAdminToken, async (req, res) => {
+  try {
+    const { eventName, testEventCode } = req.body || {};
+    const result = await sendMetaCapiEvent({
+      eventName: eventName || 'Purchase',
+      eventId: 'admin_test_' + Date.now(),
+      eventSourceUrl: 'https://omervita.com/',
+      req,
+      testEventCode,
+      userData: {
+        phone: '0555123456',
+        firstName: 'Omervita',
+        lastName: 'Customer',
+        city: 'Algiers'
+      },
+      customData: {
+        currency: 'DZD',
+        value: 3500,
+        content_name: 'اختبار ربط Meta Conversions API',
+        content_type: 'product'
+      }
+    });
+
+    if (result && result.ok) {
+      return res.json({
+        success: true,
+        message: 'تم إرسال الحدث التجريبي إلى فيسبوك بنجاح! (Events Received: ' + (result.response?.events_received || 1) + ')',
+        metaResponse: result.response
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      error: result?.response?.error?.message || result?.error || 'فشل إرسال الحدث التجريبي إلى فيسبوك',
+      details: result
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'خطأ أثناء اختبار Meta Conversions API', details: err.message });
   }
 });
 
