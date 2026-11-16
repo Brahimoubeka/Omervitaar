@@ -14,20 +14,40 @@ const OMV_CAPI_CLIENT_HELPER = `<script id="omv-meta-capi-helper">
     return m ? decodeURIComponent(m[1]) : '';
   }
 
-  // Capture fbclid from URL into _fbc cookie for maximum Meta Event Match Quality
+  function setCookie(name, val, maxAgeSec) {
+    document.cookie = name + '=' + val + '; path=/; max-age=' + (maxAgeSec || 7776000) + '; SameSite=Lax';
+  }
+
+  // Meta Parameter Builder Client-Side Best Practices:
+  // 1. Capture fbclid from URL immediately into _fbc cookie (preserving exact case-sensitivity!)
+  // 2. Ensure _fbp browser ID cookie exists immediately on landing (even if ad-blocker delays fbevents.js)
+  // 3. Ensure persistent external_id (_omv_ext_id) exists for cross-session matching
   try {
-    var params = new URLSearchParams(window.location.search);
-    var fbclid = params.get('fbclid');
-    if (fbclid && !getCookie('_fbc')) {
-      var fbcVal = 'fb.1.' + Date.now() + '.' + fbclid;
-      document.cookie = '_fbc=' + fbcVal + '; path=/; max-age=7776000; SameSite=Lax';
+    var searchStr = window.location.search || '';
+    var fbclidMatch = searchStr.match(/[?&]fbclid=([^&#]+)/);
+    if (fbclidMatch && fbclidMatch[1]) {
+      var rawFbclid = decodeURIComponent(fbclidMatch[1]);
+      var existingFbc = getCookie('_fbc');
+      if (!existingFbc || existingFbc.indexOf(rawFbclid) === -1) {
+        setCookie('_fbc', 'fb.1.' + Date.now() + '.' + rawFbclid, 7776000);
+      }
+    }
+    if (!getCookie('_fbp')) {
+      var rand10 = Math.floor(1000000000 + Math.random() * 9000000000);
+      setCookie('_fbp', 'fb.1.' + Date.now() + '.' + rand10, 7776000);
+    }
+    if (!getCookie('_omv_ext_id')) {
+      var extId = 'omv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+      setCookie('_omv_ext_id', extId, 31536000);
     }
   } catch (_) {}
 
   window.omvGetMetaBrowserIds = function() {
     return {
       fbp: getCookie('_fbp') || undefined,
-      fbc: getCookie('_fbc') || undefined
+      fbc: getCookie('_fbc') || undefined,
+      external_id: getCookie('_omv_ext_id') || undefined,
+      referrer_url: document.referrer || undefined
     };
   };
 
@@ -43,6 +63,7 @@ const OMV_CAPI_CLIENT_HELPER = `<script id="omv-meta-capi-helper">
           eventName: eventName,
           eventId: evId,
           eventSourceUrl: window.location.href,
+          referrerUrl: document.referrer || undefined,
           customData: customData || {},
           userData: Object.assign({}, userData || {}, ids)
         };
@@ -70,6 +91,7 @@ const OMV_CAPI_CLIENT_HELPER = `<script id="omv-meta-capi-helper">
           eventName: 'PageView',
           eventId: 'pv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
           eventSourceUrl: window.location.href,
+          referrerUrl: document.referrer || undefined,
           userData: ids
         }),
         keepalive: true
@@ -367,7 +389,15 @@ router.delete('/admin/tracking-scripts/:id', verifyAdminToken, async (req, res) 
 // Receives browser events (PageView, ViewContent, AddToCart, InitiateCheckout) and forwards to Meta CAPI
 // --------------------------------------------------------------------------
 router.post('/capi/event', async (req, res) => {
-  const { eventName, eventId, eventSourceUrl, customData, userData } = req.body || {};
+  const { eventName, eventId, eventSourceUrl, referrerUrl, customData, userData } = req.body || {};
+  // Save client IP in _fbi cookie as recommended by Meta Parameter Builder
+  try {
+    const { extractClientIp } = require('../utils/meta-capi');
+    const ip = extractClientIp && extractClientIp(req);
+    if (ip && (!req.cookies || !req.cookies._fbi)) {
+      res.cookie('_fbi', ip, { maxAge: 90 * 24 * 60 * 60 * 1000, httpOnly: false, sameSite: 'Lax', path: '/' });
+    }
+  } catch (_) {}
   // Respond immediately so browser is never delayed
   res.status(202).json({ queued: true });
 
@@ -377,6 +407,7 @@ router.post('/capi/event', async (req, res) => {
         eventName: eventName || 'PageView',
         eventId,
         eventSourceUrl: eventSourceUrl || req.headers.referer || 'https://omervita.com/',
+        referrerUrl: referrerUrl || req.headers.referer || undefined,
         req,
         userData: userData || {},
         customData: customData || {}

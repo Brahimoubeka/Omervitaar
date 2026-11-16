@@ -67,24 +67,39 @@ function normalizeAndHashPhone(rawPhone) {
 }
 
 function extractClientIp(req) {
-  if (!req || !req.headers) return undefined;
-  const cfIp = req.headers['cf-connecting-ip'];
-  if (cfIp) return String(cfIp).split(',')[0].trim();
-  const xff = req.headers['x-forwarded-for'];
-  if (xff) return String(xff).split(',')[0].trim();
-  const realIp = req.headers['x-real-ip'];
-  if (realIp) return String(realIp).trim();
-  return req.socket?.remoteAddress || req.ip || undefined;
+  if (!req) return undefined;
+  const candidates = [];
+  if (req.headers) {
+    if (req.headers['cf-connecting-ip']) candidates.push(...String(req.headers['cf-connecting-ip']).split(','));
+    if (req.headers['x-forwarded-for']) candidates.push(...String(req.headers['x-forwarded-for']).split(','));
+    if (req.headers['x-real-ip']) candidates.push(String(req.headers['x-real-ip']));
+  }
+  if (req.cookies && req.cookies._fbi) {
+    candidates.push(String(req.cookies._fbi));
+  }
+  if (req.socket?.remoteAddress) candidates.push(req.socket.remoteAddress);
+  if (req.ip) candidates.push(req.ip);
+
+  const cleaned = candidates
+    .map(ip => String(ip || '').trim().replace(/^::ffff:/, ''))
+    .filter(Boolean);
+
+  // Meta Parameter Builder best practice: Prefer IPv6 address over IPv4 when available
+  const ipv6 = cleaned.find(ip => ip.includes(':') && ip !== '::1');
+  if (ipv6) return ipv6;
+  return cleaned[0] || undefined;
 }
 
 /**
  * Send an event directly from the server to Meta Conversions API (Graph API v20.0)
+ * Implements Meta Parameter Builder Library best practices (fbc, fbp, client_ip_address, referrer_url, event_source_url, normalized SHA-256 keys)
  */
 async function sendMetaCapiEvent({
   eventName,
   eventId,
   eventTime,
   eventSourceUrl,
+  referrerUrl,
   req,
   userData = {},
   customData = {},
@@ -98,8 +113,10 @@ async function sendMetaCapiEvent({
 
     const clientIp = userData.client_ip_address || extractClientIp(req);
     const clientUa = userData.client_user_agent || (req && req.headers ? req.headers['user-agent'] : undefined);
-    const fbp = userData.fbp || (req && req.cookies ? req.cookies._fbp : undefined);
-    const fbc = userData.fbc || (req && req.cookies ? req.cookies._fbc : undefined);
+    // Preserve exact case-sensitivity of _fbc and _fbp as required by Meta Parameter Builder
+    const fbp = (userData.fbp || (req && req.cookies ? req.cookies._fbp : undefined) || '').trim() || undefined;
+    const fbc = (userData.fbc || (req && req.cookies ? req.cookies._fbc : undefined) || '').trim() || undefined;
+    const externalIdRaw = userData.external_id || (req && req.cookies ? req.cookies._omv_ext_id : undefined);
 
     const formattedUserData = {
       country: [sha256Hash(userData.country || 'dz')]
@@ -123,8 +140,8 @@ async function sendMetaCapiEvent({
       formattedUserData.st = [hashedCity];
     }
 
-    if (userData.external_id) {
-      formattedUserData.external_id = [sha256Hash(userData.external_id)];
+    if (externalIdRaw) {
+      formattedUserData.external_id = [sha256Hash(externalIdRaw)];
     }
 
     if (clientIp) formattedUserData.client_ip_address = clientIp;
@@ -132,13 +149,20 @@ async function sendMetaCapiEvent({
     if (fbp) formattedUserData.fbp = fbp;
     if (fbc) formattedUserData.fbc = fbc;
 
+    const resolvedSourceUrl = eventSourceUrl || (req && req.headers && req.headers.referer) || 'https://omervita.com/';
+    const resolvedReferrerUrl = referrerUrl || userData.referrer_url || (req && req.headers && req.headers.referer) || undefined;
+
     const eventObj = {
       event_name: eventName || 'PageView',
       event_time: eventTime || Math.floor(Date.now() / 1000),
       action_source: 'website',
-      event_source_url: eventSourceUrl || (req && req.headers && req.headers.referer) || 'https://omervita.com/',
+      event_source_url: resolvedSourceUrl,
       user_data: formattedUserData
     };
+
+    if (resolvedReferrerUrl) {
+      eventObj.referrer_url = resolvedReferrerUrl;
+    }
 
     if (eventId) {
       eventObj.event_id = String(eventId);
@@ -209,6 +233,7 @@ module.exports = {
   invalidateMetaCapiCache,
   sendMetaCapiEvent,
   sha256Hash,
-  normalizeAndHashPhone
+  normalizeAndHashPhone,
+  extractClientIp
 };
 
